@@ -24,8 +24,8 @@ Credits do not always cover every service. Check the "Eligible services" on the 
 ```powershell
 cd <your AirCompass folder>
 git pull
-py -3.12 -m venv E:\venv312          # once; needs Python 3.12 from python.org (see below)
-E:\venv312\Scripts\Activate.ps1
+py -3.12 -m venv C:\venv312          # once; needs Python 3.12 from python.org (see below)
+C:\venv312\Scripts\Activate.ps1
 python --version                      # must say 3.12.x
 pip install -r requirements-dev.txt
 ```
@@ -47,7 +47,7 @@ Console → switch region to **Asia Pacific (Mumbai) ap-south-1** → Amazon Bed
 You can skip this; the site still works, it just hides the "In plain words" box.
 
 ## 5. Build and deploy
-Keep the `E:\venv312` venv active (sam build uses the Python 3.12 on PATH).
+Keep the `C:\venv312` venv active (sam build uses the Python 3.12 on PATH).
 ```powershell
 sam build
 sam deploy --guided
@@ -82,7 +82,7 @@ Next time you only need `sam build` and `sam deploy` (no `--guided`).
    An area only emails when its plan changed since the last run, so the first run always sends.
 
 ## If something fails
-- **`sam build` fails on a long path:** make sure LongPathsEnabled is on (we did this for pip), or move the project to a short folder like `E:\ac`.
+- **`sam build` fails on a long path:** make sure LongPathsEnabled is on (we did this for pip), or move the project to a short folder like `C:\ac`.
 - **`sam build` says Python 3.12 not found:** activate the venv first (step 2).
 - **Deploy fails with "not authorized":** your AWS user needs admin rights for the deploy.
 - **The summary box says "not available":** Bedrock access (step 4) is not enabled yet.
