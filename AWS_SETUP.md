@@ -33,7 +33,7 @@ sam deploy --guided   # accept the defaults; give BudgetEmail and AlarmEmail if 
 ```
 Open the `SiteUrl` from the outputs, subscribe your own email on a plan page, and confirm it. Then send a test alert:
 ```bash
-sam remote invoke AlertFunction --stack-name saans-compass --event '{"run": "today"}'
+sam remote invoke AlertFunction --stack-name saans-compass --event-file events/today.json
 ```
 
 Set the GRAP stage CAQM has declared (or `unset` to go back to the AQI estimate):

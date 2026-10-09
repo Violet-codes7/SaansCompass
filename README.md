@@ -78,7 +78,7 @@ Without AWS variables the app uses an in-memory cache, the subscribe form says a
 
 ## Deploy (region ap-south-1)
 
-Needs the AWS CLI, SAM CLI and Python 3.12.
+Needs the AWS CLI, SAM CLI and Python 3.12. On Windows, follow [DEPLOY_WINDOWS.md](DEPLOY_WINDOWS.md).
 
 ```bash
 aws configure sso          # or any credentials for the deploying user
@@ -89,7 +89,7 @@ sam deploy --guided        # stack saans-compass, ap-south-1; optional BudgetEma
 The `SiteUrl` output is the public URL. To send an alert on demand (for the demo):
 
 ```bash
-sam remote invoke AlertFunction --stack-name saans-compass --event '{"run": "today"}'
+sam remote invoke AlertFunction --stack-name saans-compass --event-file events/today.json
 ```
 
 An area only emails when its plan changed since the last run for that day type. Subscribers must click the SNS confirmation email first.
