@@ -1,26 +1,20 @@
-// Delivery and gig rider rules. See school.cedar for what @status means.
+// Delivery and gig rider rules, from CAQM's GRAP schedule for NCR,
+// Revision 29.09.2026. See school.cedar for what the annotations mean.
 
-@id("rider.diesel_goods_vehicle.stage4")
-@clause("GRAP Stage IV: Delhi-registered BS-IV and older diesel goods vehicles barred except essential services. TO VERIFY")
-@status("draft")
-forbid (
-  principal == Persona::"rider",
-  action == Action::"drive_bs4_diesel_lcv",
-  resource
-) when { context.stage >= 4 };
-
-@id("rider.diesel_goods_vehicle.below_stage4")
-@clause("No GRAP restriction on these goods vehicles below Stage IV. TO VERIFY")
-@status("draft")
+@id("rider.two_wheeler.below_stage4")
+@clause("GRAP Rev. 29.09.2026: no Stage I to III action restricts two-wheelers")
+@status("verified")
 permit (
   principal == Persona::"rider",
-  action == Action::"drive_bs4_diesel_lcv",
+  action == Action::"outdoor_shift",
   resource
 ) when { context.stage < 4 };
+// At Stage IV, item 5 lets states add emergency measures such as odd-even,
+// so the shift has no policy there and shows "Check the official order".
 
 @id("rider.bs3_petrol_bs4_diesel_car.stage3")
-@clause("GRAP Stage III: BS-III petrol and BS-IV diesel four-wheelers (LMV) restricted. TO VERIFY")
-@status("draft")
+@clause("GRAP Rev. 29.09.2026, Stage III item 4: strict restrictions on BS-III petrol and BS-IV (or older) diesel four-wheelers (LMVs) in Delhi; exception for vehicles adapted for persons with disabilities")
+@status("verified")
 forbid (
   principal == Persona::"rider",
   action == Action::"drive_bs3_petrol_bs4_diesel_car",
@@ -28,12 +22,46 @@ forbid (
 ) when { context.stage >= 3 };
 
 @id("rider.bs3_petrol_bs4_diesel_car.below_stage3")
-@clause("No GRAP restriction on these cars below Stage III. TO VERIFY")
-@status("draft")
+@clause("GRAP Rev. 29.09.2026: no Stage I or II action restricts these four-wheelers")
+@status("verified")
 permit (
   principal == Persona::"rider",
   action == Action::"drive_bs3_petrol_bs4_diesel_car",
   resource
 ) when { context.stage < 3 };
 
-// The two-wheeler shift and rest break have no policy yet.
+@id("rider.outside_lgv.stage3")
+@clause("GRAP Rev. 29.09.2026, Stage III item 7: diesel BS-IV (or older) light goods vehicles registered outside Delhi may not enter Delhi")
+@status("verified")
+forbid (
+  principal == Persona::"rider",
+  action == Action::"drive_bs4_diesel_lgv_outside",
+  resource
+) when { context.stage >= 3 };
+
+@id("rider.outside_lgv.below_stage3")
+@clause("GRAP Rev. 29.09.2026: no Stage I or II action restricts these light goods vehicles")
+@status("verified")
+permit (
+  principal == Persona::"rider",
+  action == Action::"drive_bs4_diesel_lgv_outside",
+  resource
+) when { context.stage < 3 };
+
+@id("rider.mgv.stage3")
+@clause("GRAP Rev. 29.09.2026, Stage III items 5 and 6: strict restrictions on Delhi-registered diesel BS-IV (or older) medium goods vehicles in Delhi, and no entry for those registered outside Delhi")
+@status("verified")
+forbid (
+  principal == Persona::"rider",
+  action == Action::"drive_bs4_diesel_mgv",
+  resource
+) when { context.stage >= 3 };
+
+@id("rider.mgv.below_stage3")
+@clause("GRAP Rev. 29.09.2026: no Stage I or II action restricts these medium goods vehicles")
+@status("verified")
+permit (
+  principal == Persona::"rider",
+  action == Action::"drive_bs4_diesel_mgv",
+  resource
+) when { context.stage < 3 };

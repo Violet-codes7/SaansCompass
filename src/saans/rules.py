@@ -4,6 +4,8 @@ Every answer is one of three decisions, each tied to the policy behind it:
 
 - ALLOWED: a verified permit matched and no forbid did.
 - NOT_ALLOWED: a verified forbid matched (forbid always beats permit).
+- ADVISED_AGAINST: a verified forbid marked @kind("advisory") matched: GRAP's
+  citizen charter advises against it, but no order restricts it.
 - CHECK: nothing matched, or only a draft rule did. An activity no verified
   rule covers must never come out as "Allowed".
 
@@ -21,11 +23,13 @@ RULES_DIR = Path(__file__).parent / "rules"
 
 ALLOWED = "allowed"
 NOT_ALLOWED = "not_allowed"
+ADVISED_AGAINST = "advised_against"
 CHECK = "check_official_order"
 
 LABELS = {
     ALLOWED: "Allowed",
     NOT_ALLOWED: "Not allowed",
+    ADVISED_AGAINST: "Advised against",
     CHECK: "Check the official order",
 }
 
@@ -54,6 +58,7 @@ class PolicyInfo:
     clause: str
     status: str
     effect: str
+    kind: str = "order"
 
 
 class RuleBook:
@@ -83,6 +88,7 @@ class RuleBook:
                 clause=ann.get("clause", ""),
                 status=ann.get("status", "draft"),
                 effect=body["effect"],
+                kind=ann.get("kind", "order"),
             )
         return out
 
@@ -100,6 +106,10 @@ class RuleBook:
                 problems.append(f"{info.id} has no @clause annotation")
             if info.status not in ("draft", "verified"):
                 problems.append(f"{info.id} has status {info.status!r}, expected draft or verified")
+            if info.kind not in ("order", "advisory"):
+                problems.append(f"{info.id} has kind {info.kind!r}, expected order or advisory")
+            if info.kind == "advisory" and info.effect != "forbid":
+                problems.append(f"{info.id} is advisory, which only makes sense on a forbid")
             if info.id in seen:
                 problems.append(f"duplicate policy id {info.id}")
             seen.add(info.id)
@@ -115,14 +125,14 @@ class RuleBook:
             "context": {"stage": int(stage)},
         }
         if not self.policies_text.strip():
-            return RuleResult(activity_id, CHECK, None, None, "No rule covers this activity yet.")
+            return RuleResult(activity_id, CHECK, None, None, "The GRAP schedule does not cover this.")
         result = cedarpy.is_authorized(request, self.policies_text, [])
         if result.diagnostics.errors:
             return RuleResult(activity_id, CHECK, None, None, "A rule could not be evaluated.")
 
         matched = [self.policies[r] for r in result.diagnostics.reasons]
         if not matched:
-            return RuleResult(activity_id, CHECK, None, None, "No rule covers this activity yet.")
+            return RuleResult(activity_id, CHECK, None, None, "The GRAP schedule does not cover this.")
 
         # Prefer citing a verified policy; forbids decide over permits.
         forbids = [p for p in matched if p.effect == "forbid"]
@@ -134,12 +144,17 @@ class RuleBook:
                 activity_id, CHECK, p.id, p.clause,
                 "This rule is a draft that has not been checked against the latest CAQM order.",
             )
-        p = verified[0]
-        decision = NOT_ALLOWED if forbids else ALLOWED
+        if forbids:
+            # A binding order outranks an advisory when both match.
+            orders = [p for p in verified if p.kind == "order"]
+            p = orders[0] if orders else verified[0]
+            decision = NOT_ALLOWED if orders else ADVISED_AGAINST
+        else:
+            p, decision = verified[0], ALLOWED
         return RuleResult(activity_id, decision, p.id, p.clause)
 
     def evaluate_persona(self, persona, area_id, stage):
-        return [self.evaluate(persona.id, a.id, area_id, stage) for a in persona.activities]
+        return [self.evaluate(persona.id, a.id, area_id, stage) for a in persona.activities if a.ruled]
 
 
 @lru_cache(maxsize=1)

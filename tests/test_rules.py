@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from saans.personas import PERSONAS
-from saans.rules import ALLOWED, CHECK, NOT_ALLOWED, RULES_DIR, RuleBook
+from saans.rules import ADVISED_AGAINST, ALLOWED, CHECK, NOT_ALLOWED, RULES_DIR, RuleBook
 
 SCHEMA = (RULES_DIR / "schema.cedarschema").read_text()
 
@@ -90,8 +90,7 @@ def test_empty_rulebook_is_check():
     assert RuleBook("", SCHEMA).evaluate("school", "outdoor_pe", "ito", 1).decision == CHECK
 
 
-def test_no_repo_rule_says_allowed_or_not_allowed_until_verified():
-    """Until the GRAP order is read, every shipped rule is a draft."""
+def test_only_verified_repo_rules_give_a_decision():
     book = RuleBook.from_dir()
     for persona in PERSONAS.values():
         for stage in range(5):
@@ -110,3 +109,68 @@ def test_every_non_check_answer_cites_a_policy(book):
             for r in book.evaluate_persona(persona, "ito", stage):
                 if r.decision != CHECK:
                     assert r.policy_id and r.clause
+
+
+ADVISORY = '''
+@id("t.walk.charter") @clause("Charter") @status("verified") @kind("advisory")
+forbid (principal == Persona::"older", action == Action::"outdoor_walk", resource) when { context.stage >= 4 };
+
+@id("t.walk.order") @clause("Order") @status("verified")
+forbid (principal == Persona::"older", action == Action::"outdoor_walk", resource) when { context.stage >= 5 };
+
+@id("t.walk.ok") @clause("Ok") @status("verified")
+permit (principal == Persona::"older", action == Action::"outdoor_walk", resource);
+'''
+
+
+def test_advisory_forbid_is_advised_against_not_a_ban():
+    book = RuleBook(ADVISORY, SCHEMA)
+    assert book.validate() == []
+    r = book.evaluate("older", "outdoor_walk", "ito", 4)
+    assert (r.decision, r.label, r.policy_id) == (ADVISED_AGAINST, "Advised against", "t.walk.charter")
+    assert book.evaluate("older", "outdoor_walk", "ito", 3).decision == ALLOWED
+
+
+def test_binding_order_outranks_advisory():
+    r = RuleBook(ADVISORY, SCHEMA).evaluate("older", "outdoor_walk", "ito", 5)
+    assert (r.decision, r.policy_id) == (NOT_ALLOWED, "t.walk.order")
+
+
+def test_advisory_on_a_permit_is_rejected():
+    bad = '@id("x") @clause("c") @status("verified") @kind("advisory") permit (principal, action, resource);'
+    assert any("advisory" in p for p in RuleBook(bad, SCHEMA).validate())
+
+
+def test_rest_break_is_not_a_rules_question():
+    results = RuleBook.from_dir().evaluate_persona(PERSONAS["rider"], "ito", 2)
+    assert "rest_break" not in [r.activity_id for r in results]
+
+
+def decide(persona, activity, stage):
+    r = RuleBook.from_dir().evaluate(persona, activity, "ito", stage)
+    return r.decision, r.policy_id
+
+
+# Expected answers from the GRAP schedule, Revision 29.09.2026.
+@pytest.mark.parametrize("persona,activity,stage,expected", [
+    ("school", "physical_classes_primary", 2, (ALLOWED, "school.primary_in_person.below_stage3")),
+    ("school", "physical_classes_primary", 3, (NOT_ALLOWED, "school.primary_hybrid.stage3")),  # Stage III 8(i)
+    ("school", "physical_classes_primary", 4, (NOT_ALLOWED, "school.primary_hybrid.stage3")),  # cumulative
+    ("school", "physical_classes_senior", 3, (ALLOWED, "school.senior_in_person.below_stage4")),
+    ("school", "physical_classes_senior", 4, (NOT_ALLOWED, "school.senior_hybrid.stage4")),  # Stage IV 4(i)
+    ("school", "outdoor_pe", 2, (ALLOWED, "school.outdoor_activity.below_stage4")),
+    ("school", "outdoor_pe", 3, (ALLOWED, "school.outdoor_activity.below_stage4")),
+    ("school", "outdoor_pe", 4, (ADVISED_AGAINST, "school.outdoor_activity.stage4_charter")),
+    ("school", "school_commute", 4, (CHECK, None)),
+    ("rider", "outdoor_shift", 3, (ALLOWED, "rider.two_wheeler.below_stage4")),
+    ("rider", "outdoor_shift", 4, (CHECK, None)),  # Stage IV item 5: states may add odd-even
+    ("rider", "drive_bs3_petrol_bs4_diesel_car", 2, (ALLOWED, "rider.bs3_petrol_bs4_diesel_car.below_stage3")),
+    ("rider", "drive_bs3_petrol_bs4_diesel_car", 3, (NOT_ALLOWED, "rider.bs3_petrol_bs4_diesel_car.stage3")),
+    ("rider", "drive_bs4_diesel_lgv_outside", 3, (NOT_ALLOWED, "rider.outside_lgv.stage3")),  # Stage III 7
+    ("rider", "drive_bs4_diesel_mgv", 3, (NOT_ALLOWED, "rider.mgv.stage3")),  # Stage III 5, 6
+    ("rider", "drive_bs4_diesel_mgv", 1, (ALLOWED, "rider.mgv.below_stage3")),
+    ("older", "outdoor_walk", 3, (ALLOWED, "older.outdoor.below_stage4")),
+    ("older", "outdoor_errands", 4, (ADVISED_AGAINST, "older.outdoor.stage4_charter")),
+])
+def test_repo_rules_match_the_schedule(persona, activity, stage, expected):
+    assert decide(persona, activity, stage) == expected

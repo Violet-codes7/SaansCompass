@@ -55,7 +55,12 @@ def test_rules_come_before_advice_in_the_plan(mem_store, live_fetcher):
     assert plan["stage"] == {"stage": 4, "label": "IV", "source": "official", "day_aqi": plan["stage"]["day_aqi"]}
     assert len(plan["rules"]) == len(PERSONAS["school"].activities)
     for a in plan["activities"]:
-        assert a["rule"]["label"] in ("Allowed", "Not allowed", "Check the official order")
+        assert a["rule"]["label"] in ("Allowed", "Not allowed", "Advised against", "Check the official order")
+    by_id = {a["id"]: a for a in plan["activities"]}
+    # Stage IV: primary classes must go hybrid, so the plan does not schedule them as usual.
+    assert by_id["physical_classes_primary"]["rule"]["decision"] == "not_allowed"
+    assert "Restricted at the GRAP stage" in by_id["physical_classes_primary"]["suggestion"]
+    assert by_id["outdoor_pe"]["rule"]["decision"] == "advised_against"
 
 
 def test_demo_fallback_is_labelled_and_not_cached(mem_store, failing_fetcher, capsys):

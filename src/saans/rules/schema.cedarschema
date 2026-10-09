@@ -8,6 +8,6 @@ action
   "school_commute", "outdoor_assembly", "outdoor_recess", "outdoor_pe",
   "physical_classes_primary", "physical_classes_senior",
   "outdoor_shift", "rest_break",
-  "drive_bs4_diesel_lcv", "drive_bs3_petrol_bs4_diesel_car",
+  "drive_bs3_petrol_bs4_diesel_car", "drive_bs4_diesel_lgv_outside", "drive_bs4_diesel_mgv",
   "outdoor_walk", "outdoor_errands"
   appliesTo { principal: [Persona], resource: [Area], context: { stage: Long } };

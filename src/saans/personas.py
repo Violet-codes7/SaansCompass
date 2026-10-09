@@ -26,6 +26,7 @@ class Activity:
     effort: str = "light"
     outdoor: bool = True
     movable: bool = True  # False for things like the commute that cannot move indoors
+    ruled: bool = True  # False for things GRAP has nothing to say about (a rest break)
 
 
 @dataclass(frozen=True)
@@ -82,8 +83,8 @@ PERSONAS = {
             Activity("outdoor_assembly", "Outdoor assembly", 8, 20, "light"),
             Activity("outdoor_recess", "Outdoor recess", 11, 30, "moderate"),
             Activity("outdoor_pe", "Outdoor PE / sports", 12, 40, "heavy"),
-            Activity("physical_classes_primary", "In-person classes, up to Class V", outdoor=False),
-            Activity("physical_classes_senior", "In-person classes, Class VI to IX and XI", outdoor=False),
+            Activity("physical_classes_primary", "Fully in-person classes, up to Class V", outdoor=False),
+            Activity("physical_classes_senior", "Fully in-person classes, Class VI to IX and XI", outdoor=False),
         ),
         verdict_labels={"go": "Go outdoors", "limit": "Limit outdoor time", "stay_in": "Keep activities indoors"},
     ),
@@ -102,9 +103,10 @@ PERSONAS = {
         commute_hour=11,
         activities=(
             Activity("outdoor_shift", "Riding shift on a two-wheeler", outdoor=True),
-            Activity("rest_break", "Main rest break", 15, 60, "rest"),
-            Activity("drive_bs4_diesel_lcv", "Deliveries in a BS-IV or older diesel goods vehicle", outdoor=False),
-            Activity("drive_bs3_petrol_bs4_diesel_car", "Deliveries in a BS-III petrol or BS-IV diesel car", outdoor=False),
+            Activity("rest_break", "Main rest break", 15, 60, "rest", ruled=False),
+            Activity("drive_bs3_petrol_bs4_diesel_car", "Deliveries in a BS-III petrol or BS-IV (or older) diesel car", outdoor=False),
+            Activity("drive_bs4_diesel_lgv_outside", "Light goods vehicle, BS-IV or older diesel, registered outside Delhi", outdoor=False),
+            Activity("drive_bs4_diesel_mgv", "Medium goods vehicle, BS-IV or older diesel", outdoor=False),
         ),
         verdict_labels={"go": "Normal shift", "limit": "Take breaks indoors", "stay_in": "Cut outdoor hours"},
         whole_window_exposure=True,

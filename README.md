@@ -37,9 +37,16 @@ src/saans/
 
 Routes: `/`, `/plan`, `/api/plan`, `/poster`, `POST /subscribe`, `/healthz`. Query: `persona` (school, rider, older), `area`, `stage` (0, I–IV, optional), `day` (today, tomorrow).
 
-## The rules are drafts until checked against the CAQM order
+## Where the rules come from
 
-Every policy in `src/saans/rules/` is `@status("draft")`: written from the structure of GRAP but not yet checked against the latest order from caqm.nic.in. The app shows "Check the official order" for any draft rule, while still citing it. To verify a rule, read its clause in the order, fill in `@clause` with the stage, item number and order date, and change it to `@status("verified")`. Tests fail if a policy is missing `@id` or `@clause`, or does not match the schema.
+The Cedar policies in `src/saans/rules/` are written from CAQM's GRAP schedule for NCR, **Revision 29.09.2026**. Each policy carries `@clause` (stage and item number) and `@status("verified")`. Stages are cumulative, as the schedule's paragraph 4 says, so a Stage III rule is `context.stage >= 3`.
+
+- Schedule actions become **Not allowed** (forbid) or **Allowed** (permit where no action at that stage restricts the activity).
+- Citizen-charter advice, such as Stage IV's "children and the elderly avoid outdoor activities", becomes **Advised against** (`@kind("advisory")`), because it advises but does not restrict.
+- Anything the schedule does not cover says **Check the official order**. Examples are the school commute, and a rider's shift at Stage IV, where item 5 lets states add measures such as odd-even.
+- A policy marked `@status("draft")` also shows "Check the official order".
+
+When CAQM revises GRAP, edit the policies and their tests in `tests/test_rules.py`. The code does not change.
 
 ## Run locally
 
@@ -78,7 +85,7 @@ GitHub Actions runs the tests and `cfn-lint` on every push. Deploys from `main` 
 - The forecast is a model (Open-Meteo), not a ground station.
 - The GRAP stage shown is an estimate unless you set the official one.
 - Activity thresholds and breath dose are our own heuristics, not medical advice.
-- Rules are drafts until checked against the official order (see above).
+- Rules follow the GRAP schedule; the stage actually in force is declared by CAQM, and Delhi departments may issue extra orders.
 
 ## Credits
 

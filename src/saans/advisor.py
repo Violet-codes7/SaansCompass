@@ -8,7 +8,7 @@ import math
 
 from . import data
 from .dose import total_dose
-from .rules import NOT_ALLOWED, CHECK
+from .rules import ADVISED_AGAINST, NOT_ALLOWED, CHECK
 
 
 def best_window(readings, minutes, prefer="cleanest"):
@@ -100,7 +100,9 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results):
         at_aqi = at["aqi"] if at else None
         suggestion = None
         if rule and rule.decision == NOT_ALLOWED:
-            suggestion = "Not allowed at the GRAP stage in force, so it is left out of the plan."
+            suggestion = "Restricted at the GRAP stage in force. The rule says what applies instead."
+        elif rule and rule.decision == ADVISED_AGAINST:
+            suggestion = "GRAP's citizen charter advises against this at this stage. Keep it indoors or skip it."
         elif a.id == flex.id and window and persona.flex_prefers == "cleanest" and verdict == "stay_in":
             suggestion = (f"Even the cleanest time ({window['start']}, AQI about {window['avg_aqi']}) "
                           "is too poor. Keep it indoors.")
@@ -145,7 +147,7 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results):
     if forecast["is_demo"]:
         warnings.insert(0, "Demo data: the live forecast could not be reached.")
     if any(r.decision == CHECK for r in rule_results):
-        warnings.append('Some answers say "Check the official order": no verified rule covers them yet.')
+        warnings.append('Some answers say "Check the official order": the GRAP schedule does not cover them.')
 
     if persona.flex_prefers == "cleanest":
         window_title = f"Cleanest time for: {flex.label}"

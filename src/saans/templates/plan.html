@@ -32,9 +32,9 @@
 <div class="two">
   <section class="panel rules">
     <h2><span class="step">1</span> GRAP rules</h2>
-    <p class="small">Each answer names the rule behind it. A rule we could not verify says "Check the official order", never "Allowed".</p>
+    <p class="small">Each answer names the rule behind it. Rules come from CAQM's GRAP schedule, Revision 29.09.2026. Anything it does not cover says "Check the official order", never "Allowed".</p>
     <ul class="rule-list">
-      {% for a in plan.activities %}{% set r = a.rule %}
+      {% for a in plan.activities if a.rule %}{% set r = a.rule %}
       <li class="rule {{ r.decision }}">
         <div class="rule-head"><span>{{ a.label }}</span><b class="pill {{ r.decision }}">{{ r.label }}</b></div>
         {% if r.policy_id %}<code>{{ r.policy_id }}</code><span class="clause">{{ r.clause }}</span>{% endif %}
