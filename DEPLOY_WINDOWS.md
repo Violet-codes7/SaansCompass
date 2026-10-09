@@ -2,6 +2,15 @@
 
 About 20 minutes the first time. Run every command in **PowerShell** from the project folder. Never paste keys or passwords into chat.
 
+## 0. AWS account and student credits (once)
+1. Create an AWS account at https://aws.amazon.com (a card is required even with credits).
+2. Turn on MFA for the root user: account menu → Security credentials → Assign MFA device.
+3. Apply your credits: in AWS Builder Center open your student rewards and copy the credit code, then in the console go to Billing and Cost Management → Credits → **Redeem credit**, paste it and submit. The credit then shows in that list with its expiry date and eligible services.
+4. Create your everyday user: IAM → Users → Create user `violet-admin`, tick "Provide access to the AWS Management Console", attach **AdministratorAccess**, create. Copy the sign-in URL it shows.
+5. Sign out and sign back in at that URL as `violet-admin`. Use this user from now on, not root.
+
+Credits do not always cover every service. Check the "Eligible services" on the credit. Claude models on Bedrock are sold through AWS Marketplace and may be billed to your card instead; for this app that is a few cents (each summary is cached for 6 hours). The optional BudgetEmail at deploy warns you before spend passes $1.
+
 ## 1. Install the tools (once)
 1. **AWS CLI v2**: download and run https://awscli.amazonaws.com/AWSCLIV2.msi
 2. **SAM CLI**: download and run the 64-bit installer from https://github.com/aws/aws-sam-cli/releases/latest/download/AWS_SAM_CLI_64_PY3.msi
