@@ -1,6 +1,9 @@
 // Saans Compass rules schema. Every policy is validated against it in tests.
 // principal: the persona asking. resource: the Delhi area. context.stage: the
 // GRAP stage in force (0 = none, 1-4 = Stage I-IV), official or estimated.
+// context.sensitive: the person is in a group the Stage IV citizen charter
+// names (children, pregnant women, elderly, respiratory, cardiovascular,
+// cerebrovascular or other chronic disease).
 entity Persona;
 entity Area;
 
@@ -9,5 +12,8 @@ action
   "physical_classes_primary", "physical_classes_senior",
   "outdoor_shift", "rest_break",
   "drive_bs3_petrol_bs4_diesel_car", "drive_bs4_diesel_lgv_outside", "drive_bs4_diesel_mgv",
-  "outdoor_walk", "outdoor_errands"
-  appliesTo { principal: [Persona], resource: [Area], context: { stage: Long } };
+  "outdoor_walk", "outdoor_errands",
+  "outdoor_work_shift", "work_break", "dusty_construction_work", "other_construction_work",
+  "morning_commute", "evening_commute", "lunch_walk", "office_attendance", "drive_private_car",
+  "outdoor_training", "warm_up_walk"
+  appliesTo { principal: [Persona], resource: [Area], context: { stage: Long, sensitive: Bool } };

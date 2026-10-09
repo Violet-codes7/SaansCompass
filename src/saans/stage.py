@@ -48,11 +48,14 @@ def resolve_stage(day_aqi, official=None, declared=None):
         stage, source = declared, "declared"
     else:
         stage, source = stage_from_aqi(day_aqi), "estimate"
+    estimate = stage_from_aqi(day_aqi)
     return {
         "stage": stage,
         "label": "Unknown" if stage is None else ROMAN[stage],
         "source": source,
         "day_aqi": day_aqi,
+        # The AQI estimate, shown beside a declared or user-set stage when they differ.
+        "estimate": None if estimate is None else ROMAN[estimate],
     }
 
 

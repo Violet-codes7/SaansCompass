@@ -24,7 +24,8 @@ def test_parse_stage_rejects_bad_input(raw):
 
 
 def test_official_stage_wins_over_estimate():
-    assert resolve_stage(480, official=1) == {"stage": 1, "label": "I", "source": "official", "day_aqi": 480}
+    assert resolve_stage(480, official=1) == {"stage": 1, "label": "I", "source": "official", "day_aqi": 480,
+                                              "estimate": "IV"}
     assert resolve_stage(480)["source"] == "estimate"
     assert resolve_stage(480)["stage"] == 4
 

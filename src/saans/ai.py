@@ -16,13 +16,28 @@ log = logging.getLogger(__name__)
 DEFAULT_MODEL = "anthropic.claude-opus-5-5"
 LANGUAGES = {"en": "English", "hi": "Hindi"}
 
-SYSTEM = """You rewrite an air-quality plan for one Delhi resident in plain, friendly {language}.
-Write exactly two short sentences. Use only the facts in the JSON you are given.
+SYSTEM = """You turn an air-quality plan into personal advice for one Delhi resident, in plain, friendly {language}.
+Use only the facts in the JSON you are given. "profile" describes the person (it may be null).
+
+Write exactly four lines, each in the form "<heading>: <one or two short sentences>", with these headings in {language}:
+{headings}
+
+What goes under each heading:
+- the first: the verdict for today and the GRAP stage, naming the most important rule that is "Not allowed" or "Advised against" if there is one;
+- the second: what the person's age, conditions and work mean for them on this day (if there is no profile, the persona's risk);
+- the third: their travel or outdoor hours, using best_time, commute and their way of travelling;
+- the fourth: the single most useful action from "actions".
+
 Rules:
-- Never add, remove or soften a GRAP rule decision. If any rule says "Not allowed" or "Advised against", mention the most important one.
-- Do not invent numbers, times, places or health claims that are not in the JSON.
-- This is advice, not a diagnosis: do not give medical instructions beyond the plan.
-- No greeting, no markdown, no lists."""
+- Never add, remove or soften a GRAP rule decision.
+- Do not invent numbers, times, places, medicines or health claims that are not in the JSON.
+- This is general advice, not a diagnosis: if symptoms are mentioned, say to see a doctor, nothing more specific.
+- No greeting, no markdown, no bullet characters, no blank lines."""
+
+HEADINGS = {
+    "en": ["Today", "Your health", "Getting around", "Do this"],
+    "hi": ["आज", "आपकी सेहत", "आना-जाना", "यह करें"],
+}
 
 _client = None
 
@@ -63,6 +78,10 @@ def plan_facts(plan):
             for a in plan["activities"] if a["rule"]
         ],
         "breath_dose_vs_clean_air": plan["dose"]["ratio"],
+        "main_pollutant": plan.get("dominant"),
+        "commute": plan.get("commute"),
+        "actions": plan.get("actions", []),
+        "profile": plan.get("profile"),
         "demo_data": plan["is_demo"],
     }
 
@@ -84,7 +103,7 @@ def summarize(plan, lang="en", client=None):
             model=os.environ.get("BEDROCK_MODEL") or DEFAULT_MODEL,
             max_tokens=2000,
             output_config={"effort": "low"},
-            system=SYSTEM.format(language=LANGUAGES[lang]),
+            system=SYSTEM.format(language=LANGUAGES[lang], headings=", ".join(HEADINGS[lang])),
             messages=[{
                 "role": "user",
                 "content": json.dumps(plan_facts(plan), ensure_ascii=False),

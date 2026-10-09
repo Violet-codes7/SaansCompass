@@ -25,7 +25,7 @@ def test_plan_page_shows_rules_first(client, persona):
     resp = client.get(f"/plan?persona={persona}&area=ito")
     html = resp.get_data(as_text=True)
     assert resp.status_code == 200
-    assert html.index("GRAP rules") < html.index("Your health plan")
+    assert html.index("GRAP rules for you") < html.index("At a glance") < html.index("Your health")
     assert "Check the official order" in html
     assert "Not medical advice" in html or "not medical advice" in html
 
@@ -120,3 +120,22 @@ def test_stage_links_poster_order_and_favicon(client):
     assert "No GRAP stage in force" in client.get("/poster?persona=school&area=ito&stage=0").get_data(as_text=True)
     assert client.get("/favicon.ico").status_code == 301
     assert client.get("/static/favicon.svg").status_code == 200
+
+
+def test_profile_page_and_personal_plan(client):
+    index = client.get("/").get_data(as_text=True)
+    assert 'name="age"' in index and 'name="cond"' in index and "Outdoor or construction worker" in index
+    assert 'name="stage"' not in index and 'name="day"' not in index
+    html = client.get("/plan?persona=school&area=ito&age=9&cond=asthma&commute=bus&stage=IV").get_data(as_text=True)
+    assert "child, asthma" in html and "Keep your reliever inhaler" in html
+    assert "Tomorrow" in html and "Back to the real stage" in html
+    assert client.get("/plan?persona=school&area=ito&age=abc").status_code == 400
+
+
+def test_personal_ai_advice_is_not_stored(client, monkeypatch, mem_store):
+    from saans import ai
+    monkeypatch.setenv("BEDROCK_MODEL", "anthropic.claude-opus-5-5")
+    monkeypatch.setattr(ai, "summarize", lambda plan, lang: "Today: fine.")
+    body = client.get("/api/summary?persona=rider&area=ito&cond=asthma").get_json()
+    assert body["summary"] == "Today: fine."
+    assert not any(sk == "TEXT" for _, sk in mem_store.items)

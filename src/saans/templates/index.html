@@ -1,39 +1,55 @@
 {% extends "base.html" %}
 {% block main %}
 <section class="hero">
-  <h1>What do the rules and your health mean for you today?</h1>
-  <p>Pick who you are and your area. You get the GRAP rules that apply, each traced to its rule, and an hour-by-hour plan for your day.</p>
+  <h1>Your air plan for today</h1>
+  <p>Tell us a little about you. We check today's and tomorrow's forecast for your area, work out the GRAP stage, show the rules that apply to you, and plan your day around the cleanest air.</p>
 </section>
-<form class="picker" action="{{ url_for('plan_page') }}" method="get">
+<form class="picker profile" action="{{ url_for('plan_page') }}" method="get">
   <fieldset>
-    <legend>Who are you?</legend>
-    {% for p in personas.values() %}
+    <legend>What do you do most days?</legend>
+    <div class="grid-choices">
+    {% for id, label in work.items() %}
     <label class="choice">
-      <input type="radio" name="persona" value="{{ p.id }}" {% if loop.first %}checked{% endif %}>
-      <span><b>{{ p.label }}</b><small>{{ p.question }}</small></span>
+      <input type="radio" name="persona" value="{{ id }}" {% if loop.first %}checked{% endif %}>
+      <span><b>{{ label }}</b><small>{{ personas[id].question }}</small></span>
     </label>
     {% endfor %}
+    </div>
   </fieldset>
-  <div class="row">
-    <label>Area
-      <select name="area">
-        {% for a in areas.values() %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}
-      </select>
-    </label>
-    <label>Day
-      <select name="day"><option value="today">Today</option><option value="tomorrow">Tomorrow</option></select>
-    </label>
-    <label>Official GRAP stage (if you know it)
-      <select name="stage">
-        <option value="">Not set: estimate from AQI</option>
-        {% for n, r in roman.items() %}<option value="{{ r if n else '0' }}">{{ 'No stage' if n == 0 else 'Stage ' ~ r }}</option>{% endfor %}
-      </select>
-    </label>
-  </div>
+
+  <fieldset>
+    <legend>About you</legend>
+    <div class="row">
+      <label>Age <input type="number" name="age" min="1" max="110" inputmode="numeric" placeholder="e.g. 34"></label>
+      <label>Area
+        <select name="area">{% for a in areas.values() %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select>
+      </label>
+      <label>How you travel
+        <select name="commute">{% for id, label in commute_modes.items() %}<option value="{{ id }}" {% if id == 'metro' %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      </label>
+    </div>
+    <p class="small">Health conditions (tick any that apply)</p>
+    <div class="checks">
+      {% for id, label in conditions.items() %}
+      <label class="check"><input type="checkbox" name="cond" value="{{ id }}"> {{ label }}</label>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Your outdoor hours <small class="small">(leave as "Usual" for the normal hours for your work)</small></legend>
+    <div class="row">
+      <label>From <select name="start"><option value="">Usual</option>{% for h in range(24) %}<option value="{{ h }}">{{ '%02d'|format(h) }}:00</option>{% endfor %}</select></label>
+      <label>To <select name="end"><option value="">Usual</option>{% for h in range(24) %}<option value="{{ h }}">{{ '%02d'|format(h) }}:00</option>{% endfor %}</select></label>
+      <label class="check"><input type="checkbox" name="mask" value="1"> I have an N95 mask</label>
+    </div>
+  </fieldset>
+
   <button type="submit">Show my plan</button>
+  <p class="small">The day (today or tomorrow) and the GRAP stage are worked out for you. Your answers stay in the page link only: nothing is saved and there is no login.</p>
 </form>
 <p class="try">Clean air today? See a bad-air day:
-  <a href="{{ url_for('plan_page', persona='school', area='anand-vihar', stage='IV') }}">School at Stage IV</a>
-  <a href="{{ url_for('plan_page', persona='rider', area='anand-vihar', stage='III') }}">Rider at Stage III</a>
-  <a href="{{ url_for('plan_page', persona='older', area='anand-vihar', stage='IV') }}">Older adult at Stage IV</a></p>
+  <a href="{{ url_for('plan_page', persona='school', area='anand-vihar', stage='IV', age=9, cond='asthma', commute='bus') }}">Child with asthma, Stage IV</a>
+  <a href="{{ url_for('plan_page', persona='worker', area='anand-vihar', stage='III', age=38, commute='cycle') }}">Construction worker, Stage III</a>
+  <a href="{{ url_for('plan_page', persona='commuter', area='ito', stage='III', age=29, commute='car') }}">Office commuter by car, Stage III</a></p>
 {% endblock %}

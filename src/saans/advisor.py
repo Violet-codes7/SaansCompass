@@ -6,8 +6,11 @@ heuristics, labelled as such on every page.
 """
 import math
 
+from collections import Counter
+
 from . import data
 from .dose import total_dose
+from .profile import COMMUTE_TIPS
 from .rules import ADVISED_AGAINST, NOT_ALLOWED, CHECK
 
 
@@ -97,14 +100,49 @@ def _average_aqi(readings):
     return round(sum(values) / len(values)) if values else None
 
 
-def build_plan(persona, area, forecast, date, stage_info, rule_results):
+def _dominant(readings):
+    counts = Counter(r.get("dominant") for r in readings if r.get("dominant"))
+    return counts.most_common(1)[0][0] if counts else None
+
+
+def _actions(persona, profile, verdict, window, activities, commute, flex):
+    """Short, concrete things to do today, most important first."""
+    out = []
+    for a in activities:
+        if a["rule"] and a["rule"]["decision"] == NOT_ALLOWED:
+            out.append(f"Not allowed at this GRAP stage: {a['label']}. Plan around it.")
+    for a in activities:
+        if a["rule"] and a["rule"]["decision"] == ADVISED_AGAINST:
+            out.append(f"Skip or move indoors: {a['label']} (GRAP citizen charter).")
+    if window and window.get("clean") is False:
+        out.append(f"No clean window today. The least-bad time is {window['start']} (AQI about {window['avg_aqi']}).")
+    elif window and persona.flex_prefers == "cleanest" and verdict != "stay_in":
+        out.append(f"Best time for {flex.label}: {window['start']}–{window['end']} (AQI about {window['avg_aqi']}).")
+    elif window and persona.flex_prefers == "worst":
+        out.append(f"Take your break {window['start']}–{window['end']}, when the air is worst, indoors if you can.")
+    if verdict in ("limit", "stay_in"):
+        if profile and profile.mask:
+            out.append("Wear your N95 outdoors; it only works if it fits tightly with no gaps.")
+        else:
+            out.append("A well-fitted N95 cuts what you breathe in outdoors; cloth and surgical masks do little.")
+        out.append("Keep windows shut at the worst hours and air rooms out at the cleanest one.")
+    if profile and profile.commute and COMMUTE_TIPS.get(profile.commute) and commute is not None:
+        out.append(COMMUTE_TIPS[profile.commute])
+    if profile and profile.sensitive and verdict != "go":
+        out.append("Watch for cough, wheeze, chest tightness or breathlessness, and go indoors if they start.")
+    return out
+
+
+def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=None):
     readings = data.readings_for(forecast, date, persona.hours())
     for r in readings:
         r["advice"] = hour_advice(persona, r["aqi"])
 
     rules_by_activity = {r.activity_id: r for r in rule_results}
     flex = persona.activity(persona.flex_activity)
-    window = best_window(readings, flex.minutes or 60, persona.flex_prefers)
+    # A break off the road is taken mid-shift, not in the first or last hour.
+    pool = readings[1:-1] if persona.flex_prefers == "worst" and len(readings) > 3 else readings
+    window = best_window(pool, flex.minutes or 60, persona.flex_prefers)
 
     # Outdoor-by-choice personas: if even the cleanest window is bad, stay in.
     # Riders are out all shift, so the verdict follows the shift average.
@@ -121,6 +159,8 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results):
     if floor == "stay_in" and persona.flex_prefers == "cleanest":
         for r in readings:
             r["advice"] = "GRAP advises against outdoor activity at this stage."
+    if window and persona.flex_prefers == "cleanest":
+        window["clean"] = window["avg_aqi"] <= persona.limit_max
     flex_rule = rules_by_activity.get(flex.id)
     if flex_rule and flex_rule.decision in (NOT_ALLOWED, ADVISED_AGAINST):
         window = None  # never suggest a time for something the rules advise against
@@ -180,6 +220,9 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results):
     ]
     if stage_info["source"] == "estimate":
         warnings.insert(0, "The GRAP stage is estimated from AQI. CAQM declares the official stage; set it if you know it.")
+    if profile and profile.threshold_shift():
+        warnings.append(f"Your Go and Limit thresholds are {profile.threshold_shift()} AQI points lower "
+                        f"because of: {', '.join(profile.reasons())}. Our heuristic, not medical advice.")
     if forecast["is_demo"]:
         warnings.insert(0, "Demo data: the live forecast could not be reached.")
     if any(r.decision == CHECK for r in rule_results):
@@ -209,4 +252,12 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results):
         "hours": readings,
         "dose": total_dose(segments),
         "warnings": warnings,
+        "dominant": _dominant(readings),
+        "thresholds": {"go_max": persona.go_max, "limit_max": persona.limit_max},
+        "profile": profile.summary() if profile else None,
+        "health": {
+            "reasons": profile.reasons() if profile else [],
+            "tips": profile.tips() if profile else [],
+        },
+        "actions": _actions(persona, profile, verdict, window, activities, commute, flex),
     }

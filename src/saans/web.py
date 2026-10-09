@@ -1,12 +1,14 @@
 """Flask routes: picker, plan page, JSON API, poster, subscribe, health check."""
 import logging
 import os
+from urllib.parse import urlencode
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 
 from . import ai, data
 from .alerts import subscribe as sns_subscribe
 from .personas import PERSONAS
+from .profile import COMMUTE_MODES, CONDITIONS, WORK, parse_profile
 from .service import get_plan
 from .stage import ROMAN
 from .store import get_store
@@ -30,8 +32,16 @@ def _plan_args():
         "persona_id": request.args.get("persona", "school"),
         "area_id": request.args.get("area", "anand-vihar"),
         "stage": request.args.get("stage"),
-        "day": request.args.get("day", "today"),
+        "day": request.args.get("day") or None,  # empty means pick today/tomorrow from the clock
     }
+
+
+def _build_plan():
+    """The plan for this request, personalised when profile fields are present.
+    The profile is used for this request only: never stored or logged."""
+    args = _plan_args()
+    profile = parse_profile(request.args, args["persona_id"])
+    return get_plan(**args, profile=profile)
 
 
 def _log_plan(plan):
@@ -42,13 +52,28 @@ def _log_plan(plan):
     )
 
 
+_personal_cache = {}
+
+
+def _plan_link(**changes):
+    """This plan page's URL with some arguments changed; an empty value removes one."""
+    args = request.args.to_dict(flat=False)
+    for key, value in changes.items():
+        if value in (None, ""):
+            args.pop(key, None)
+        else:
+            args[key] = [value]
+    return url_for("plan_page") + "?" + urlencode(args, doseq=True)
+
+
 def create_app():
     app = Flask(__name__)
     app.json.sort_keys = False
 
     @app.context_processor
     def globals_():
-        return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN, "ai_enabled": ai.enabled()}
+        return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN, "ai_enabled": ai.enabled(),
+                "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link}
 
     @app.after_request
     def security_headers(resp):
@@ -65,7 +90,7 @@ def create_app():
     def plan_page():
         args = _plan_args()
         try:
-            plan = get_plan(**args)
+            plan = _build_plan()
         except ValueError as exc:
             return render_template("error.html", message=str(exc)), 400
         _log_plan(plan)
@@ -75,7 +100,7 @@ def create_app():
     def poster():
         args = _plan_args()
         try:
-            plan = get_plan(**args)
+            plan = _build_plan()
         except ValueError as exc:
             return render_template("error.html", message=str(exc)), 400
         return render_template("poster.html", plan=plan, args=args)
@@ -83,7 +108,7 @@ def create_app():
     @app.get("/api/plan")
     def api_plan():
         try:
-            plan = get_plan(**_plan_args())
+            plan = _build_plan()
         except ValueError as exc:
             return jsonify({
                 "error": str(exc),
@@ -98,8 +123,19 @@ def create_app():
         return jsonify(plan)
 
     def _summary(plan, lang):
-        store = get_store()
         key = ai.cache_key(plan, lang)
+        if plan.get("profile"):
+            # Personal advice may mention health details: keep it in this
+            # Lambda's memory only, never in DynamoDB.
+            text = _personal_cache.get(key)
+            if text is None:
+                text = ai.summarize(plan, lang)
+                if text:
+                    if len(_personal_cache) >= 128:
+                        _personal_cache.pop(next(iter(_personal_cache)))
+                    _personal_cache[key] = text
+            return text
+        store = get_store()
         text = store.get_text(key)
         if text is None:
             text = ai.summarize(plan, lang)
@@ -115,7 +151,7 @@ def create_app():
         try:
             if lang not in ai.LANGUAGES:
                 raise ValueError("lang must be en or hi")
-            plan = get_plan(**_plan_args())
+            plan = _build_plan()
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
         text = _summary(plan, lang)
@@ -131,7 +167,7 @@ def create_app():
         try:
             if lang not in ai.LANGUAGES:
                 raise ValueError("lang must be en or hi")
-            plan = get_plan(**_plan_args())
+            plan = _build_plan()
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
         text = _summary(plan, lang)

@@ -9,7 +9,8 @@ import logging
 import re
 
 from . import data
-from .personas import PERSONAS
+# Area alerts cover the three original personas; the email stays short.
+ALERT_PERSONAS = ("school", "rider", "older")
 from .service import get_plan
 
 log = logging.getLogger(__name__)
@@ -79,7 +80,7 @@ def run_alert_check(run, store, sns, topic_arn, now=None, site_url=None, fetcher
         try:
             plans = [
                 get_plan(pid, area.id, day=run, now=now, store=store, fetcher=fetcher)
-                for pid in PERSONAS
+                for pid in ALERT_PERSONAS
             ]
             if any(p["is_demo"] for p in plans):
                 results.append({"area": area.id, "status": "skipped_demo_data"})

@@ -115,14 +115,14 @@ class RuleBook:
             seen.add(info.id)
         return problems
 
-    def evaluate(self, persona_id, activity_id, area_id, stage):
+    def evaluate(self, persona_id, activity_id, area_id, stage, sensitive=False):
         if stage is None:
             return RuleResult(activity_id, CHECK, None, None, "The GRAP stage is unknown.")
         request = {
             "principal": {"type": "Persona", "id": persona_id},
             "action": {"type": "Action", "id": activity_id},
             "resource": {"type": "Area", "id": area_id},
-            "context": {"stage": int(stage)},
+            "context": {"stage": int(stage), "sensitive": bool(sensitive)},
         }
         if not self.policies_text.strip():
             return RuleResult(activity_id, CHECK, None, None, "The GRAP schedule does not cover this.")
@@ -153,8 +153,8 @@ class RuleBook:
             p, decision = verified[0], ALLOWED
         return RuleResult(activity_id, decision, p.id, p.clause)
 
-    def evaluate_persona(self, persona, area_id, stage):
-        return [self.evaluate(persona.id, a.id, area_id, stage) for a in persona.activities if a.ruled]
+    def evaluate_persona(self, persona, area_id, stage, sensitive=False):
+        return [self.evaluate(persona.id, a.id, area_id, stage, sensitive) for a in persona.activities if a.ruled]
 
 
 @lru_cache(maxsize=1)

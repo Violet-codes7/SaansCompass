@@ -47,14 +47,15 @@ def test_two_personas_on_the_same_air_get_different_plans(mem_store, live_fetche
     rider = get_plan("rider", "ito", now=FIXED_NOW, fetcher=live_fetcher)
     assert school["stage"] == rider["stage"]
     assert school["best_window"]["start"] == "13:00"  # cleanest school hour
-    assert rider["best_window"]["start"] == "20:00"  # dirtiest shift hour, for the break
+    assert rider["best_window"]["start"] == "19:00"  # dirtiest mid-shift hour, for the break
     assert school["dose"]["minutes"] != rider["dose"]["minutes"]
     assert rider["dose"]["minutes"] == 600
 
 
 def test_rules_come_before_advice_in_the_plan(mem_store, live_fetcher):
     plan = get_plan("school", "ito", stage="IV", now=FIXED_NOW, fetcher=live_fetcher)
-    assert plan["stage"] == {"stage": 4, "label": "IV", "source": "official", "day_aqi": plan["stage"]["day_aqi"]}
+    assert plan["stage"] == {"stage": 4, "label": "IV", "source": "official", "day_aqi": plan["stage"]["day_aqi"],
+                             "estimate": plan["stage"]["estimate"]}
     assert len(plan["rules"]) == len(PERSONAS["school"].activities)
     for a in plan["activities"]:
         assert a["rule"]["label"] in ("Allowed", "Not allowed", "Advised against", "Check the official order")
