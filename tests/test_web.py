@@ -107,3 +107,16 @@ def test_lambda_handler_serves_http_api_v2_event(mem_store, monkeypatch, live_fe
     resp = handler(event, None)
     assert resp["statusCode"] == 200
     assert json.loads(resp["body"])["area"]["id"] == "ito"
+
+
+def test_stage_links_poster_order_and_favicon(client):
+    html = client.get("/plan?persona=school&area=ito&stage=0").get_data(as_text=True)
+    assert "Try Stage IV" in html and "Not covered by GRAP at any stage" in html
+    assert 'class="pill check_official_order"' not in html
+    hard = client.get("/plan?persona=school&area=ito&stage=IV").get_data(as_text=True)
+    assert "Try Stage IV" not in hard and "Set by the GRAP rules at Stage IV" in hard
+    poster = client.get("/poster?persona=rider&area=ito&stage=IV").get_data(as_text=True)
+    assert poster.index("Not allowed") < poster.index("</ul>")
+    assert "No GRAP stage in force" in client.get("/poster?persona=school&area=ito&stage=0").get_data(as_text=True)
+    assert client.get("/favicon.ico").status_code == 301
+    assert client.get("/static/favicon.svg").status_code == 200

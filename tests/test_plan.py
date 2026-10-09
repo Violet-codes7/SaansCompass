@@ -1,5 +1,7 @@
 from datetime import date
 
+import pytest
+
 from conftest import FIXED_NOW, make_hours
 from saans import data
 from saans.advisor import best_window
@@ -125,3 +127,34 @@ def test_open_meteo_parser_handles_nulls_and_bad_shapes():
         raise AssertionError("expected ValueError")
     except ValueError:
         pass
+
+
+
+# The verdict never contradicts the rules (live-site review, 9 Oct)
+
+SEVERITY = {"go": 0, "limit": 1, "stay_in": 2}
+
+
+@pytest.mark.parametrize("persona,floor", [("school", "stay_in"), ("older", "stay_in"), ("rider", "limit")])
+def test_stage_iv_caps_verdict(mem_store, monkeypatch, live_fetcher, persona, floor):
+    monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
+    clean = get_plan(persona, "ito", stage="0", now=FIXED_NOW)
+    hard = get_plan(persona, "ito", stage="IV", now=FIXED_NOW)
+    assert clean["verdict_note"] is None
+    assert SEVERITY[hard["verdict"]] >= SEVERITY[floor]
+    if SEVERITY[clean["verdict"]] < SEVERITY[floor]:
+        assert "Stage IV" in hard["verdict_note"]
+
+
+def test_school_at_stage_iv_gets_no_outdoor_window(mem_store, monkeypatch, live_fetcher):
+    monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
+    plan = get_plan("school", "ito", stage="IV", now=FIXED_NOW)
+    assert plan["verdict"] == "stay_in" and plan["best_window"] is None
+    assert all("advises against" in h["advice"] for h in plan["hours"])
+
+
+def test_rules_rank_most_severe_first(mem_store, monkeypatch, live_fetcher):
+    monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
+    plan = get_plan("rider", "ito", stage="IV", now=FIXED_NOW)
+    ranked = sorted((a for a in plan["activities"] if a["rule"]), key=lambda a: a["rank"])
+    assert ranked[0]["rule"]["decision"] == "not_allowed"

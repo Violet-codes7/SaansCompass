@@ -4,13 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Saans Compass{% endblock %}</title>
+  <meta name="description" content="Delhi's GRAP air rules and your day, in one plan: what is allowed at today's stage, and the cleanest hours for school, delivery riders and older adults.">
+  <meta property="og:title" content="Saans Compass: Delhi's air rules and your day">
+  <meta property="og:description" content="What GRAP allows today, traced to the official rule, plus an hour-by-hour plan for your area.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
   {% block head %}{% endblock %}
 </head>
 <body>
   <header class="site">
     <a class="brand" href="{{ url_for('index') }}">Saans Compass</a>
-    <span class="tag">GRAP rules first, health advice second. Delhi.</span>
+    <span class="tag">Delhi's air rules and your day, in one plan</span>
   </header>
   <main>{% block main %}{% endblock %}</main>
   <footer class="site">

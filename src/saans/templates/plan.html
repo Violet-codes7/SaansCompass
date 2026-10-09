@@ -19,39 +19,50 @@
 
 <form class="controls" method="get" action="{{ url_for('plan_page') }}">
   <input type="hidden" name="persona" value="{{ plan.persona.id }}">
-  <label>Area <select name="area">{% for a in areas.values() %}<option value="{{ a.id }}" {% if a.id == plan.area.id %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></label>
-  <label>Day <select name="day">{% for d in ['today','tomorrow'] %}<option value="{{ d }}" {% if d == plan.day %}selected{% endif %}>{{ d|capitalize }}</option>{% endfor %}</select></label>
-  <label>Official stage <select name="stage">
+  <label>Area <select name="area" onchange="this.form.submit()">{% for a in areas.values() %}<option value="{{ a.id }}" {% if a.id == plan.area.id %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></label>
+  <label>Day <select name="day" onchange="this.form.submit()">{% for d in ['today','tomorrow'] %}<option value="{{ d }}" {% if d == plan.day %}selected{% endif %}>{{ d|capitalize }}</option>{% endfor %}</select></label>
+  <label>Official stage <select name="stage" onchange="this.form.submit()">
     <option value="" {% if plan.stage.source != 'official' %}selected{% endif %}>Not set: CAQM or estimate</option>
     {% for n, r in roman.items() %}<option value="{{ r if n else '0' }}" {% if plan.stage.source == 'official' and plan.stage.stage == n %}selected{% endif %}>{{ 'No stage' if n == 0 else 'Stage ' ~ r }}</option>{% endfor %}
   </select></label>
   <label>Persona <select name="persona" onchange="this.form.submit()">{% for p in personas.values() %}<option value="{{ p.id }}" {% if p.id == plan.persona.id %}selected{% endif %}>{{ p.label }}</option>{% endfor %}</select></label>
-  <button type="submit">Update</button>
+  <noscript><button type="submit">Update</button></noscript>
 </form>
+{% if plan.stage.stage is not none and plan.stage.stage < 3 %}
+<p class="try">Air is not bad enough today for most GRAP rules to apply. See what changes on a bad-air day:
+  <a href="{{ url_for('plan_page', persona=plan.persona.id, area=plan.area.id, day=plan.day, stage='III') }}">Try Stage III</a>
+  <a href="{{ url_for('plan_page', persona=plan.persona.id, area=plan.area.id, day=plan.day, stage='IV') }}">Try Stage IV</a></p>
+{% endif %}
 
 <div class="two">
   <section class="panel rules">
     <h2><span class="step">1</span> GRAP rules</h2>
     <p class="small">Each answer names the rule behind it. Rules come from CAQM's GRAP schedule, Revision 29.09.2026. Anything it does not cover says "Check the official order", never "Allowed".</p>
+    {% set no_stage = plan.stage.stage == 0 %}
     <ul class="rule-list">
-      {% for a in plan.activities if a.rule %}{% set r = a.rule %}
+      {% for a in plan.activities|selectattr('rule')|sort(attribute='rank') %}{% set r = a.rule %}
+      {% if not (no_stage and r.decision == 'check_official_order') %}
       <li class="rule {{ r.decision }}">
         <div class="rule-head"><span>{{ a.label }}</span><b class="pill {{ r.decision }}">{{ r.label }}</b></div>
-        {% if r.policy_id %}<code>{{ r.policy_id }}</code><span class="clause">{{ r.clause }}</span>{% endif %}
+        {% if r.policy_id %}<span class="clause">{{ r.clause }}</span> <code class="pid" title="Cedar policy">{{ r.policy_id }}</code>{% endif %}
         {% if r.note %}<span class="note">{{ r.note }}</span>{% endif %}
       </li>
+      {% endif %}
       {% endfor %}
     </ul>
+    {% if no_stage %}{% set uncovered = plan.activities|selectattr('rule')|selectattr('rule.decision', 'equalto', 'check_official_order')|map(attribute='label')|list %}
+    {% if uncovered %}<p class="small">Not covered by GRAP at any stage: {{ uncovered|join(', ') }}.</p>{% endif %}{% endif %}
   </section>
 
   <section class="panel plan">
     <h2><span class="step">2</span> Your health plan</h2>
     <div class="verdict v-{{ plan.verdict or 'none' }}">{{ plan.verdict_label }}</div>
+    {% if plan.verdict_note %}<p class="small vnote">{{ plan.verdict_note }}</p>{% endif %}
     <dl class="facts">
       {% if plan.best_window %}<dt>{{ plan.best_window_title }}</dt><dd>{{ plan.best_window.start }}–{{ plan.best_window.end }} · AQI about {{ plan.best_window.avg_aqi }}</dd>{% endif %}
       {% if plan.commute %}<dt>AQI at {{ plan.commute.time }} (commute or shift start)</dt><dd>{{ plan.commute.aqi if plan.commute.aqi is not none else 'No data' }} · {{ plan.commute.category }}</dd>{% endif %}
       <dt>Rough breath dose (estimate)</dt>
-      <dd>{% if plan.dose.ratio is not none %}{{ plan.dose.ug }} µg PM2.5 over {{ plan.dose.minutes }} min, about <b>{{ plan.dose.ratio }}×</b> the same time resting in clean air{% else %}Not enough data{% endif %}</dd>
+      <dd>{% if plan.dose.ratio is not none %}{{ plan.dose.ug }} µg PM2.5 over {{ plan.dose.minutes }} min, about <b>{{ plan.dose.ratio }}×</b> what you would breathe in sitting still for the same time in clean air (WHO level). Being active raises this even on good days{% else %}Not enough data{% endif %}</dd>
     </dl>
     <h3>Activities</h3>
     <ul class="acts">
@@ -101,7 +112,8 @@
     listen.disabled = true;
     fetch(url("{{ url_for('api_speak') }}")).then(function (r) { return r.json(); }).then(function (d) {
       if (d.audio) { audio.src = d.audio; audio.hidden = false; audio.play(); }
-    }).finally(function () { listen.disabled = false; });
+      else { text.textContent = "Voice is not available right now."; }
+    }).catch(function () { text.textContent = "Voice is not available right now."; }).finally(function () { listen.disabled = false; });
   });
   load();
 })();

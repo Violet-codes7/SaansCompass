@@ -32,4 +32,8 @@
   </div>
   <button type="submit">Show my plan</button>
 </form>
+<p class="try">Clean air today? See a bad-air day:
+  <a href="{{ url_for('plan_page', persona='school', area='anand-vihar', stage='IV') }}">School at Stage IV</a>
+  <a href="{{ url_for('plan_page', persona='rider', area='anand-vihar', stage='III') }}">Rider at Stage III</a>
+  <a href="{{ url_for('plan_page', persona='older', area='anand-vihar', stage='IV') }}">Older adult at Stage IV</a></p>
 {% endblock %}

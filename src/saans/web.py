@@ -2,7 +2,7 @@
 import logging
 import os
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request, url_for
 
 from . import ai, data
 from .alerts import subscribe as sns_subscribe
@@ -155,6 +155,10 @@ def create_app():
             log.exception("subscribe failed")
             return render_template("error.html", message="Could not subscribe right now. Please try again."), 502
         return render_template("subscribed.html", area=area)
+
+    @app.get("/favicon.ico")
+    def favicon():
+        return redirect(url_for("static", filename="favicon.svg"), 301)
 
     @app.get("/healthz")
     def healthz():

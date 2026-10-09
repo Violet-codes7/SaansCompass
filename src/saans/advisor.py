@@ -45,6 +45,29 @@ def verdict_for(persona, value):
     return "stay_in"
 
 
+SEVERITY = {"go": 0, "limit": 1, "stay_in": 2}
+RULE_ORDER = {NOT_ALLOWED: 0, ADVISED_AGAINST: 1, CHECK: 2}
+
+
+def rule_floor(persona, rules_by_activity, stage):
+    """Least strict verdict the GRAP rules allow for this persona's outdoor
+    activities. The AQI verdict can only make the plan stricter than this."""
+    floor = None
+    for a in persona.activities:
+        rule = rules_by_activity.get(a.id)
+        if not rule or not a.outdoor:
+            continue
+        if rule.decision == ADVISED_AGAINST:
+            level = "stay_in"
+        elif rule.decision == NOT_ALLOWED or (rule.decision == CHECK and (stage or 0) >= 3):
+            level = "limit"
+        else:
+            continue
+        if floor is None or SEVERITY[level] > SEVERITY[floor]:
+            floor = level
+    return floor
+
+
 def hour_advice(persona, value):
     if value is None:
         return "No forecast for this hour."
@@ -90,6 +113,18 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results):
     else:
         verdict = verdict_for(persona, _average_aqi(readings))
 
+    floor = rule_floor(persona, rules_by_activity, stage_info["stage"])
+    verdict_note = None
+    if floor and (verdict is None or SEVERITY[floor] > SEVERITY[verdict]):
+        verdict = floor
+        verdict_note = f"Set by the GRAP rules at Stage {stage_info['label']}, not by the AQI alone."
+    if floor == "stay_in" and persona.flex_prefers == "cleanest":
+        for r in readings:
+            r["advice"] = "GRAP advises against outdoor activity at this stage."
+    flex_rule = rules_by_activity.get(flex.id)
+    if flex_rule and flex_rule.decision in (NOT_ALLOWED, ADVISED_AGAINST):
+        window = None  # never suggest a time for something the rules advise against
+
     commute = _reading_at(readings, persona.commute_hour) if persona.commute_hour is not None else None
 
     activities = []
@@ -124,6 +159,7 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results):
             "slug": at["slug"] if at else None,
             "rule": rule.to_dict() if rule else None,
             "suggestion": suggestion,
+            "rank": RULE_ORDER.get(rule.decision, 3) if rule else 4,
         })
         allowed = not (rule and rule.decision == NOT_ALLOWED)
         if a.hour is not None and a.outdoor and allowed and not persona.whole_window_exposure:
@@ -163,6 +199,7 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results):
         "fetched_at": forecast["fetched_at"],
         "verdict": verdict,
         "verdict_label": persona.verdict_labels[verdict] if verdict else "Not enough data",
+        "verdict_note": verdict_note,
         "best_window": window,
         "best_window_title": window_title,
         "commute": {"time": f"{commute['hour']:02d}:00", "aqi": commute["aqi"], "category": commute["category"]}
