@@ -14,10 +14,19 @@ Parameters:
     Type: String
     Default: ""
     Description: Optional. Email to notify when the Alert Lambda errors. Leave empty to skip.
+  BedrockModel:
+    Type: String
+    Default: anthropic.claude-opus-5-5
+    Description: Claude model on Amazon Bedrock for the plain-language summary. Leave empty to turn the summary off.
+  BedrockRegion:
+    Type: String
+    Default: ap-south-1
+    Description: Region to call Bedrock in.
 
 Conditions:
   HasBudgetEmail: !Not [!Equals [!Ref BudgetEmail, ""]]
   HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
+  HasBedrock: !Not [!Equals [!Ref BedrockModel, ""]]
 
 Globals:
   Function:
@@ -26,10 +35,12 @@ Globals:
     CodeUri: src/
     MemorySize: 512
     Timeout: 15
+    Tracing: Active
     Environment:
       Variables:
         TABLE: !Ref Table
         TOPIC_ARN: !Ref AlertTopic
+        OFFICIAL_STAGE_PARAM: !Ref OfficialStageParam
 
 Resources:
   HttpApi:
@@ -44,6 +55,12 @@ Resources:
     Properties:
       Description: Saans Compass pages, JSON API, poster and subscribe form
       Handler: saans.lambda_handler.handler
+      # The AI summary can take a few seconds; HTTP APIs allow up to 30.
+      Timeout: 29
+      Environment:
+        Variables:
+          BEDROCK_MODEL: !Ref BedrockModel
+          BEDROCK_REGION: !Ref BedrockRegion
       Events:
         Root:
           Type: HttpApi
@@ -64,6 +81,17 @@ Resources:
             - Effect: Allow
               Action: sns:Subscribe
               Resource: !Ref AlertTopic
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub "${AWS::StackName}/official-stage"
+        - !If
+          - HasBedrock
+          - Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock-mantle:CreateInference
+                  - polly:SynthesizeSpeech
+                Resource: "*"
+          - !Ref AWS::NoValue
 
   AlertFunction:
     Type: AWS::Serverless::Function
@@ -94,6 +122,16 @@ Resources:
             TableName: !Ref Table
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt AlertTopic.TopicName
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub "${AWS::StackName}/official-stage"
+
+  OfficialStageParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/official-stage"
+      Type: String
+      Value: unset
+      Description: GRAP stage CAQM has declared for Delhi today (I, II, III, IV, 0) or "unset" to estimate from AQI
 
   AlertTopic:
     Type: AWS::SNS::Topic
@@ -156,6 +194,31 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: !If [HasAlarmEmail, [!Ref OpsTopic], !Ref "AWS::NoValue"]
 
+  Dashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "${AWS::StackName}"
+      DashboardBody: !Sub |
+        {"widgets": [
+          {"type": "metric", "x": 0, "y": 0, "width": 12, "height": 6,
+           "properties": {"title": "Invocations and errors", "region": "${AWS::Region}", "stat": "Sum", "period": 300,
+             "metrics": [["AWS/Lambda", "Invocations", "FunctionName", "${WebFunction}"],
+                         [".", "Errors", ".", "."],
+                         [".", "Invocations", ".", "${AlertFunction}"],
+                         [".", "Errors", ".", "."]]}},
+          {"type": "metric", "x": 12, "y": 0, "width": 12, "height": 6,
+           "properties": {"title": "Duration p90 (ms)", "region": "${AWS::Region}", "stat": "p90", "period": 300,
+             "metrics": [["AWS/Lambda", "Duration", "FunctionName", "${WebFunction}"],
+                         [".", ".", ".", "${AlertFunction}"]]}},
+          {"type": "metric", "x": 0, "y": 6, "width": 12, "height": 6,
+           "properties": {"title": "Forecast fell back to demo data", "region": "${AWS::Region}", "stat": "Sum", "period": 3600,
+             "metrics": [["SaansCompass", "DemoDataFallback"]]}},
+          {"type": "metric", "x": 12, "y": 6, "width": 12, "height": 6,
+           "properties": {"title": "API requests and 5xx", "region": "${AWS::Region}", "stat": "Sum", "period": 300,
+             "metrics": [["AWS/ApiGateway", "Count", "ApiId", "${HttpApi}"],
+                         [".", "5xx", ".", "."]]}}
+        ]}
+
   CostBudget:
     Type: AWS::Budgets::Budget
     Condition: HasBudgetEmail
@@ -188,3 +251,8 @@ Outputs:
     Value: !Ref AlertTopic
   TableName:
     Value: !Ref Table
+  OfficialStageParameter:
+    Description: Set the declared GRAP stage with aws ssm put-parameter --overwrite --name <this> --value III
+    Value: !Ref OfficialStageParam
+  DashboardUrl:
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${Dashboard}"

@@ -38,7 +38,7 @@ button,.button{background:var(--accent);color:#fff;border-color:var(--accent);cu
 .question{color:var(--muted);margin:0}
 .stage-box{display:grid;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 16px;min-width:160px}
 .stage-box strong{font-size:30px;line-height:1}
-.src.estimate{color:var(--muted);font-size:13px}.src.official{color:var(--ok);font-size:13px;font-weight:600}
+.src.estimate{color:var(--muted);font-size:13px}.src.declared,.src.official{color:var(--ok);font-size:13px;font-weight:600}
 .step{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;margin-right:6px}
 .rule-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .rule{border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:4px}
@@ -66,3 +66,9 @@ code{font:12px ui-monospace,Menlo,Consolas,monospace;background:var(--bg);paddin
 .actions{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
 .sub{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;flex:1;min-width:240px}
 .sub label{flex:1;min-width:200px}
+.ai-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.ai-tools{display:flex;gap:6px}
+.ai-tools .ghost{background:transparent;color:var(--accent)}
+.ai-tools .ghost[aria-pressed="true"]{background:var(--accent);color:#fff}
+.ai-text{font-size:18px;margin:10px 0}
+audio{width:100%;max-width:420px}

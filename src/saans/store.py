@@ -49,6 +49,18 @@ class MemoryStore:
             "ttl": int(now) + FORECAST_TTL_SECONDS,
         })
 
+    # small text cache (AI summaries), keyed by content hash
+    def get_text(self, key, now=None):
+        item = self._get(key, "TEXT")
+        now = now if now is not None else time.time()
+        if not item or int(item["ttl"]) <= now:
+            return None
+        return item["text"]
+
+    def put_text(self, key, text, ttl_seconds=6 * 3600, now=None):
+        now = now if now is not None else time.time()
+        self._put({"pk": key, "sk": "TEXT", "text": text, "ttl": int(now) + ttl_seconds})
+
     # alert state
     def get_alert_state(self, area_id, run):
         item = self._get(f"AREA#{area_id}", f"LAST#{run}")

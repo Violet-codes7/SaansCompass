@@ -12,7 +12,7 @@
   <div class="stage-box">
     <span class="eyebrow">GRAP stage</span>
     <strong>{{ 'None' if plan.stage.stage == 0 else plan.stage.label }}</strong>
-    <span class="src {{ plan.stage.source }}">{{ 'Official (you set it)' if plan.stage.source == 'official' else 'Estimate from AQI' }}</span>
+    <span class="src {{ plan.stage.source }}">{{ {'official': 'Official (you set it)', 'declared': 'Declared by CAQM'}.get(plan.stage.source, 'Estimate from AQI') }}</span>
     {% if plan.stage.day_aqi is not none %}<span class="small">Day AQI about {{ plan.stage.day_aqi }}</span>{% endif %}
   </div>
 </section>
@@ -22,7 +22,7 @@
   <label>Area <select name="area">{% for a in areas.values() %}<option value="{{ a.id }}" {% if a.id == plan.area.id %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></label>
   <label>Day <select name="day">{% for d in ['today','tomorrow'] %}<option value="{{ d }}" {% if d == plan.day %}selected{% endif %}>{{ d|capitalize }}</option>{% endfor %}</select></label>
   <label>Official stage <select name="stage">
-    <option value="" {% if plan.stage.source == 'estimate' %}selected{% endif %}>Not set: estimate</option>
+    <option value="" {% if plan.stage.source != 'official' %}selected{% endif %}>Not set: CAQM or estimate</option>
     {% for n, r in roman.items() %}<option value="{{ r if n else '0' }}" {% if plan.stage.source == 'official' and plan.stage.stage == n %}selected{% endif %}>{{ 'No stage' if n == 0 else 'Stage ' ~ r }}</option>{% endfor %}
   </select></label>
   <label>Persona <select name="persona" onchange="this.form.submit()">{% for p in personas.values() %}<option value="{{ p.id }}" {% if p.id == plan.persona.id %}selected{% endif %}>{{ p.label }}</option>{% endfor %}</select></label>
@@ -62,6 +62,51 @@
     </ul>
   </section>
 </div>
+
+{% if ai_enabled %}
+<section class="panel ai" id="ai" data-query="{{ request.query_string.decode() }}">
+  <div class="ai-head">
+    <h2>In plain words</h2>
+    <div class="ai-tools">
+      <button type="button" class="ghost" data-lang="en" aria-pressed="true">English</button>
+      <button type="button" class="ghost" data-lang="hi" aria-pressed="false">हिंदी</button>
+      <button type="button" id="ai-listen">Listen</button>
+    </div>
+  </div>
+  <p id="ai-text" class="ai-text" aria-live="polite">Writing a short summary…</p>
+  <audio id="ai-audio" controls hidden></audio>
+  <p class="small">Written by Claude on Amazon Bedrock from the plan above. It only rephrases; the rules and plan above are what count.</p>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("ai"), text = document.getElementById("ai-text");
+  var audio = document.getElementById("ai-audio"), listen = document.getElementById("ai-listen");
+  var lang = "en", base = box.dataset.query;
+  function url(path) { return path + "?" + base + (base ? "&" : "") + "lang=" + lang; }
+  function load() {
+    text.textContent = "Writing a short summary…";
+    audio.hidden = true;
+    fetch(url("{{ url_for('api_summary') }}")).then(function (r) { return r.json(); }).then(function (d) {
+      text.textContent = d.summary || "The summary is not available right now. The plan above is complete without it.";
+    }).catch(function () { text.textContent = "The summary is not available right now."; });
+  }
+  box.querySelectorAll("[data-lang]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      lang = b.dataset.lang;
+      box.querySelectorAll("[data-lang]").forEach(function (x) { x.setAttribute("aria-pressed", x === b); });
+      load();
+    });
+  });
+  listen.addEventListener("click", function () {
+    listen.disabled = true;
+    fetch(url("{{ url_for('api_speak') }}")).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.audio) { audio.src = d.audio; audio.hidden = false; audio.play(); }
+    }).finally(function () { listen.disabled = false; });
+  });
+  load();
+})();
+</script>
+{% endif %}
 
 <section class="panel">
   <h2>Hour by hour</h2>

@@ -21,7 +21,11 @@ Please don't paste keys, passwords or account links into chat. You run the deplo
 - **SES: not used**, so there is no sandbox exit to request.
 - **Lambda concurrency:** new accounts sometimes get a low limit, which is still enough here. If a deploy complains, check Service Quotas → Lambda → Concurrent executions.
 
-## 5. Deploy
+## 5. Turn on Claude in Amazon Bedrock (for the AI summary)
+- Console → Amazon Bedrock (region **ap-south-1**) → Model catalog → **Claude Opus 5.5** → request or enable access. Anthropic models ask for a short use-case form the first time; approval is usually immediate.
+- Nothing else to set up: Polly needs no activation. If you skip this step, the site still works and simply hides the summary when Bedrock refuses.
+
+## 6. Deploy
 ```bash
 cd saans-compass
 sam build
@@ -32,5 +36,11 @@ Open the `SiteUrl` from the outputs, subscribe your own email on a plan page, an
 sam remote invoke AlertFunction --stack-name saans-compass --event '{"run": "today"}'
 ```
 
-## 6. Optional: deploy from GitHub with no stored keys
+Set the GRAP stage CAQM has declared (or `unset` to go back to the AQI estimate):
+```bash
+aws ssm put-parameter --overwrite --name /saans-compass/official-stage --value III
+```
+The `DashboardUrl` output opens the CloudWatch dashboard; X-Ray traces are under CloudWatch → Traces.
+
+## 7. Optional: deploy from GitHub with no stored keys
 Create an IAM role that trusts GitHub's OIDC provider for your repo, then set it as the repository variable `AWS_DEPLOY_ROLE_ARN`. After that, each push to `main` deploys.

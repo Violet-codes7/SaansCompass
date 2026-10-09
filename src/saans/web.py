@@ -4,11 +4,12 @@ import os
 
 from flask import Flask, jsonify, render_template, request
 
-from . import data
+from . import ai, data
 from .alerts import subscribe as sns_subscribe
 from .personas import PERSONAS
 from .service import get_plan
 from .stage import ROMAN
+from .store import get_store
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ def create_app():
 
     @app.context_processor
     def globals_():
-        return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN}
+        return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN, "ai_enabled": ai.enabled()}
 
     @app.after_request
     def security_headers(resp):
@@ -95,6 +96,49 @@ def create_app():
             }), 400
         _log_plan(plan)
         return jsonify(plan)
+
+    def _summary(plan, lang):
+        store = get_store()
+        key = ai.cache_key(plan, lang)
+        text = store.get_text(key)
+        if text is None:
+            text = ai.summarize(plan, lang)
+            if text:
+                store.put_text(key, text)
+        return text
+
+    @app.get("/api/summary")
+    def api_summary():
+        if not ai.enabled():
+            return jsonify({"error": "AI summary is not set up here."}), 503
+        lang = request.args.get("lang", "en")
+        try:
+            if lang not in ai.LANGUAGES:
+                raise ValueError("lang must be en or hi")
+            plan = get_plan(**_plan_args())
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        text = _summary(plan, lang)
+        if not text:
+            return jsonify({"error": "No summary right now."}), 502
+        return jsonify({"summary": text, "lang": lang, "by": "Claude on Amazon Bedrock"})
+
+    @app.get("/api/speak")
+    def api_speak():
+        if not ai.enabled():
+            return jsonify({"error": "Voice is not set up here."}), 503
+        lang = request.args.get("lang", "en")
+        try:
+            if lang not in ai.LANGUAGES:
+                raise ValueError("lang must be en or hi")
+            plan = get_plan(**_plan_args())
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        text = _summary(plan, lang)
+        audio = ai.speak(text, lang) if text else None
+        if not audio:
+            return jsonify({"error": "No audio right now."}), 502
+        return jsonify({"audio": audio, "text": text})
 
     @app.post("/subscribe")
     def subscribe():

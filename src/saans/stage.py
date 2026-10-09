@@ -39,10 +39,13 @@ def parse_stage(raw):
     return _PARSE[key]
 
 
-def resolve_stage(day_aqi, official=None):
-    """Official stage wins over the estimate. Returns a dict for templates and JSON."""
+def resolve_stage(day_aqi, official=None, declared=None):
+    """Stage to use, in order: the stage the user set (official), the stage the
+    team recorded from CAQM's latest order (declared), then the AQI estimate."""
     if official is not None:
         stage, source = official, "official"
+    elif declared is not None:
+        stage, source = declared, "declared"
     else:
         stage, source = stage_from_aqi(day_aqi), "estimate"
     return {
@@ -51,3 +54,35 @@ def resolve_stage(day_aqi, official=None):
         "source": source,
         "day_aqi": day_aqi,
     }
+
+
+_declared_cache = {"at": 0.0, "value": None}
+DECLARED_CACHE_SECONDS = 300
+
+
+def declared_stage(ssm=None, now=None):
+    """Stage CAQM has declared, from SSM Parameter Store, cached for 5 minutes.
+
+    The parameter named by OFFICIAL_STAGE_PARAM holds 0, I-IV, or "unset".
+    Any error or "unset" means no declared stage, so the estimate is used.
+    """
+    import os
+    import time
+
+    name = os.environ.get("OFFICIAL_STAGE_PARAM")
+    if not name:
+        return None
+    now = now if now is not None else time.time()
+    if ssm is None and now - _declared_cache["at"] < DECLARED_CACHE_SECONDS:
+        return _declared_cache["value"]
+    try:
+        if ssm is None:
+            import boto3
+
+            ssm = boto3.client("ssm")
+        raw = ssm.get_parameter(Name=name)["Parameter"]["Value"]
+        value = None if raw.strip().lower() == "unset" else parse_stage(raw)
+    except Exception:
+        value = None
+    _declared_cache.update(at=now, value=value)
+    return value

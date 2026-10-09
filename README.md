@@ -2,8 +2,9 @@
 
 Saans Compass tells a Delhi resident two things on a bad-air day: what the official GRAP rules say, and what makes sense for their own body and routine. It is our entry for the Air track of Environmental Hacks (Bharat Builds Tour, WeMakeDevs x AWS, 8–11 Oct 2026).
 
-- **Rules first.** The GRAP stage (estimated from AQI, or the official stage you set) is checked against rules written as [Cedar](https://www.cedarpolicy.com/) policies. Every answer names the policy behind it. An activity no verified rule covers says **"Check the official order"**, never "Allowed".
+- **Rules first.** The GRAP stage (the stage CAQM declared, the one you set, or an estimate from AQI) is checked against rules written as [Cedar](https://www.cedarpolicy.com/) policies. Every answer names the policy behind it. An activity no verified rule covers says **"Check the official order"**, never "Allowed".
 - **Health plan second.** Pick a persona (school, delivery rider, older adult) and an area. The hourly Open-Meteo forecast becomes a plan: verdict, best time window, commute AQI and a rough breath dose.
+- **Plain-language summary.** Claude on Amazon Bedrock rewrites the plan as two short sentences in English or Hindi, and Amazon Polly reads it aloud. Claude only rephrases: every rule decision stays on the page, unchanged.
 - **Alerts.** Subscribe by email for an area. At 06:00 and 19:00 IST a scheduled Lambda checks every area and emails only where the plan changed.
 
 Advisory only. Not medical advice and not an official order; CAQM declares the GRAP stage.
@@ -16,13 +17,15 @@ Advisory only. Not medical advice and not an official order; CAQM declares the G
 | Scheduled checks | EventBridge Scheduler, `Asia/Kolkata` 06:00 (today) and 19:00 (tomorrow), invoking the Alert Lambda |
 | Email alerts | SNS topic; each subscription filters on `zone` = area |
 | Forecast cache, last alert sent | DynamoDB, one on-demand table, TTL |
+| Declared GRAP stage | SSM Parameter Store, `/saans-compass/official-stage` |
+| Summary and voice | Amazon Bedrock (Claude Opus 5.5) and Amazon Polly (Kajal, en-IN and hi-IN) |
 | Packaging | SAM / CloudFormation, code in the SAM-managed S3 bucket |
-| Ops | CloudWatch logs (14 days), alarm on Alert Lambda errors, `DemoDataFallback` metric, optional $1 budget |
+| Ops | X-Ray tracing, a CloudWatch dashboard, CloudWatch logs (14 days), alarm on Alert Lambda errors, `DemoDataFallback` metric, optional $1 budget |
 
 ```
 src/saans/
   aqi.py        CPCB-style AQI from PM2.5/PM10 (hourly = estimate)
-  stage.py      GRAP stage estimate and official override
+  stage.py      GRAP stage: your override, CAQM's declared stage (Parameter Store), or estimate
   rules.py      Cedar evaluation -> Allowed / Not allowed / Check the official order
   rules/        schema.cedarschema + one .cedar file per persona
   personas.py   school, rider, older adult: hours, activities, effort
@@ -32,10 +35,24 @@ src/saans/
   store.py      DynamoDB (or in-memory locally)
   service.py    the pipeline shared by web and alerts
   alerts.py     per-area change detection, SNS publish and subscribe
+  ai.py         Bedrock summary (Claude) and Polly voice
   web.py        routes; lambda_handler.py and alert_handler.py are the entry points
 ```
 
-Routes: `/`, `/plan`, `/api/plan`, `/poster`, `POST /subscribe`, `/healthz`. Query: `persona` (school, rider, older), `area`, `stage` (0, I–IV, optional), `day` (today, tomorrow).
+Routes: `/`, `/plan`, `/api/plan`, `/api/summary`, `/api/speak`, `/poster`, `POST /subscribe`, `/healthz`. Query: `persona` (school, rider, older), `area`, `stage` (0, I–IV, optional), `day` (today, tomorrow); `lang` (en, hi) for the summary routes.
+
+## Which GRAP stage is used
+
+1. The stage you pick on the page (`stage=`), shown as "Official (you set it)".
+2. For today, the stage stored in Parameter Store, shown as "Declared by CAQM". When CAQM announces a stage, one command updates every page and the next alert run:
+   ```bash
+   aws ssm put-parameter --overwrite --name /saans-compass/official-stage --value III   # or unset
+   ```
+3. Otherwise an estimate from the day's AQI, shown as "Estimate from AQI".
+
+## AI summary
+
+`ai.py` sends Claude only a small JSON of the plan's decisions (persona, area, stage, verdict, best window, each rule's decision, breath-dose ratio). The system prompt tells it to write two sentences, never soften a rule, and invent nothing. Summaries are cached in DynamoDB for 6 hours per plan and language. If Bedrock is off, fails or declines, the page shows the plan without a summary. Set the `BedrockModel` parameter to empty to turn it off.
 
 ## Where the rules come from
 
@@ -57,7 +74,7 @@ pytest -q                                   # unit tests, AWS mocked with moto
 cd src && flask --app "saans.web:create_app()" run   # http://127.0.0.1:5000
 ```
 
-Without AWS variables the app uses an in-memory cache and the subscribe form says alerts are not set up. If the forecast cannot be reached, pages show a **Demo data** banner, and the alert run never emails demo data.
+Without AWS variables the app uses an in-memory cache, the subscribe form says alerts are not set up, and the AI panel is hidden. To try the summary locally with your own AWS sign-in, set `BEDROCK_MODEL=anthropic.claude-opus-5-5` and `BEDROCK_REGION=ap-south-1` before `flask run`. If the forecast cannot be reached, pages show a **Demo data** banner, and the alert run never emails demo data.
 
 ## Deploy (region ap-south-1)
 
@@ -83,7 +100,8 @@ GitHub Actions runs the tests and `cfn-lint` on every push. Deploys from `main` 
 
 - Hourly AQI is an estimate: CPCB breakpoints are defined on 24-hour averages.
 - The forecast is a model (Open-Meteo), not a ground station.
-- The GRAP stage shown is an estimate unless you set the official one.
+- The GRAP stage shown is an estimate unless you set it or the declared stage is stored in Parameter Store.
+- The summary is written by a language model from the plan's facts; the rules table beside it is the source of truth.
 - Activity thresholds and breath dose are our own heuristics, not medical advice.
 - Rules follow the GRAP schedule; the stage actually in force is declared by CAQM, and Delhi departments may issue extra orders.
 
