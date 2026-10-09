@@ -1,0 +1,173 @@
+"""SaansPlan: turn the hourly forecast into a plan for one persona.
+
+Rules come first: an activity the GRAP rules say is not allowed is never
+recommended, whatever the air looks like. The thresholds here are our own
+heuristics, labelled as such on every page.
+"""
+import math
+
+from . import data
+from .dose import total_dose
+from .rules import NOT_ALLOWED, CHECK
+
+
+def best_window(readings, minutes, prefer="cleanest"):
+    """Contiguous run of hours long enough for `minutes` with the lowest
+    (prefer="cleanest") or highest (prefer="worst") average AQI.
+    Hours without data are skipped. Ties go to the earliest window."""
+    length = max(1, math.ceil(minutes / 60))
+    best = None
+    for i in range(len(readings) - length + 1):
+        chunk = readings[i:i + length]
+        if any(r["aqi"] is None for r in chunk):
+            continue
+        avg = sum(r["aqi"] for r in chunk) / length
+        better = best is None or (avg < best["avg_aqi_exact"] if prefer == "cleanest" else avg > best["avg_aqi_exact"])
+        if better:
+            best = {
+                "start": f"{chunk[0]['hour']:02d}:00",
+                "end": f"{(chunk[-1]['hour'] + 1) % 24:02d}:00",
+                "start_hour": chunk[0]["hour"],
+                "avg_aqi_exact": avg,
+            }
+    if best:
+        best["avg_aqi"] = round(best.pop("avg_aqi_exact"))
+    return best
+
+
+def verdict_for(persona, value):
+    if value is None:
+        return None
+    if value <= persona.go_max:
+        return "go"
+    if value <= persona.limit_max:
+        return "limit"
+    return "stay_in"
+
+
+def hour_advice(persona, value):
+    if value is None:
+        return "No forecast for this hour."
+    v = verdict_for(persona, value)
+    if persona.id == "rider":
+        return {
+            "go": "Normal riding.",
+            "limit": "Wear a well-fitted N95 if you have one; take breaks off the road.",
+            "stay_in": "Worst hours: a good time for your break indoors.",
+        }[v]
+    return {
+        "go": "Fine for outdoor activity.",
+        "limit": "Keep outdoor time short and easy.",
+        "stay_in": "Keep activity indoors.",
+    }[v]
+
+
+def _reading_at(readings, hour):
+    for r in readings:
+        if r["hour"] == hour:
+            return r
+    return None
+
+
+def _average_aqi(readings):
+    values = [r["aqi"] for r in readings if r["aqi"] is not None]
+    return round(sum(values) / len(values)) if values else None
+
+
+def build_plan(persona, area, forecast, date, stage_info, rule_results):
+    readings = data.readings_for(forecast, date, persona.hours())
+    for r in readings:
+        r["advice"] = hour_advice(persona, r["aqi"])
+
+    rules_by_activity = {r.activity_id: r for r in rule_results}
+    flex = persona.activity(persona.flex_activity)
+    window = best_window(readings, flex.minutes or 60, persona.flex_prefers)
+
+    # Outdoor-by-choice personas: if even the cleanest window is bad, stay in.
+    # Riders are out all shift, so the verdict follows the shift average.
+    if persona.flex_prefers == "cleanest":
+        verdict = verdict_for(persona, window["avg_aqi"] if window else None)
+    else:
+        verdict = verdict_for(persona, _average_aqi(readings))
+
+    commute = _reading_at(readings, persona.commute_hour) if persona.commute_hour is not None else None
+
+    activities = []
+    segments = []
+    for a in persona.activities:
+        rule = rules_by_activity.get(a.id)
+        at = _reading_at(readings, a.hour) if a.hour is not None else None
+        at_aqi = at["aqi"] if at else None
+        suggestion = None
+        if rule and rule.decision == NOT_ALLOWED:
+            suggestion = "Not allowed at the GRAP stage in force, so it is left out of the plan."
+        elif a.id == flex.id and window and persona.flex_prefers == "cleanest" and verdict == "stay_in":
+            suggestion = (f"Even the cleanest time ({window['start']}, AQI about {window['avg_aqi']}) "
+                          "is too poor. Keep it indoors.")
+        elif a.id == flex.id and window and at_aqi is not None and window["start_hour"] != a.hour:
+            if persona.flex_prefers == "cleanest" and window["avg_aqi"] < at_aqi:
+                suggestion = f"Cleaner from {window['start']} (AQI about {window['avg_aqi']}) than at {a.hour:02d}:00."
+            elif persona.flex_prefers == "worst" and window["avg_aqi"] > at_aqi:
+                suggestion = (f"Take it from {window['start']} instead, when the air is worst "
+                              f"(AQI about {window['avg_aqi']}), and stay off the road.")
+        elif a.outdoor and at_aqi is not None and verdict_for(persona, at_aqi) == "stay_in":
+            suggestion = ("Air is very poor at this time. Move it indoors." if a.movable
+                          else "Air is very poor at this time. Keep it short and avoid busy roads.")
+        activities.append({
+            "id": a.id,
+            "label": a.label,
+            "time": f"{a.hour:02d}:00" if a.hour is not None else None,
+            "minutes": a.minutes,
+            "aqi": at_aqi,
+            "slug": at["slug"] if at else None,
+            "rule": rule.to_dict() if rule else None,
+            "suggestion": suggestion,
+        })
+        allowed = not (rule and rule.decision == NOT_ALLOWED)
+        if a.hour is not None and a.outdoor and allowed and not persona.whole_window_exposure:
+            segments.append(((at or {}).get("pm25"), a.effort, a.minutes))
+
+    if persona.whole_window_exposure:
+        # Every hour of the shift at the persona's effort, except the default
+        # break hour, which is counted at the break's effort.
+        segments = [
+            (r["pm25"], flex.effort if r["hour"] == flex.hour else persona.effort, 60)
+            for r in readings
+        ]
+
+    warnings = [
+        "Hourly AQI is an estimate: CPCB defines AQI on 24-hour averages.",
+        "The forecast is a model (Open-Meteo), not a ground station reading.",
+        "Activity thresholds and breath dose are our own estimates, not an official order. Not medical advice.",
+    ]
+    if stage_info["source"] == "estimate":
+        warnings.insert(0, "The GRAP stage is estimated from AQI. CAQM declares the official stage; set it if you know it.")
+    if forecast["is_demo"]:
+        warnings.insert(0, "Demo data: the live forecast could not be reached.")
+    if any(r.decision == CHECK for r in rule_results):
+        warnings.append('Some answers say "Check the official order": no verified rule covers them yet.')
+
+    if persona.flex_prefers == "cleanest":
+        window_title = f"Cleanest time for: {flex.label}"
+    else:
+        window_title = f"Best time for: {flex.label} (worst air, get off the road)"
+
+    return {
+        "persona": {"id": persona.id, "label": persona.label, "question": persona.question},
+        "area": {"id": area.id, "name": area.name},
+        "date": date.isoformat(),
+        "stage": stage_info,
+        "is_demo": forecast["is_demo"],
+        "fetched_at": forecast["fetched_at"],
+        "verdict": verdict,
+        "verdict_label": persona.verdict_labels[verdict] if verdict else "Not enough data",
+        "best_window": window,
+        "best_window_title": window_title,
+        "commute": {"time": f"{commute['hour']:02d}:00", "aqi": commute["aqi"], "category": commute["category"]}
+        if commute else None,
+        "rules": [r.to_dict() for r in rule_results],
+        "activities": activities,
+        "hours": readings,
+        "dose": total_dose(segments),
+        "warnings": warnings,
+    }

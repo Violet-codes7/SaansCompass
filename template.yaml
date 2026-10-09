@@ -1,0 +1,190 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Saans Compass: GRAP rules and a personal air-quality plan for Delhi.
+  Web Lambda (Flask) behind an HTTP API, and a scheduled Alert Lambda that
+  emails area subscribers through SNS when the plan changes.
+
+Parameters:
+  BudgetEmail:
+    Type: String
+    Default: ""
+    Description: Optional. Email for a USD 1 monthly cost budget alert. Leave empty to skip the budget.
+  AlarmEmail:
+    Type: String
+    Default: ""
+    Description: Optional. Email to notify when the Alert Lambda errors. Leave empty to skip.
+
+Conditions:
+  HasBudgetEmail: !Not [!Equals [!Ref BudgetEmail, ""]]
+  HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [x86_64]
+    CodeUri: src/
+    MemorySize: 512
+    Timeout: 15
+    Environment:
+      Variables:
+        TABLE: !Ref Table
+        TOPIC_ARN: !Ref AlertTopic
+
+Resources:
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 50
+        ThrottlingRateLimit: 20
+
+  WebFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Saans Compass pages, JSON API, poster and subscribe form
+      Handler: saans.lambda_handler.handler
+      Events:
+        Root:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /
+            Method: ANY
+        Proxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: ANY
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Table
+        - Statement:
+            - Effect: Allow
+              Action: sns:Subscribe
+              Resource: !Ref AlertTopic
+
+  AlertFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Checks every area and emails subscribers when the plan changes
+      Handler: saans.alert_handler.handler
+      Timeout: 120
+      Environment:
+        Variables:
+          SITE_URL: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+      Events:
+        Morning:
+          Type: ScheduleV2
+          Properties:
+            Description: 06:00 IST check for today
+            ScheduleExpression: "cron(0 6 * * ? *)"
+            ScheduleExpressionTimezone: Asia/Kolkata
+            Input: '{"run": "today"}'
+        Evening:
+          Type: ScheduleV2
+          Properties:
+            Description: 19:00 IST check for tomorrow
+            ScheduleExpression: "cron(0 19 * * ? *)"
+            ScheduleExpressionTimezone: Asia/Kolkata
+            Input: '{"run": "tomorrow"}'
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Table
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt AlertTopic.TopicName
+
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: Saans Compass
+
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  WebLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${WebFunction}"
+      RetentionInDays: 14
+
+  AlertLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AlertFunction}"
+      RetentionInDays: 14
+
+  OpsTopic:
+    Type: AWS::SNS::Topic
+    Condition: HasAlarmEmail
+    Properties:
+      DisplayName: Saans Compass ops
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref AlarmEmail
+
+  AlertErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: The scheduled alert check failed for at least one area
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref AlertFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmEmail, [!Ref OpsTopic], !Ref "AWS::NoValue"]
+
+  CostBudget:
+    Type: AWS::Budgets::Budget
+    Condition: HasBudgetEmail
+    Properties:
+      Budget:
+        BudgetName: !Sub "${AWS::StackName}-monthly"
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: 1
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref BudgetEmail
+
+Outputs:
+  SiteUrl:
+    Description: Public URL of the app
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+  AlertFunctionName:
+    Description: Invoke by hand for the demo with sam remote invoke AlertFunction
+    Value: !Ref AlertFunction
+  AlertTopicArn:
+    Value: !Ref AlertTopic
+  TableName:
+    Value: !Ref Table

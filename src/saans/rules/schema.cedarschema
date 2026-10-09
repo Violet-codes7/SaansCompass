@@ -1,0 +1,13 @@
+// Saans Compass rules schema. Every policy is validated against it in tests.
+// principal: the persona asking. resource: the Delhi area. context.stage: the
+// GRAP stage in force (0 = none, 1-4 = Stage I-IV), official or estimated.
+entity Persona;
+entity Area;
+
+action
+  "school_commute", "outdoor_assembly", "outdoor_recess", "outdoor_pe",
+  "physical_classes_primary", "physical_classes_senior",
+  "outdoor_shift", "rest_break",
+  "drive_bs4_diesel_lcv", "drive_bs3_petrol_bs4_diesel_car",
+  "outdoor_walk", "outdoor_errands"
+  appliesTo { principal: [Persona], resource: [Area], context: { stage: Long } };

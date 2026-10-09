@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Saans Compass{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="site">
+    <a class="brand" href="{{ url_for('index') }}">Saans Compass</a>
+    <span class="tag">GRAP rules first, health advice second. Delhi.</span>
+  </header>
+  <main>{% block main %}{% endblock %}</main>
+  <footer class="site">
+    Advisory only. Not medical advice and not an official order; CAQM declares the GRAP stage.
+    Forecast: Open-Meteo air-quality model. AQI: CPCB breakpoints applied hourly (estimate).
+  </footer>
+</body>
+</html>

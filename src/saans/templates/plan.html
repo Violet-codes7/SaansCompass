@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ plan.area.name }}: {{ plan.persona.label }} · Saans Compass{% endblock %}
+{% block main %}
+{% if plan.is_demo %}<div class="banner demo">Demo data: the live forecast could not be reached. Numbers below are not real.</div>{% endif %}
+
+<section class="summary">
+  <div>
+    <p class="eyebrow">{{ plan.area.name }} · {{ plan.day|capitalize }} {{ plan.date }}</p>
+    <h1>{{ plan.persona.label }}</h1>
+    <p class="question">{{ plan.persona.question }}</p>
+  </div>
+  <div class="stage-box">
+    <span class="eyebrow">GRAP stage</span>
+    <strong>{{ 'None' if plan.stage.stage == 0 else plan.stage.label }}</strong>
+    <span class="src {{ plan.stage.source }}">{{ 'Official (you set it)' if plan.stage.source == 'official' else 'Estimate from AQI' }}</span>
+    {% if plan.stage.day_aqi is not none %}<span class="small">Day AQI about {{ plan.stage.day_aqi }}</span>{% endif %}
+  </div>
+</section>
+
+<form class="controls" method="get" action="{{ url_for('plan_page') }}">
+  <input type="hidden" name="persona" value="{{ plan.persona.id }}">
+  <label>Area <select name="area">{% for a in areas.values() %}<option value="{{ a.id }}" {% if a.id == plan.area.id %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></label>
+  <label>Day <select name="day">{% for d in ['today','tomorrow'] %}<option value="{{ d }}" {% if d == plan.day %}selected{% endif %}>{{ d|capitalize }}</option>{% endfor %}</select></label>
+  <label>Official stage <select name="stage">
+    <option value="" {% if plan.stage.source == 'estimate' %}selected{% endif %}>Not set: estimate</option>
+    {% for n, r in roman.items() %}<option value="{{ r if n else '0' }}" {% if plan.stage.source == 'official' and plan.stage.stage == n %}selected{% endif %}>{{ 'No stage' if n == 0 else 'Stage ' ~ r }}</option>{% endfor %}
+  </select></label>
+  <label>Persona <select name="persona" onchange="this.form.submit()">{% for p in personas.values() %}<option value="{{ p.id }}" {% if p.id == plan.persona.id %}selected{% endif %}>{{ p.label }}</option>{% endfor %}</select></label>
+  <button type="submit">Update</button>
+</form>
+
+<div class="two">
+  <section class="panel rules">
+    <h2><span class="step">1</span> GRAP rules</h2>
+    <p class="small">Each answer names the rule behind it. A rule we could not verify says "Check the official order", never "Allowed".</p>
+    <ul class="rule-list">
+      {% for a in plan.activities %}{% set r = a.rule %}
+      <li class="rule {{ r.decision }}">
+        <div class="rule-head"><span>{{ a.label }}</span><b class="pill {{ r.decision }}">{{ r.label }}</b></div>
+        {% if r.policy_id %}<code>{{ r.policy_id }}</code><span class="clause">{{ r.clause }}</span>{% endif %}
+        {% if r.note %}<span class="note">{{ r.note }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="panel plan">
+    <h2><span class="step">2</span> Your health plan</h2>
+    <div class="verdict v-{{ plan.verdict or 'none' }}">{{ plan.verdict_label }}</div>
+    <dl class="facts">
+      {% if plan.best_window %}<dt>{{ plan.best_window_title }}</dt><dd>{{ plan.best_window.start }}–{{ plan.best_window.end }} · AQI about {{ plan.best_window.avg_aqi }}</dd>{% endif %}
+      {% if plan.commute %}<dt>AQI at {{ plan.commute.time }} (commute or shift start)</dt><dd>{{ plan.commute.aqi if plan.commute.aqi is not none else 'No data' }} · {{ plan.commute.category }}</dd>{% endif %}
+      <dt>Rough breath dose (estimate)</dt>
+      <dd>{% if plan.dose.ratio is not none %}{{ plan.dose.ug }} µg PM2.5 over {{ plan.dose.minutes }} min, about <b>{{ plan.dose.ratio }}×</b> the same time resting in clean air{% else %}Not enough data{% endif %}</dd>
+    </dl>
+    <h3>Activities</h3>
+    <ul class="acts">
+      {% for a in plan.activities if a.time %}
+      <li><span class="t">{{ a.time }}</span> {{ a.label }}{% if a.aqi is not none %} <span class="aqi {{ a.slug }}">AQI {{ a.aqi }}</span>{% endif %}
+        {% if a.suggestion %}<div class="sugg">{{ a.suggestion }}</div>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+<section class="panel">
+  <h2>Hour by hour</h2>
+  <div class="hours">
+    {% for h in plan.hours %}
+    <div class="hour {{ h.slug }}" title="{{ h.advice }}">
+      <span class="t">{{ '%02d'|format(h.hour) }}:00</span>
+      <b>{{ h.aqi if h.aqi is not none else '–' }}</b>
+      <span class="c">{{ h.category }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel notes">
+  <h2>Please read</h2>
+  <ul>{% for w in plan.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+</section>
+
+<section class="panel actions">
+  <a class="button" href="{{ url_for('poster', **request.args) }}">Daily poster</a>
+  <a class="button ghost" href="{{ url_for('api_plan', **request.args) }}">JSON</a>
+  <form method="post" action="{{ url_for('subscribe') }}" class="sub">
+    <input type="hidden" name="area" value="{{ plan.area.id }}">
+    <label>Email alerts for {{ plan.area.name }} at 06:00 and 19:00 when the plan changes
+      <input type="email" name="email" required maxlength="254" placeholder="you@example.com"></label>
+    <button type="submit">Subscribe</button>
+  </form>
+</section>
+{% endblock %}

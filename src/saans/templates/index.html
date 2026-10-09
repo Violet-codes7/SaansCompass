@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block main %}
+<section class="hero">
+  <h1>What do the rules and your health mean for you today?</h1>
+  <p>Pick who you are and your area. You get the GRAP rules that apply, each traced to its rule, and an hour-by-hour plan for your day.</p>
+</section>
+<form class="picker" action="{{ url_for('plan_page') }}" method="get">
+  <fieldset>
+    <legend>Who are you?</legend>
+    {% for p in personas.values() %}
+    <label class="choice">
+      <input type="radio" name="persona" value="{{ p.id }}" {% if loop.first %}checked{% endif %}>
+      <span><b>{{ p.label }}</b><small>{{ p.question }}</small></span>
+    </label>
+    {% endfor %}
+  </fieldset>
+  <div class="row">
+    <label>Area
+      <select name="area">
+        {% for a in areas.values() %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Day
+      <select name="day"><option value="today">Today</option><option value="tomorrow">Tomorrow</option></select>
+    </label>
+    <label>Official GRAP stage (if you know it)
+      <select name="stage">
+        <option value="">Not set: estimate from AQI</option>
+        {% for n, r in roman.items() %}<option value="{{ r if n else '0' }}">{{ 'No stage' if n == 0 else 'Stage ' ~ r }}</option>{% endfor %}
+      </select>
+    </label>
+  </div>
+  <button type="submit">Show my plan</button>
+</form>
+{% endblock %}

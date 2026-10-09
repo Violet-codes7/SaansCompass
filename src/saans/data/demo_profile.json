@@ -1,0 +1,17 @@
+{
+  "_note": "Demo data, not a measurement. Used only when the Open-Meteo forecast cannot be reached; every page it feeds shows a Demo data banner. Shape: a typical late-October Delhi day (higher at night and morning, lower in the afternoon), scaled per area and rising slightly each day.",
+  "pm25_by_hour": [150, 155, 160, 162, 165, 170, 178, 185, 180, 165, 140, 115, 95, 85, 80, 82, 92, 110, 135, 150, 158, 160, 158, 152],
+  "pm10_ratio": 1.8,
+  "daily_increase": 0.08,
+  "area_multiplier": {
+    "anand-vihar": 1.35,
+    "ito": 1.1,
+    "punjabi-bagh": 1.15,
+    "rk-puram": 1.0,
+    "dwarka": 0.95,
+    "rohini": 1.1,
+    "okhla": 1.05,
+    "lodhi-road": 0.8,
+    "jahangirpuri": 1.3
+  }
+}
