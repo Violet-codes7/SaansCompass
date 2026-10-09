@@ -4,6 +4,7 @@
   <h1>Your air plan for today</h1>
   <p>Tell us a little about you. We check today's and tomorrow's forecast for your area, work out the GRAP stage, show the rules that apply to you, and plan your day around the cleanest air.</p>
 </section>
+{% with area_name='Delhi (ITO)', air_now=dash.air_now, air_tomorrow=dash.air_tomorrow, is_demo=dash.is_demo %}{% include "_dash.html" %}{% endwith %}
 <form class="picker profile" action="{{ url_for('plan_page') }}" method="get">
   <fieldset>
     <legend>What do you do most days?</legend>

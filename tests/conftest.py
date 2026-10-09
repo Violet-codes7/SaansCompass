@@ -55,3 +55,5 @@ def no_real_network(monkeypatch):
     def boom(*a, **k):
         raise AssertionError("tests must not call the real Open-Meteo API")
     monkeypatch.setattr(data, "fetch_open_meteo", boom)
+    from saans import weather
+    monkeypatch.setattr(weather, "fetch_weather", boom)

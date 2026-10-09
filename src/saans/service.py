@@ -2,6 +2,7 @@
 forecast -> AQI -> stage -> Cedar rules -> plan and dose."""
 from datetime import timedelta
 
+from . import aqi as aqi_mod
 from . import data
 from .advisor import build_plan
 from .personas import get_persona
@@ -31,6 +32,14 @@ def parse_day(raw, now=None):
     return day
 
 
+def air_now(forecast, now):
+    """The forecast AQI for the current IST hour (an hourly estimate)."""
+    local = now.astimezone(data.IST)
+    r = data.readings_for(forecast, local.date(), [local.hour])[0]
+    return {"aqi": r["aqi"], "category": aqi_mod.category(r["aqi"]), "dominant": r["dominant"],
+            "time": local.strftime("%Y-%m-%d %H:00")}
+
+
 def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None, rulebook=None, fetcher=None,
              profile: Profile | None = None):
     """Raises ValueError with a user-facing message for bad input.
@@ -57,6 +66,9 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
     rule_results = rulebook.evaluate_persona(persona, area.id, stage_info["stage"], sensitive)
     plan = build_plan(persona, area, forecast, date, stage_info, rule_results, profile)
     plan["day"] = day
+    plan["air_now"] = air_now(forecast, now)
+    tomorrow_aqi = data.day_aqi(forecast, now.astimezone(data.IST).date() + timedelta(days=1))
+    plan["air_tomorrow"] = {"aqi": tomorrow_aqi, "category": aqi_mod.category(tomorrow_aqi)}
     plan["dates"] = {
         "today": now.astimezone(data.IST).date().isoformat(),
         "tomorrow": (now.astimezone(data.IST).date() + timedelta(days=1)).isoformat(),

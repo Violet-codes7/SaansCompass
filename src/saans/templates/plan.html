@@ -34,6 +34,8 @@
   </div>
 </section>
 
+{% with area_name=plan.area.name, air_now=plan.air_now, air_tomorrow=plan.air_tomorrow, is_demo=plan.is_demo %}{% include "_dash.html" %}{% endwith %}
+
 {% if plan.stage.stage is not none and plan.stage.stage < 3 %}
 <p class="try">Air is not bad enough for most GRAP rules today. See what changes on a bad-air day:
   <a href="{{ plan_link(stage='III') }}">Try Stage III</a>

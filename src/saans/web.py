@@ -1,6 +1,7 @@
 """Flask routes: picker, plan page, JSON API, poster, subscribe, health check."""
 import logging
 import os
+from datetime import timedelta
 from urllib.parse import urlencode
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
@@ -8,7 +9,10 @@ from flask import Flask, jsonify, redirect, render_template, request, url_for
 from . import ai, data
 from .alerts import subscribe as sns_subscribe
 from .personas import PERSONAS
+from . import gauges, weather
+from .aqi import category as aqi_category
 from .profile import COMMUTE_MODES, CONDITIONS, WORK, parse_profile
+from .service import air_now
 from .service import get_plan
 from .stage import ROMAN
 from .store import get_store
@@ -73,7 +77,8 @@ def create_app():
     @app.context_processor
     def globals_():
         return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN, "ai_enabled": ai.enabled(),
-                "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link}
+                "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link,
+                "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge}
 
     @app.after_request
     def security_headers(resp):
@@ -84,7 +89,15 @@ def create_app():
 
     @app.get("/")
     def index():
-        return render_template("index.html")
+        # A live dashboard for central Delhi (ITO) above the form.
+        area = data.AREAS["ito"]
+        store = get_store()
+        now = data.now_ist()
+        forecast = data.get_forecast(area, store, now=now)
+        tomorrow = data.day_aqi(forecast, now.date() + timedelta(days=1))
+        dash = {"area": area.name, "air_now": air_now(forecast, now), "is_demo": forecast["is_demo"],
+                "air_tomorrow": {"aqi": tomorrow, "category": aqi_category(tomorrow)}}
+        return render_template("index.html", dash=dash, weather=weather.get_weather(area, store))
 
     @app.get("/plan")
     def plan_page():
@@ -94,7 +107,8 @@ def create_app():
         except ValueError as exc:
             return render_template("error.html", message=str(exc)), 400
         _log_plan(plan)
-        return render_template("plan.html", plan=plan, args=args)
+        wx = weather.get_weather(data.get_area(plan["area"]["id"]), get_store())
+        return render_template("plan.html", plan=plan, args=args, weather=wx)
 
     @app.get("/poster")
     def poster():
