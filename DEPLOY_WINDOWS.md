@@ -15,10 +15,12 @@ About 20 minutes the first time. Run every command in **PowerShell** from the pr
 ```powershell
 cd <your AirCompass folder>
 git pull
-E:\venv\Scripts\Activate.ps1          # the Python 3.12 venv you already made
-pip install -r requirements-dev.txt
+py -3.12 -m venv E:\venv312          # once; needs Python 3.12 from python.org (see below)
+E:\venv312\Scripts\Activate.ps1
 python --version                      # must say 3.12.x
+pip install -r requirements-dev.txt
 ```
+The Lambda runs Python 3.12, so `sam build` needs 3.12 on PATH. A venv made from the Microsoft Store's Python 3.13 will not work. Get 3.12 from https://www.python.org/downloads/windows/ (the latest "Python 3.12" Windows installer, 64-bit), tick "Add python.exe to PATH" and keep the "py launcher" option. You can keep 3.13 installed alongside it.
 If `Activate.ps1` is blocked, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and try again.
 
 ## 3. Sign in to AWS
@@ -36,7 +38,7 @@ Console → switch region to **Asia Pacific (Mumbai) ap-south-1** → Amazon Bed
 You can skip this; the site still works, it just hides the "In plain words" box.
 
 ## 5. Build and deploy
-Keep the venv active (sam build uses the Python 3.12 on PATH).
+Keep the `E:\venv312` venv active (sam build uses the Python 3.12 on PATH).
 ```powershell
 sam build
 sam deploy --guided
