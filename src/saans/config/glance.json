@@ -128,5 +128,46 @@
     "okhla": "South-east Delhi around a large industrial area, with a waste-to-energy plant and heavy goods traffic.",
     "lodhi-road": "Central Delhi among large gardens and government housing. It is usually one of the cleaner readings.",
     "jahangirpuri": "North Delhi beside an industrial area and the Bhalswa landfill, with heavy truck traffic. It is often one of the worst readings."
-  }
+  },
+  "hours": {
+    "hint": "Tap any hour to see everything about it.",
+    "pm25": "PM2.5",
+    "pm10": "PM10",
+    "unit": "µg/m³",
+    "times_who": "{times}× WHO",
+    "main": "Mostly {pollutant}",
+    "temp": "Temperature",
+    "humidity": "Humidity",
+    "wind": "Wind",
+    "mixing": "Mixing height",
+    "for_you": "For you",
+    "plans_title": "Your plans this hour",
+    "nothing_planned": "Nothing planned outdoors this hour.",
+    "do_title": "Do this now",
+    "why_title": "Why the air is like this",
+    "breath": "Outdoors this hour, the PM2.5 you breathe is {times}× the WHO 24-hour guideline.",
+    "no_weather": "No weather forecast for this hour.",
+    "prev": "Earlier",
+    "next": "Later",
+    "do": {
+      "go": [
+        "A good hour to be outside: walk, exercise, or run errands now.",
+        "Open the windows for a few minutes to air the house."
+      ],
+      "limit": [
+        "Keep time outside short and gentle; skip hard exercise.",
+        "Wear a well-fitted N95 if you go out, and keep away from busy roads."
+      ],
+      "stay_in": [
+        "Stay indoors if you can, with windows and doors shut.",
+        "If you must go out, wear a well-fitted N95 and keep it short."
+      ],
+      "none": [
+        "There is no forecast for this hour; check the AQI before you go out."
+      ]
+    },
+    "do_worst": "This is the worst hour of your day: keep windows shut and stay off busy roads.",
+    "do_best": "This is your cleanest hour: the best time for anything you can move."
+  },
+  "notes_title": "Please read"
 }

@@ -241,6 +241,7 @@ def create_app():
             return render_template("error.html", message=str(exc)), 400
         _log_plan(plan)
         wx = weather.get_weather(data.get_area(plan["area"]["id"]), get_store())
+        plan["hour_details"] = guide.hour_details(plan, wx)
         saved = _saved()
         texts = route_texts(saved or request.args)
         return render_template("plan.html", plan=plan, args=args, weather=wx, using_saved=bool(saved),

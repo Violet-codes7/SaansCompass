@@ -90,7 +90,8 @@ def test_fetch_weather_reads_the_extra_fields():
             return {"current": {"time": "2026-10-10T09:00", "temperature_2m": 27, "relative_humidity_2m": 74,
                                 "wind_speed_10m": 5.6, "apparent_temperature": 29.4, "dew_point_2m": 22.1,
                                 "wind_direction_10m": 315, "wind_gusts_10m": 14},
-                    "hourly": {"time": ["2026-10-10T09:00"], "boundary_layer_height": [240]}}
+                    "hourly": {"time": ["2026-10-10T08:00", "2026-10-10T09:00"], "boundary_layer_height": [180, 240],
+                               "temperature_2m": [26, 27], "wind_speed_10m": [4, None]}}
 
     class Session:
         def get(self, url, params, timeout):
@@ -99,6 +100,9 @@ def test_fetch_weather_reads_the_extra_fields():
 
     w = REAL_FETCH_WEATHER(data.AREAS["ito"], session=Session())
     assert w["mixing_m"] == 240.0 and w["wind_dir"] == 315.0 and w["feels_c"] == 29.4
+    assert w["hours"][0] == {"time": "2026-10-10T08:00", "temp_c": 26.0, "humidity": None, "wind_kmh": 4.0,
+                             "wind_dir": None, "mixing_m": 180.0}
+    assert w["hours"][1]["wind_kmh"] is None
 
 
 def test_old_cached_weather_without_new_fields_still_renders(mem_store):
@@ -128,3 +132,17 @@ def test_particles_use_24_hours_when_known():
     today_only = {"hours": make_hours([40] * 12 + [80] * 12, days=1, start=FIXED_NOW)}
     p = data.particles_now(today_only, FIXED_NOW)
     assert p["basis"] == "today" and p["pm25"] == 60
+
+
+def test_hours_are_clickable_with_full_details(mem_store, monkeypatch, live_fetcher):
+    monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
+    wx = dict(FULL_WX, hours=[{"time": f"2026-10-10T{h:02d}:00", "temp_c": 20.0 + h, "humidity": 60.0,
+                               "wind_kmh": 3.0, "wind_dir": 300.0, "mixing_m": 250.0} for h in range(24)])
+    monkeypatch.setattr(weather, "fetch_weather", lambda area: wx)
+    html = create_app().test_client().get("/plan?persona=commuter&area=ito&day=today").get_data(as_text=True)
+    panels = html.split('class="dp-detail')[1:]
+    assert len(panels) == html.count('role="tab" class="dp-col') > 10
+    assert sum('role="tabpanel" >' in p for p in panels) == 1  # one hour open, the rest hidden
+    assert "Your plans this hour" in html and "Do this now" in html and "× WHO" in html
+    nine = next(p for p in panels if "09:00–10:00" in p)
+    assert "Morning commute" in nine and "29°C" in nine and "Very low lid" in nine  # that hour's own weather

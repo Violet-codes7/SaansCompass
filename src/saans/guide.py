@@ -8,6 +8,7 @@ from .advisor import verdict_for
 from .profile import COMMUTE_TIPS
 
 TEXT = settings.load("glance")
+WHO_PM25_24H = next(p for p in settings.load("particles")["particles"] if p["key"] == "pm25")["limits"]["who_24h"]
 SCALE_MAX = 500
 
 
@@ -186,3 +187,45 @@ def build(plan, persona, profile=None, modes=()):
         "todo": _todo(plan, persona, profile, modes),
         "health": _health(plan, persona, profile),
     }
+
+
+def hour_details(plan, wx=None):
+    """Everything about each hour of the plan, for the clickable hourly view:
+    air, particles, weather, the person's plans and what to do."""
+    from .weather import band, compass, hour_note
+
+    t = TEXT["hours"]
+    by_time = {h["time"][:13]: h for h in (wx or {}).get("hours", [])}
+    out = []
+    for r in plan["hours"]:
+        hour = r["hour"]
+        w = by_time.get(r["time"][:13])
+        weather = None
+        if w:
+            weather = {**w, "wind_from": compass(w.get("wind_dir"))[1], "note": hour_note(w),
+                       "bands": {k: band(k, w.get(k)) for k in ("temp_c", "humidity", "wind_kmh", "mixing_m")}}
+        plans = []
+        for a in plan["activities"]:
+            if not a["time"]:
+                continue
+            start = int(a["time"][:2])
+            span = max(1, -(-(a["minutes"] or 60) // 60))
+            if (hour - start) % 24 < span:
+                plans.append(a)
+        tags = {tag["kind"] for tag in r.get("tags", [])}
+        do = list(t["do"][r.get("verdict") or "none"])
+        if "worst" in tags:
+            do.insert(0, t["do_worst"])
+        if "best" in tags:
+            do.insert(0, t["do_best"])
+        out.append({
+            "hour": hour,
+            "label": f"{hour:02d}:00–{(hour + 1) % 24:02d}:00",
+            "pm25": round(r["pm25"]) if r["pm25"] is not None else None,
+            "pm10": round(r["pm10"]) if r["pm10"] is not None else None,
+            "times_who": round(r["pm25"] / WHO_PM25_24H, 1) if r["pm25"] is not None else None,
+            "weather": weather,
+            "plans": plans,
+            "do": do,
+        })
+    return out

@@ -74,7 +74,7 @@ def test_hour_by_hour_section_is_personal(client):
 
 def test_please_read_notes_have_titles(client):
     html = client.get("/plan?persona=older&area=ito&stage=III&age=70").get_data(as_text=True)
-    notes = html.split("Please read", 1)[1].split("</section>", 1)[0]
+    notes = html.split("Please read", 1)[1].split("</details>", 1)[0]
     for key in ("stage_official", "forecast", "limits_profile", "medical"):
         assert f"note-{key}" in notes
     assert TEXT["notes"]["medical"]["title"] in notes

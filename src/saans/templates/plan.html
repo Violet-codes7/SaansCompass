@@ -352,39 +352,90 @@
     </ul>
   </div>
   {% set now_hour = plan.air_now.time[11:13] if plan.day == 'today' else None %}
-  <div class="dp-chart" role="img" aria-label="Hourly AQI chart with your limits">
+  {% set ht = glance_text.hours %}
+  {% set details = plan.hour_details or [] %}
+  {% set ns = namespace(sel=0) %}
+  {% for h in plan.hours %}{% if h.tags|selectattr('kind', 'in', ['best', 'break'])|list and ns.sel == 0 %}{% set ns.sel = loop.index0 %}{% endif %}{% endfor %}
+  {% for h in plan.hours %}{% if now_hour and h.time[11:13] == now_hour %}{% set ns.sel = loop.index0 %}{% endif %}{% endfor %}
+  <p class="small dp-hint">👆 {{ ht.hint }}</p>
+  <div class="dp-chart" role="tablist" aria-label="Hourly AQI chart with your limits">
     {% set top = 500 %}
     <div class="dp-line go" style="bottom: {{ (plan.thresholds.go_max / top * 100)|round(1) }}%"><span>Fine ≤ {{ plan.thresholds.go_max }}</span></div>
     <div class="dp-line limit" style="bottom: {{ (plan.thresholds.limit_max / top * 100)|round(1) }}%"><span>Short ≤ {{ plan.thresholds.limit_max }}</span></div>
     {% for h in plan.hours %}
-    <div class="dp-col{% if h.tags|selectattr('kind', 'in', ['best', 'break'])|list %} is-best{% endif %}{% if now_hour and h.time[11:13] == now_hour %} is-now{% endif %}">
+    <button type="button" role="tab" class="dp-col{% if h.tags|selectattr('kind', 'in', ['best', 'break'])|list %} is-best{% endif %}{% if now_hour and h.time[11:13] == now_hour %} is-now{% endif %}"
+      data-i="{{ loop.index0 }}" aria-controls="dp-h-{{ loop.index0 }}" aria-selected="{{ 'true' if loop.index0 == ns.sel else 'false' }}"
+      aria-label="{{ h.time[11:16] }}, AQI {{ h.aqi if h.aqi is not none else 'not known' }}, {{ h.verdict_label }}">
       <div class="dp-bar {{ h.slug }}" style="height: {{ ([h.aqi or 0, top]|min / top * 100)|round(1) }}%"><b>{{ h.aqi if h.aqi is not none else '–' }}</b></div>
       <span class="t">{{ h.time[11:13] }}</span>
-    </div>
+    </button>
     {% endfor %}
   </div>
-  <ol class="dp-list">
-    {% for h in plan.hours %}
-    <li class="dp-hour v-{{ h.verdict or 'none' }}{% if now_hour and h.time[11:13] == now_hour %} is-now{% endif %}">
-      <span class="t">{{ h.time[11:16] }}</span>
-      <div class="dp-body">
-        <div class="dp-top"><b>{{ h.verdict_label }}</b> <span class="aqi {{ h.slug }}">AQI {{ h.aqi if h.aqi is not none else '–' }} · {{ h.category }}</span></div>
-        <p>{{ h.advice }}</p>
-        {% if h.tags or (now_hour and h.time[11:13] == now_hour) %}<p class="tags">{% if now_hour and h.time[11:13] == now_hour %}<span class="tag now">{{ hour_tags.now }}</span>{% endif %}{% for t in h.tags %}<span class="tag {{ t.kind }}">{{ t.text }}</span>{% endfor %}</p>{% endif %}
+  {% for h in plan.hours %}{% set d = details[loop.index0] if details|length > loop.index0 else None %}{% set i = loop.index0 %}
+  <div class="dp-detail v-{{ h.verdict or 'none' }}" id="dp-h-{{ i }}" role="tabpanel" {% if i != ns.sel %}hidden{% endif %}>
+    <div class="dd-head">
+      <button type="button" class="ghost dd-nav" data-go="{{ i - 1 }}" {% if loop.first %}disabled{% endif %} aria-label="{{ ht.prev }}">‹</button>
+      <div class="dd-title">
+        <span class="dd-time">{{ d.label if d else h.time[11:16] }}</span>
+        {% if (now_hour and h.time[11:13] == now_hour) or h.tags %}<span class="tags">{% if now_hour and h.time[11:13] == now_hour %}<span class="tag now">{{ hour_tags.now }}</span>{% endif %}{% for t in h.tags %}<span class="tag {{ t.kind }}">{{ t.text }}</span>{% endfor %}</span>{% endif %}
       </div>
-    </li>
-    {% endfor %}
-  </ol>
+      <button type="button" class="ghost dd-nav" data-go="{{ i + 1 }}" {% if loop.last %}disabled{% endif %} aria-label="{{ ht.next }}">›</button>
+    </div>
+    <div class="dd-main">
+      <div class="dd-aqi {{ h.slug }}"><span class="g-k">AQI</span><b>{{ h.aqi if h.aqi is not none else '–' }}</b><span>{{ h.category }}</span></div>
+      <div class="dd-verdict"><span class="g-k">{{ ht.for_you }}</span><b>{{ h.verdict_label }}</b><p>{{ h.advice }}</p></div>
+    </div>
+    {% if d %}
+    <div class="dd-stats">
+      <div><span class="g-k">{{ ht.pm25 }}</span><b>{{ d.pm25 if d.pm25 is not none else '–' }}</b><small>{{ ht.unit }}{% if d.times_who is not none %} · {{ ht.times_who.format(times=d.times_who) }}{% endif %}</small></div>
+      <div><span class="g-k">{{ ht.pm10 }}</span><b>{{ d.pm10 if d.pm10 is not none else '–' }}</b><small>{{ ht.unit }}{% if h.dominant %} · {{ ht.main.format(pollutant=h.dominant) }}{% endif %}</small></div>
+      {% set w = d.weather %}
+      {% if w %}
+      {% if w.temp_c is not none %}<div><span class="g-k">{{ ht.temp }}</span><b>{{ w.temp_c|round|int }}°C</b>{% if w.bands.temp_c %}<small class="tone-chip tone-{{ w.bands.temp_c.tone }}">{{ w.bands.temp_c.name }}</small>{% endif %}</div>{% endif %}
+      {% if w.humidity is not none %}<div><span class="g-k">{{ ht.humidity }}</span><b>{{ w.humidity|round|int }}%</b>{% if w.bands.humidity %}<small class="tone-chip tone-{{ w.bands.humidity.tone }}">{{ w.bands.humidity.name }}</small>{% endif %}</div>{% endif %}
+      {% if w.wind_kmh is not none %}<div><span class="g-k">{{ ht.wind }}</span><b>{% if w.wind_dir is not none %}<span class="wind-arrow" style="transform: rotate({{ (w.wind_dir + 180) % 360 }}deg)" aria-hidden="true">↑</span> {% endif %}{{ w.wind_kmh|round(1) }} <small>km/h</small></b>{% if w.bands.wind_kmh %}<small class="tone-chip tone-{{ w.bands.wind_kmh.tone }}">{{ w.bands.wind_kmh.name }}{% if w.wind_from %} · {{ w.wind_from }}{% endif %}</small>{% endif %}</div>{% endif %}
+      {% if w.mixing_m is not none %}<div><span class="g-k">{{ ht.mixing }}</span><b>{{ (w.mixing_m / 10)|round|int * 10 }} <small>m</small></b>{% if w.bands.mixing_m %}<small class="tone-chip tone-{{ w.bands.mixing_m.tone }}">{{ w.bands.mixing_m.name }}</small>{% endif %}</div>{% endif %}
+      {% endif %}
+    </div>
+    <div class="dd-cols">
+      <div><h4>{{ ht.plans_title }}</h4>
+        {% if d.plans %}<ul class="dd-plans">{% for a in d.plans %}<li><b>{{ a.time }}</b> {{ a.label }}{% if a.rule and not (plan.stage.stage == 0 and a.rule.decision == 'check_official_order') %} <span class="pill {{ a.rule.decision }}">{{ a.rule.label }}</span>{% endif %}{% if a.suggestion %}<small>{{ a.suggestion }}</small>{% endif %}</li>{% endfor %}</ul>
+        {% else %}<p class="small">{{ ht.nothing_planned }}</p>{% endif %}</div>
+      <div><h4>{{ ht.do_title }}</h4><ul>{% for item in d.do %}<li>{{ item }}</li>{% endfor %}</ul></div>
+      <div><h4>{{ ht.why_title }}</h4>
+        <p class="small">{{ (w.note if w and w.note) or ht.no_weather }}</p>
+        {% if d.times_who is not none %}<p class="small">{{ ht.breath.format(times=d.times_who) }}</p>{% endif %}</div>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  <script>
+  (function () {
+    var cols = document.querySelectorAll(".dp-col"), panels = document.querySelectorAll(".dp-detail");
+    function pick(i) {
+      if (i < 0 || i >= panels.length) return;
+      panels.forEach(function (p, k) { p.hidden = k !== i; });
+      cols.forEach(function (c, k) { c.setAttribute("aria-selected", k === i ? "true" : "false"); });
+      cols[i].scrollIntoView({block: "nearest", inline: "nearest"});
+    }
+    cols.forEach(function (c) {
+      c.addEventListener("click", function () { pick(+c.dataset.i); });
+      c.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowRight") { pick(+c.dataset.i + 1); cols[Math.min(+c.dataset.i + 1, cols.length - 1)].focus(); }
+        if (e.key === "ArrowLeft") { pick(+c.dataset.i - 1); cols[Math.max(+c.dataset.i - 1, 0)].focus(); }
+      });
+    });
+    document.querySelectorAll(".dd-nav").forEach(function (b) { b.addEventListener("click", function () { pick(+b.dataset.go); }); });
+  })();
+  </script>
 </section>
 
 {% with area_name=plan.area.name, air_now=plan.air_now %}{% include "_particles.html" %}{% endwith %}
 
-<section class="panel notes">
-  <h2>Please read</h2>
-  <ul class="note-list">
-    {% for n in plan.notes %}<li class="note-{{ n.key }}"><b>{{ n.title }}</b><span>{{ n.text }}</span></li>{% endfor %}
-  </ul>
-</section>
+<details class="notes-mini"{% if plan.is_stale %} open{% endif %}>
+  <summary>ℹ️ {{ glance_text.notes_title }} <span class="small">{{ plan.notes|map(attribute='title')|join(' · ') }}</span></summary>
+  <ul>{% for n in plan.notes %}<li class="note-{{ n.key }}"><b>{{ n.title }}.</b> {{ n.text }}</li>{% endfor %}</ul>
+</details>
 
 <section class="panel actions">
   <a class="button" href="{{ url_for('poster') }}?{{ request.query_string.decode() }}">Daily poster</a>

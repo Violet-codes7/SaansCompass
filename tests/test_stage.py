@@ -93,7 +93,7 @@ def test_area_aqi_is_the_same_everywhere(mem_store, monkeypatch):
     monkeypatch.setattr(web, "_work_cache", {})
     html = web.create_app().test_client().get("/plan?persona=commuter&area=ito&day=today").get_data(as_text=True)
     aqi = dial["aqi"]
-    assert f"ITO: AQI {aqi} (" in html and f"AQI {aqi} · " in html and f"ITO {aqi}</b>" in html
+    assert f"ITO: AQI {aqi} (" in html and f'class="g-v">{aqi}</b>' in html and f"ITO {aqi}</b>" in html
 
 
 def test_rules_follow_travel_and_vehicle(mem_store, live_fetcher):

@@ -17,15 +17,22 @@ TEXT = settings.load("weather")
 DIALS = TEXT["dials"]
 
 
+HOURLY = {"temperature_2m": "temp_c", "relative_humidity_2m": "humidity", "wind_speed_10m": "wind_kmh",
+          "wind_direction_10m": "wind_dir", "boundary_layer_height": "mixing_m"}
+
+
 def fetch_weather(area, session=None):
     params = {
         "latitude": area.lat,
         "longitude": area.lon,
         "current": "temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,"
                    "wind_speed_10m,wind_direction_10m,wind_gusts_10m",
-        # How high the air near the ground mixes: low means pollution is trapped.
-        "hourly": "boundary_layer_height",
-        "forecast_hours": 1,
+        # Hour by hour for yesterday to tomorrow, for the plan's hourly view.
+        # boundary_layer_height is how high the air near the ground mixes:
+        # low means pollution is trapped.
+        "hourly": ",".join(HOURLY),
+        "past_days": settings.get("past_days"),
+        "forecast_days": 2,
         "wind_speed_unit": "kmh",
         "timezone": settings.get("timezone"),
     }
@@ -35,21 +42,25 @@ def fetch_weather(area, session=None):
     body = resp.json()
     cur = body["current"]
 
-    def num(source, key):
-        value = source.get(key)
+    def num(value):
         return float(value) if isinstance(value, (int, float)) else None
 
-    mixing = (body.get("hourly") or {}).get("boundary_layer_height") or [None]
+    hourly = body.get("hourly") or {}
+    times = hourly.get("time") or []
+    hours = [{"time": t, **{name: num((hourly.get(key) or [None] * len(times))[i]) for key, name in HOURLY.items()}}
+             for i, t in enumerate(times)]
+    this_hour = next((h for h in hours if h["time"][:13] == cur["time"][:13]), hours[0] if hours else {})
     return {
         "time": cur["time"],
         "temp_c": float(cur["temperature_2m"]),
         "humidity": float(cur["relative_humidity_2m"]),
         "wind_kmh": float(cur["wind_speed_10m"]),
-        "feels_c": num(cur, "apparent_temperature"),
-        "dew_c": num(cur, "dew_point_2m"),
-        "gust_kmh": num(cur, "wind_gusts_10m"),
-        "wind_dir": num(cur, "wind_direction_10m"),
-        "mixing_m": float(mixing[0]) if isinstance(mixing[0], (int, float)) else None,
+        "feels_c": num(cur.get("apparent_temperature")),
+        "dew_c": num(cur.get("dew_point_2m")),
+        "gust_kmh": num(cur.get("wind_gusts_10m")),
+        "wind_dir": num(cur.get("wind_direction_10m")),
+        "mixing_m": this_hour.get("mixing_m"),
+        "hours": hours,
     }
 
 
@@ -88,9 +99,20 @@ def explain(w):
     return " ".join(notes)
 
 
+def hour_note(h):
+    """What one hour's weather does to the air, from its bands, in one line."""
+    notes = []
+    for key in ("wind_kmh", "mixing_m"):
+        b = band(key, h.get(key))
+        if b and b["air"]:
+            notes.append(b["air"].format(value=int(round(h[key], -1)) if key == "mixing_m" else h[key]))
+    return " ".join(notes)
+
+
 def decorate(w):
     """Bands, direction and the explanation, for the page."""
     w = dict(w)
+    w.setdefault("hours", [])
     for key in DIALS:
         w.setdefault(key, None)
     for key in ("feels_c", "dew_c", "gust_kmh", "wind_dir"):
