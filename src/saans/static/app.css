@@ -673,3 +673,11 @@ nav.sections{margin:10px 0 6px;padding:6px 8px;border:1px solid var(--line);bord
 .stage-box .eyebrow{justify-self:start}
 .rule-head > span{font-weight:700;letter-spacing:-.01em}
 .days a.edit{font-weight:700}
+/* New plan pieces: the "everything else is allowed" line, fitted-to-you line, chat follow-ups, one-place checkbox */
+.rules-rest{display:flex;gap:10px;align-items:flex-start;margin:12px 0 4px;padding:10px 14px;border:1px solid var(--green-line);border-radius:var(--radius);background:var(--green-bg);color:var(--green);font-weight:600;font-size:15px}
+.rules-rest::before{content:"✓";font-weight:900}
+.fitted{margin:4px 0 8px}
+.chat-next{border-top:1px dashed var(--line);padding-top:8px}
+.chat-next .chip{font-size:12px;background:var(--panel)}
+label.check:has(input[name=stay]){font-weight:600;padding:8px 12px;border:1px dashed var(--line-strong);border-radius:var(--radius);margin-top:10px;width:fit-content}
+label.check:has(input[name=stay]:checked){border-style:solid;border-color:var(--green-line);background:var(--green-bg);color:var(--green)}
