@@ -134,3 +134,33 @@ def test_asked_places_finds_air_without_the_ai(mem_store, monkeypatch, live_fetc
     out = service.asked_places(["Anand Vihar", "Nowhere at all"], store=mem_store)
     assert out[0]["found"] == "Anand Vihar" and len(out[0]["hourly_aqi"]["today"]) == 24 and out[0]["aqi_now"]
     assert out[1] == {"asked": "Nowhere at all", "found": None}
+
+
+def test_speech_text_drops_marks_and_cuts_at_a_sentence(monkeypatch):
+    assert ai.speech_text("**Go out** at _14:00_.") == "Go out at 14:00."
+    monkeypatch.setenv("SPEAK_MAX_CHARS", "40")
+    assert ai.speech_text("घर पर रहें। खिड़कियाँ बंद रखें। शाम को टहलें और मास्क पहनें।") == "घर पर रहें। खिड़कियाँ बंद रखें।"
+
+
+def test_a_spoken_question_gets_a_spoken_answer(mem_store, monkeypatch, live_fetcher, gemini_on):
+    monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
+    monkeypatch.setattr(ai, "chat", lambda plan, q, h, lang, look_up: f"उत्तर ({lang}).\nNEXT: कल? | मास्क?")
+    spoken = []
+    monkeypatch.setattr(ai, "speak", lambda text, lang: spoken.append((text, lang)) or "data:audio/mpeg;base64,AAA")
+    web = create_app().test_client()
+    ask = {"question": "क्या मैं बाहर जाऊँ?", "lang": "hi", "speak": True}
+
+    monkeypatch.setenv("VOICE_CHAT", "off")
+    assert "audio" not in web.post("/api/chat?persona=older&area=ito", json=ask).get_json() and spoken == []
+    assert 'id="chat-mic"' not in web.get("/plan?persona=older&area=ito").get_data(as_text=True)
+
+    monkeypatch.setenv("VOICE_CHAT", "on")
+    body = web.post("/api/chat?persona=older&area=ito", json=ask).get_json()
+    assert body["answer"] == "उत्तर (hi)." and body["audio"].startswith("data:audio/mpeg") and spoken == [("उत्तर (hi).", "hi")]
+    assert "audio" not in web.post("/api/chat?persona=older&area=ito", json={**ask, "speak": False}).get_json()
+    html = web.get("/plan?persona=older&area=ito").get_data(as_text=True)
+    assert 'id="chat-mic"' in html and "Speak in Hindi" in html and json.dumps("हिंदी में बोलें")[1:-1] in html and '"hi-IN"' in html
+
+    monkeypatch.setattr(ai, "speak", lambda text, lang: None)
+    body = web.post("/api/chat?persona=older&area=ito", json=ask).get_json()
+    assert body["answer"] and "audio" not in body

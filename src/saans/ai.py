@@ -19,6 +19,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import time
 
 import requests
@@ -579,6 +580,23 @@ _polly = None
 VOICES = {"en": "en-IN", "hi": "hi-IN"}
 
 
+def voice_enabled():
+    """Asking Ask Saans out loud and hearing the answer (VOICE_CHAT)."""
+    return enabled() and settings.get("voice_chat")
+
+
+def speech_text(text):
+    """`text` as it should be read out: no markdown marks, and cut at the last
+    sentence end that fits Polly's limit rather than mid-word."""
+    text = re.sub(r"[*_#`>]+", "", text).strip()
+    limit = settings.get("speak_max_chars")
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    end = max(cut.rfind(mark) for mark in (".", "?", "!", "।", "\n"))
+    return cut[:end + 1].strip() if end > limit // 3 else cut
+
+
 def speak(text, lang="en", client=None):
     """MP3 of `text` as a data: URL, or None if Polly fails."""
     global _polly
@@ -591,7 +609,7 @@ def speak(text, lang="en", client=None):
     voice, code = settings.get("polly_voice"), VOICES[lang]
     try:
         resp = client.synthesize_speech(
-            Text=text[:1500], OutputFormat="mp3", VoiceId=voice, LanguageCode=code, Engine="neural",
+            Text=speech_text(text), OutputFormat="mp3", VoiceId=voice, LanguageCode=code, Engine="neural",
         )
         audio = resp["AudioStream"].read()
     except Exception as exc:  # botocore errors and missing permissions alike

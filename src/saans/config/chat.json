@@ -46,5 +46,13 @@
       "label": "Ask about your health",
       "question": "How should I protect my health today?"
     }
+  },
+  "voice": {
+    "button": "Speak in Hindi",
+    "listening": "Listening… speak now",
+    "stop": "Stop",
+    "heard_nothing": "Didn't catch that. Tap the mic and try again.",
+    "blocked": "Allow the microphone to ask by voice.",
+    "play": "Play answer"
   }
 }

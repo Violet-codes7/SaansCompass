@@ -46,6 +46,11 @@ Parameters:
     Default: "on"
     AllowedValues: ["on", "off"]
     Description: Delhi-NCR's GRAP stage and the GRAP rules that apply to each person (Cedar). Off shows the air plan only.
+  VoiceChat:
+    Type: String
+    Default: "on"
+    AllowedValues: ["on", "off"]
+    Description: Ask Saans by voice in Hindi (the browser's speech recognition) and hear the answer read by Amazon Polly. Needs the AI on.
   DefaultArea:
     Type: String
     Default: anand-vihar
@@ -130,6 +135,7 @@ Resources:
           # The English/Hindi switch uses Amazon Translate, with a built-in
           # dictionary when Translate is unavailable.
           TRANSLATE: "on"
+          VOICE_CHAT: !Ref VoiceChat
           # Cognito app client for sign-in; empty turns accounts off.
           USER_POOL_CLIENT_ID: !If [HasAccounts, !Ref UserPoolClient, ""]
       Events:
