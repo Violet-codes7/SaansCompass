@@ -16,11 +16,16 @@ Parameters:
     Description: Optional. Email to notify when the Alert Lambda errors. Leave empty to skip.
   AiProvider:
     Type: String
-    Default: bedrock
-    AllowedValues: [bedrock, "off"]
+    Default: gemini
+    AllowedValues: [gemini, bedrock, "off"]
     Description: >
-      Amazon Bedrock writes the personal advice and reads the "What do you do?" box; "off" hides
-      the advice and reads the box with keywords.
+      Model for personal advice and reading the "What do you do?" box. gemini reads its API key
+      from the SecureString parameter /<stack name>/gemini-api-key; bedrock uses BedrockModel;
+      "off" hides the advice and reads the box with keywords.
+  GeminiModel:
+    Type: String
+    Default: gemini-flash-latest
+    Description: Gemini model id when AiProvider is gemini.
   BedrockModel:
     Type: String
     Default: anthropic.claude-opus-5-5
@@ -108,6 +113,8 @@ Resources:
       Environment:
         Variables:
           AI_PROVIDER: !Ref AiProvider
+          GEMINI_MODEL: !Ref GeminiModel
+          GEMINI_KEY_PARAM: !Sub "/${AWS::StackName}/gemini-api-key"
           BEDROCK_MODEL: !If [HasBedrock, !Ref BedrockModel, ""]
           BEDROCK_REGION: !Ref BedrockRegion
           # The English/Hindi switch uses Amazon Translate, with a built-in
@@ -137,6 +144,9 @@ Resources:
               Resource: !Ref AlertTopic
         - SSMParameterReadPolicy:
             ParameterName: !Sub "${AWS::StackName}/official-stage"
+        # The Gemini API key, a SecureString you create once (see DEPLOY_WINDOWS.md).
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub "${AWS::StackName}/gemini-api-key"
         - Statement:
             - Effect: Allow
               Action:

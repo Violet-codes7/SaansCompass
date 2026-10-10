@@ -9,7 +9,7 @@ About 20 minutes the first time. Run every command in **PowerShell** from the pr
 4. Create your everyday user: IAM → Users → Create user `violet-admin`, tick "Provide access to the AWS Management Console", attach **AdministratorAccess**, create. Copy the sign-in URL it shows.
 5. Sign out and sign back in at that URL as `violet-admin`. Use this user from now on, not root.
 
-Credits do not always cover every service. Check the "Eligible services" on the credit: Amazon Nova is billed by AWS itself, while Claude on Bedrock may be billed through AWS Marketplace, which credits often do not cover. The app makes very few AI calls, so either costs cents. The optional BudgetEmail at deploy warns you before spend passes $1.
+Credits do not always cover every service. Check the "Eligible services" on the credit. The Gemini API is billed by Google, not AWS, and its free tier is enough for this app. If you use Bedrock instead, Amazon Nova is billed by AWS itself, while Claude may be billed through AWS Marketplace, which credits often do not cover. The optional BudgetEmail at deploy warns you before spend passes $1.
 
 ## 1. Install the tools (once)
 1. **AWS CLI v2**: download and run https://awscli.amazonaws.com/AWSCLIV2.msi
@@ -42,8 +42,31 @@ aws sts get-caller-identity
 ```
 It should print your account number. If your CLI says `login` is not a command, update the CLI (step 1.1), or use `aws configure sso`.
 
-## 4. Turn on Amazon Bedrock (once, about 5 minutes)
-Amazon Bedrock powers the Personal advice panel and reads the "What do you do?" box. The Lambda signs in with its own IAM role, so there is no API key to create or store. The site works without it: a keyword match reads the box and the advice panel stays hidden.
+## 4. Turn on Gemini (once, about 3 minutes)
+Google Gemini powers the Personal advice panel and reads the "What do you do?" box. The site works without it: a keyword match reads the box and the advice panel stays hidden.
+
+1. Open https://aistudio.google.com/apikey and sign in with any Google account.
+2. Click **Create API key** (pick or create any project when asked) and copy the key. Never paste it into chat or into a file in the repo.
+3. In PowerShell, store it in AWS as an encrypted parameter. The first line asks you to paste the key, so it never lands in your command history:
+   ```powershell
+   $k = Read-Host "Paste your Gemini API key"
+   aws ssm put-parameter --name /saans-compass/gemini-api-key --type SecureString --value $k --overwrite --region ap-south-1
+   Remove-Variable k
+   ```
+   It prints a `Version` number when it worked.
+4. Deploy (step 5). The site reads the key from that parameter; there is nothing else to set.
+5. Test it: open `<SiteUrl>api/summary?persona=rider&area=ito`. You should see `{"summary": ..., "by": "Google Gemini"}`. If the site was already running, allow 5 minutes for it to pick up a new key.
+
+**If it says not available**, run `sam logs -n WebFunction --stack-name saans-compass --start-time "10min ago"` and look for:
+- `gemini key not available`: step 3 did not run, or used a different name or region.
+- `gemini returned 400` with "API key not valid": copy the key again and repeat step 3.
+- `gemini returned 404`: the model name changed. Run `sam deploy --guided`, press Enter through everything, and set **Parameter GeminiModel** to a current model id from AI Studio.
+- `gemini returned 429`: the free tier's per-minute limit. Wait a minute; answers are cached after the first one.
+
+Gemini's free tier lets Google use what is sent to improve its products. The app sends no names or emails, only the plan, the age and health conditions picked, and the "What do you do?" text.
+
+## 4b. Or use Amazon Bedrock instead (optional)
+Skip this if Gemini works. Bedrock needs no API key: the Lambda signs in with its own IAM role.
 
 You can use **Claude** (the default) or **Amazon Nova**. Claude needs a one-time form from Anthropic and a paid AWS plan; Nova needs neither.
 
@@ -54,7 +77,7 @@ You can use **Claude** (the default) or **Amazon Nova**. Claude needs a one-time
 5. **If the form says your account is not authorized,** open Support Center → **Create case** → **Account and billing** (free), and ask AWS to enable Anthropic models on Amazon Bedrock for your account. While you wait, use Amazon Nova:
    - Model catalog → search "Nova" → open **Amazon Nova Lite** (or Nova Pro) → **Open in playground** → send `hello`.
    - Copy its ID from the **Cross-region inference** tab. In Mumbai it is usually `apac.amazon.nova-lite-v1:0`.
-6. Deploy (step 5) with that ID as **Parameter BedrockModel**.
+6. Deploy (step 5) with **Parameter AiProvider** set to `bedrock` and that ID as **Parameter BedrockModel**.
 7. Test it: open `<SiteUrl>api/summary?persona=rider&area=ito`. You should see `{"summary": ..., "by": "Claude on Amazon Bedrock"}` (or `"Amazon Nova on Bedrock"`).
 
 **If it says not available**, run `sam logs -n WebFunction --stack-name saans-compass --start-time "10min ago"` and look for:
@@ -63,12 +86,6 @@ You can use **Claude** (the default) or **Amazon Nova**. Claude needs a one-time
 - `bedrock rate limited` or `ThrottlingException`: wait a minute; answers are cached after the first one.
 
 What is sent: the plan's decisions, the age and health conditions picked, and the "What do you do?" text. No names or emails. Bedrock does not use it to train models.
-
-**Removing the old Gemini key** (if you set one up earlier):
-```powershell
-aws ssm delete-parameter --name /saans-compass/gemini-api-key --region ap-south-1
-```
-Then delete the key itself at https://aistudio.google.com/apikey.
 
 ## 5. Build and deploy
 Keep the `C:\venv312` venv active (sam build uses the Python 3.12 on PATH).
@@ -84,9 +101,10 @@ Answer the questions like this:
 | AWS Region | `ap-south-1` (press Enter) |
 | Parameter BudgetEmail | your email (gets a warning if spend passes $0.80), or Enter to skip |
 | Parameter AlarmEmail | your email, or Enter to skip |
-| Parameter AiProvider | press Enter (keeps `bedrock`) |
-| Parameter BedrockModel | the model ID from step 4 (Enter keeps `anthropic.claude-opus-5-5`) |
-| Parameter BedrockRegion | press Enter (`ap-south-1`), or the region where the playground worked |
+| Parameter AiProvider | press Enter (keeps `gemini`), or `bedrock` if you did step 4b |
+| Parameter GeminiModel | press Enter (keeps `gemini-flash-latest`) |
+| Parameter BedrockModel | press Enter, or the model ID from step 4b |
+| Parameter BedrockRegion | press Enter (`ap-south-1`) |
 | Confirm changes before deploy | `y` |
 | Allow SAM CLI IAM role creation | `y` |
 | Disable rollback | `n` |
@@ -110,8 +128,7 @@ Next time you only need `sam build` and `sam deploy` (no `--guided`).
 - **`sam build` fails on a long path:** make sure LongPathsEnabled is on (we did this for pip), or move the project to a short folder like `C:\ac`.
 - **`sam build` says Python 3.12 not found:** activate the venv first (step 2).
 - **Deploy fails with "not authorized":** your AWS user needs admin rights for the deploy.
-- **Personal advice says "not available":** Bedrock access (step 4) is not on yet, or the model ID is wrong; follow "If it says not available" there.
-- **Deploy says "Parameters: [GeminiModel] do not exist in the template":** your saved settings still name the old Gemini option. Run `sam deploy --guided` once and answer the questions again.
+- **Personal advice says "not available":** the Gemini key (step 4) is missing or wrong, or Bedrock access (step 4b) is not on; follow "If it says not available" there.
 - Anything else: paste the last 20 lines of the error in the thread (no keys).
 
 ## Remove everything after the hackathon

@@ -21,10 +21,14 @@ Please don't paste keys, passwords or account links into chat. You run the deplo
 - **SES: not used**, so there is no sandbox exit to request.
 - **Lambda concurrency:** new accounts sometimes get a low limit, which is still enough here. If a deploy complains, check Service Quotas → Lambda → Concurrent executions.
 
-## 5. Amazon Bedrock (for personal advice)
-- No API key: the Lambda calls Bedrock with its IAM role. Deploy parameter `BedrockModel` picks the model: a Claude id (`anthropic.*`, needs a paid AWS plan and Anthropic's one-time use-case form) or any other Bedrock model such as Amazon Nova (`apac.amazon.nova-lite-v1:0`, no form).
-- Before deploying, send `hello` to the model in the Bedrock playground in the same region. If that works, the app will too. Steps and fixes: DEPLOY_WINDOWS.md, step 4.
-- Polly and Translate need no activation. With `AiProvider=off` the site still works and hides the advice panel.
+## 5. Gemini API key (for personal advice)
+- Create a key at https://aistudio.google.com/apikey, then store it (never in chat or the repo):
+  `aws ssm put-parameter --name /saans-compass/gemini-api-key --type SecureString --value <key> --region ap-south-1`
+- Polly and Translate need no activation. Without the key the site still works and hides the advice panel.
+
+### Or Amazon Bedrock
+- No API key: the Lambda calls Bedrock with its IAM role. Deploy with `AiProvider=bedrock`; `BedrockModel` picks the model: a Claude id (`anthropic.*`, needs a paid AWS plan and Anthropic's one-time use-case form) or any other Bedrock model such as Amazon Nova (`apac.amazon.nova-lite-v1:0`, no form).
+- Before deploying, send `hello` to the model in the Bedrock playground in the same region. If that works, the app will too. Steps and fixes: DEPLOY_WINDOWS.md, step 4b.
 
 ## 6. Deploy
 ```bash
