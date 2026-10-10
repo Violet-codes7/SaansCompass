@@ -80,6 +80,7 @@
     "protect_label": "How to protect yourself",
     "size_label": "Size compared with a human hair",
     "hair": "Human hair, about {um} µm",
-    "unit_note": "µg/m³ is micrograms of particles in each cubic metre of air."
+    "unit_note": "µg/m³ is micrograms of particles in each cubic metre of air.",
+    "pm10_held": "Model said {raw}; held to {ratio}× PM2.5"
   }
 }

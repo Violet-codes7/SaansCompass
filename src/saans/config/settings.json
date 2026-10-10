@@ -71,6 +71,8 @@
   "about_me_max_chars": 600,
   "max_area_distance_km": 40,
   "area_snap_km": 5,
+  "model_pm10_pm25_ratio_max": 3.0,
+  "model_unconfirmed_from_aqi": 401,
   "max_place_km": 150,
   "place_round_digits": 2,
   "place_name_max_chars": 40,

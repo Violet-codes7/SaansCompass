@@ -168,6 +168,22 @@ def emit_fallback_metric(area_id, name):
     }))
 
 
+def plausible(rows):
+    """Model rows with PM10 held to at most model_pm10_pm25_ratio_max times
+    PM2.5. The forecast model can put far too much dust in PM10 (a reading of
+    600 at Dwarka next to a much lower PM2.5); stations in Delhi rarely see
+    PM10 more than a few times PM2.5, so a higher model PM10 is treated as a
+    model error. The model's own figure is kept as pm10_model."""
+    ratio = settings.get("model_pm10_pm25_ratio_max")
+    out = []
+    for r in rows:
+        pm25, pm10 = r.get("pm25"), r.get("pm10")
+        if ratio and pm25 is not None and pm10 is not None and pm10 > ratio * pm25:
+            r = {**r, "pm10": round(ratio * pm25, 1), "pm10_model": pm10}
+        out.append(r)
+    return out
+
+
 def get_forecast(area, store, now=None, fetcher=None):
     """Forecast for an area: cache, then Open-Meteo, then the last real
     forecast (marked stale). Raises ForecastUnavailable if there is none."""
@@ -179,7 +195,7 @@ def get_forecast(area, store, now=None, fetcher=None):
     if cached:
         return cached
     try:
-        forecast = {"hours": fetcher(area), "is_stale": False, "fetched_at": now.isoformat()}
+        forecast = {"hours": plausible(fetcher(area)), "is_stale": False, "fetched_at": now.isoformat()}
     except Exception as exc:  # network, HTTP, JSON or shape errors
         log.warning("forecast for %s failed: %s", area.id, exc)
         last = store.get_last_forecast(area.id, now=epoch)
@@ -276,9 +292,12 @@ def particles_now(forecast, now):
         rows, basis = [h for h in forecast["hours"] if h["time"].startswith(prefix)], "today"
     hour = by_time.get(local.strftime("%Y-%m-%dT%H:00"), {})
     pm25, pm10 = _mean(h.get("pm25") for h in rows), _mean(h.get("pm10") for h in rows)
+    held = any(h.get("pm10_model") is not None for h in rows)
+    pm10_model = _mean(h.get("pm10_model", h.get("pm10")) for h in rows) if held else None
     value, dominant = aqi_mod.aqi(pm25, pm10)
     rnd = lambda v: round(v) if v is not None else None  # noqa: E731
-    return {"basis": basis, "pm25": rnd(pm25), "pm10": rnd(pm10), "aqi": value, "dominant": dominant,
+    return {"basis": basis, "pm25": rnd(pm25), "pm10": rnd(pm10), "pm10_model": rnd(pm10_model),
+            "aqi": value, "dominant": dominant,
             "category": aqi_mod.category(value) if value is not None else None,
             "pm25_hour": rnd(hour.get("pm25")), "pm10_hour": rnd(hour.get("pm10"))}
 
