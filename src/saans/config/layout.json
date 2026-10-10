@@ -12,12 +12,12 @@
       "when": "route"
     },
     {
-      "id": "grap",
-      "label": "GRAP rules"
-    },
-    {
       "id": "glance",
       "label": "At a glance"
+    },
+    {
+      "id": "grap",
+      "label": "GRAP rules"
     },
     {
       "id": "health",

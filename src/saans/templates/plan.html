@@ -78,8 +78,12 @@
   </div>
 </section>
 
+{# Each numbered section is drawn once, then placed in the order of layout.json "sections". #}
+{% set sec_air %}
 {% with area_name=plan.area.name, air_now=plan.air_now, air_tomorrow=plan.air_tomorrow, is_stale=plan.is_stale, fetched_at=plan.fetched_at %}{% include "_dash.html" %}{% endwith %}
+{% endset %}
 
+{% set sec_trips %}
 {% if plan.route %}
 <section class="panel trips" id="trips">
   <div class="dp-head">
@@ -98,7 +102,9 @@
   <p class="small">{{ route_text.messages.day_area.format(area=plan.route.to.name) }}</p>
 </section>
 {% endif %}
+{% endset %}
 
+{% set sec_grap %}
   <section class="panel rules" id="grap">
     <div class="h-row"><h2>GRAP rules for you</h2>{% if ai_enabled %}<button type="button" class="ask" data-chat="{{ chat_text.ask_buttons.rules.question }}">💬 {{ chat_text.ask_buttons.rules.label }}</button>{% endif %}</div>
     <p class="lead">{{ grap.intro }}</p>
@@ -169,7 +175,9 @@
     </details>{% endif %}
     <p class="small">{{ grap.sources_label }}: {% for src in grap.sources %}<a href="{{ src.url }}" rel="noopener" target="_blank">{{ src.label }}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>
   </section>
+{% endset %}
 
+{% set sec_glance %}
 {% set g = plan.glance %}{% set gt = glance_text %}
 <section class="panel glance" id="glance">
   <h2>{{ g.title }}</h2>
@@ -276,7 +284,9 @@
 </script>
   {% endif %}
 </section>
+{% endset %}
 
+{% set sec_health %}
   <section class="panel health" id="health">
     <div class="h-row"><h2>Your health</h2>{% if ai_enabled %}<button type="button" class="ask" data-chat="{{ chat_text.ask_buttons.health.question }}">💬 {{ chat_text.ask_buttons.health.label }}</button>{% endif %}</div>
     {% set h = plan.health %}{% set gh = plan.glance.health %}{% set ht = glance_text.health %}
@@ -333,7 +343,9 @@
     </ul>
     <p class="small">{{ ht.general }}</p>
   </section>
+{% endset %}
 
+{% set sec_day %}
 <section class="panel dayplan" id="day">
   <div class="dp-head">
     <div>
@@ -425,6 +437,10 @@
   })();
   </script>
 </section>
+{% endset %}
+{% set sec = {"air": sec_air, "trips": sec_trips, "grap": sec_grap, "glance": sec_glance, "health": sec_health, "day": sec_day} %}
+{% for sct in layout.sections %}{{ sec[sct.id] }}
+{% endfor %}
 
 <section class="panel actions">
   <a class="button" href="{{ url_for('poster') }}?{{ request.query_string.decode() }}">Daily poster</a>

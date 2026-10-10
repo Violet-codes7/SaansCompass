@@ -25,12 +25,12 @@ def test_index_asks_for_the_daily_trip(client):
 
 
 @pytest.mark.parametrize("persona", ["school", "rider", "older"])
-def test_plan_page_shows_rules_first(client, persona):
+def test_plan_page_shows_glance_then_rules(client, persona):
     resp = client.get(f"/plan?persona={persona}&area=ito")
     html = resp.get_data(as_text=True)
     assert resp.status_code == 200
     body = html[html.index("</nav>", html.index('class="sections"')):]  # after the section bar
-    assert body.index("GRAP rules for you") < body.index("At a glance") < body.index("Your health")
+    assert body.index('id="glance"') < body.index('id="grap"') < body.index('id="health"')
     assert "Not medical advice" in html and "112" in html
 
 
@@ -175,3 +175,12 @@ def test_light_theme_by_default_with_a_dark_toggle(client):
 def test_new_kinds_of_day_render_a_plan(client, persona):
     resp = client.get(f"/plan?persona={persona}&area=ito&stage=IV")
     assert resp.status_code == 200 and "GRAP rules for you" in resp.get_data(as_text=True)
+
+
+def test_plan_sections_follow_the_layout_order(client):
+    import re
+    from saans import settings
+    html = client.get("/plan?persona=school&area=ito").get_data(as_text=True)
+    order = [m for m in re.findall(r'<section class="panel [^"]*" id="(\w+)"', html)]
+    wanted = [s["id"] for s in settings.load("layout")["sections"] if s["id"] in order]
+    assert order == wanted and order.index("glance") < order.index("grap")
