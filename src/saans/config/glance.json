@@ -8,7 +8,7 @@
   "vs_delhi_above": "{diff} points worse than Delhi's average ({delhi}).",
   "vs_delhi_below": "{diff} points cleaner than Delhi's average ({delhi}).",
   "vs_delhi_same": "About the same as Delhi's average ({delhi}).",
-  "rank": "{rank} of {count} areas we cover, cleanest first.",
+  "rank": "{rank} of {count} Delhi areas, cleanest first.",
   "local_title": "What shapes the air here",
   "moments_title": "Your key times",
   "best": "Best time",
@@ -68,7 +68,6 @@
     "symptoms_general": "If your eyes sting or you start to cough, move indoors and rest."
   },
   "ai_title": "Personal advice",
-  "ai_from": "Written by {ai} from your plan and details. It explains and personalises; it never changes a GRAP rule.",
   "health": {
     "today_title": "What today's air means for you",
     "today_go": "{area}'s AQI {aqi} ({basis}) is within your \"fine\" limit of {go}. Normal activity is fine for you.",
@@ -80,7 +79,6 @@
     "limits_stay": "Stay in",
     "limits_shift": "{shift} points lower than usual because of {reasons}.",
     "limits_usual": "The usual levels for your kind of day.",
-    "limits_note": "Our estimate, not an official limit.",
     "exposure_title": "Today's dose",
     "dose": "{ratio}× the PM2.5 you would breathe sitting still in air at the WHO limit, over {minutes} minutes outdoors.",
     "cigarettes": "Breathing this air all day is like smoking about {n} cigarettes (24-hour PM2.5 {pm25} µg/m³; Berkeley Earth's rule of thumb).",

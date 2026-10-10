@@ -11,7 +11,6 @@
                   "Retired teacher, I walk in the park every morning", "I run 10 km before work", "Swiggy delivery rider at night"] %}
     <button type="button" class="chip" data-example="{{ ex }}">{{ ex }}</button>{% endfor %}</p>
   {% endif %}
-  <p class="small">{% if ai_enabled %}{{ ai_label }} reads this to work out how much outdoor air your day involves.{% else %}We match your words to the closest kind of day.{% endif %}{% if show_examples %} You can correct it on the next page.{% endif %}</p>
 </fieldset>
 
 <fieldset class="trip">
@@ -30,7 +29,6 @@
       <small class="small">{{ vehicle_labels.help }}</small></label>
   </div>
   <p class="small locate-status" aria-live="polite"></p>
-  <p class="small">{% if ai_enabled %}{{ ai_label }} works out the places and how you travel from what you write.{% else %}We match your words to the nearest area we cover.{% endif %} Your live location is only used to find the nearest area: it is never saved or put in the link.</p>
 </fieldset>
 
 <fieldset>

@@ -24,13 +24,11 @@
   {% with p={}, show_examples=true %}{% include "_profile_fields.html" %}{% endwith %}
 
   <button type="submit">Show my plan</button>
-  <p class="small">The day (today or tomorrow) and the GRAP stage are worked out for you. Your answers stay in the page link only: nothing is saved.{% if accounts_on and not user %} Want to skip this form next time? <a href="{{ url_for('account', mode='signup') }}">Create an account</a> and save your profile.{% endif %}</p>
+  {% if accounts_on and not user %}<p class="small"><a href="{{ url_for('account', mode='signup') }}">Create an account</a> to skip this form next time.</p>{% endif %}
 </form>
-<p class="try">Clean air today? See a bad-air day:
-  <a href="{{ url_for('plan_page', persona='school', area='anand-vihar', stage='IV', age=9, cond='asthma', commute='bus') }}">Child with asthma, Stage IV</a>
-  <a href="{{ url_for('plan_page', persona='worker', area='anand-vihar', stage='III', age=38, commute='cycle') }}">Construction worker, Stage III</a>
-  <a href="{{ url_for('plan_page', persona='commuter', area='ito', stage='III', age=29, commute='car') }}">Office commuter by car, Stage III</a></p>
-{% if dash %}{% with area_name=dash.area, air_now=dash.air_now %}{% include "_particles.html" %}{% endwith %}{% endif %}
+<p class="try">{{ layout.try_title }}
+  {% for ex in layout.try_examples %}<a href="{{ url_for('plan_page', **ex.args) }}">{{ ex.label }}</a>
+  {% endfor %}</p>
 <script>
 document.querySelectorAll("[data-example]").forEach(function (b) {
   b.addEventListener("click", function () { var t = document.querySelector("textarea[name=job]"); t.value = b.dataset.example; t.focus(); });

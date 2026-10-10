@@ -28,11 +28,9 @@
     <legend>About me <small class="small">(optional)</small></legend>
     <label class="about">Anything that shapes your day: routine, family, hobbies, what worries you about the air
       <textarea name="about" rows="4" maxlength="600" placeholder="For example: I walk my 2 kids to school at 7:30 and play cricket on Sundays. My father lives with us and has COPD.">{{ p.about or '' }}</textarea></label>
-    <p class="small">{% if ai_enabled %}{{ ai_label }} reads this to make your advice fit your life.{% else %}Used to make your advice fit your life when AI advice is on.{% endif %} It is never shown on the poster or put in a link.</p>
   </fieldset>
 
   <button type="submit">Save my profile</button>
-  <p class="small">Your profile is stored in this site's AWS database under your account only, and is not logged or shared. Delete it any time below.</p>
 </form>
 
 <section class="panel danger">

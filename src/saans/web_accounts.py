@@ -203,11 +203,12 @@ def register(app, read_work, resolve_route):
         if not error:
             if not p["persona"]:  # read the work description, as the home page does
                 reading = read_work(p["job"])
-                p["persona"], p["read"] = reading["persona"], reading["how"]
+                p["persona"], p["read"], p["role"] = reading["persona"], reading["how"], reading.get("role")
                 if reading["start_hour"] is not None and not (p["start"] or p["end"]):
                     p["start"], p["end"] = str(reading["start_hour"]), str(reading["end_hour"])
             else:
                 p["read"] = "picked"
+                p["role"] = saved.get("role") if p["job"] == saved.get("job") else None
             try:
                 profile_from_saved(p, p["persona"])  # same checks as a plan link
             except ValueError as exc:

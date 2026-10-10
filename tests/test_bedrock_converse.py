@@ -64,7 +64,7 @@ def test_converse_failures_give_none(plan, nova, rt):
 
 def test_converse_reads_work_as_json(nova):
     rt = FakeRuntime(json.dumps({"persona": "worker", "start_hour": 22, "end_hour": 6}))
-    assert ai.classify_work("Night guard", runtime=rt) == {"persona": "worker", "start_hour": 22, "end_hour": 6}
+    assert ai.classify_work("Night guard", runtime=rt) == {"persona": "worker", "role": None, "start_hour": 22, "end_hour": 6}
     assert "JSON Schema" in rt.calls[0]["system"][0]["text"] and '"persona"' in rt.calls[0]["system"][0]["text"]
     fenced = FakeRuntime('```json\n{"persona": "rider", "start_hour": -1, "end_hour": -1}\n```')
     assert ai.classify_work("rider", runtime=fenced)["persona"] == "rider"
@@ -81,5 +81,6 @@ def test_converse_reads_route(nova):
 def test_pages_name_the_bedrock_model(mem_store, monkeypatch, live_fetcher, nova):
     monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
     client = create_app().test_client()
-    assert "Amazon Nova on Bedrock reads this" in client.get("/").get_data(as_text=True)
-    assert "Written by Amazon Nova on Bedrock" in client.get("/plan?persona=rider&area=ito").get_data(as_text=True)
+    assert "Amazon Nova on Bedrock" not in client.get("/").get_data(as_text=True)  # no "made by" lines
+    plan = client.get("/plan?persona=rider&area=ito").get_data(as_text=True)
+    assert 'id="ai"' in plan and "Written by" not in plan

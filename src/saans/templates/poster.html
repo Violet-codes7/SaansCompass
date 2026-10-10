@@ -29,7 +29,7 @@
         <h1>{{ plan.area.name }}</h1>
         <p class="when">{{ date_label }}</p>
       </div>
-      <p class="who"><span>Plan for</span><b {% if name %}translate="no"{% endif %}>{{ name or plan.persona.label }}</b>{% if name %}<small>{{ plan.persona.label }}</small>{% endif %}</p>
+      <p class="who"><span>Plan for</span><b {% if name or role %}translate="no"{% endif %}>{{ name or role or plan.persona.label }}</b>{% if name %}<small translate="no">{{ role or plan.persona.label }}</small>{% endif %}</p>
     </header>
 
     {% if stale %}<p class="flag stale">{{ stale.title }}: {{ stale.text }}</p>{% endif %}
@@ -139,7 +139,7 @@
       <div>
         <p class="scan">Scan for the live plan</p>
         <p class="url" translate="no">{{ public_url }}</p>
-        <p class="fine">Estimate from the Open-Meteo forecast model. Not medical advice and not an official order; CAQM declares the GRAP stage (rules: GRAP Rev. {{ grap_revision }}).</p>
+        <p class="fine">{{ layout.footer }} {{ source_links|map(attribute='label')|join(' · ') }}</p>
       </div>
     </footer>
   </article>

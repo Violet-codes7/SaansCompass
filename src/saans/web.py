@@ -13,7 +13,7 @@ from . import gauges, weather
 from .aqi import category as aqi_category
 from .advisor import TEXT as ADVICE_TEXT
 from .explain import GRAP, STAGE_SOURCES, STAGES
-from .profile import COMMUTE_MODES, CONDITION_GROUPS, CONDITIONS, VEHICLE_LABELS, VEHICLES, WORK, clean_job, clean_text, guess_work, parse_profile
+from .profile import COMMUTE_MODES, CONDITION_GROUPS, CONDITIONS, VEHICLE_LABELS, VEHICLES, WORK, clean_job, clean_text, guess_work, parse_profile, tidy_role
 from .service import air_now
 from .service import get_plan
 from .stage import ROMAN
@@ -49,6 +49,7 @@ def _read_work(job):
         guess = guess_work(job)
         out = {"persona": guess or settings.get("fallback_persona"), "start_hour": None, "end_hour": None,
                "how": "keywords" if guess else "default"}
+    out["role"] = out.get("role") or tidy_role(job)
     if len(_work_cache) >= settings.get("work_cache_size"):
         _work_cache.pop(next(iter(_work_cache)))
     _work_cache[job] = out
@@ -111,6 +112,13 @@ def _saved():
     if request.args.get("persona") or request.args.get("job"):
         return None
     return web_accounts.saved_profile()
+
+
+def _role(saved):
+    """A short line under the name: what the person does, in tidy words."""
+    if saved:
+        return tidy_role(saved.get("role")) or tidy_role(saved.get("job"))
+    return tidy_role(request.args.get("role")) or tidy_role(request.args.get("job"))
 
 
 def _persona_id():
@@ -230,6 +238,8 @@ def create_app():
         if job and not request.args.get("persona"):
             reading = _read_work(job)
             changes = {"persona": reading["persona"], "read": reading["how"]}
+            if reading["role"] and not request.args.get("role"):
+                changes["role"] = reading["role"]
             if reading["start_hour"] is not None and not (request.args.get("start") or request.args.get("end")):
                 changes.update(start=str(reading["start_hour"]), end=str(reading["end_hour"]))
         if not request.args.get("route_read"):
@@ -247,7 +257,7 @@ def create_app():
         saved = _saved()
         texts = route_texts(saved or request.args)
         return render_template("plan.html", plan=plan, args=args, weather=wx, using_saved=bool(saved),
-                               route_texts=texts, route_text=route.TEXT,
+                               route_texts=texts, route_text=route.TEXT, role=_role(saved),
                                display_name=saved.get("name") if saved else None)
 
     @app.get("/poster")
@@ -264,7 +274,7 @@ def create_app():
         day = datetime.fromisoformat(plan["date"])
         saved = _saved()
         return render_template("poster.html", plan=plan, args=args, public_url=public,
-                               name=saved.get("name") if saved else None,
+                               name=saved.get("name") if saved else None, role=_role(saved),
                                qr=gauges.qr_code(public, "QR code for the live plan"),
                                date_label=day.strftime("%A %d %B %Y"))
 

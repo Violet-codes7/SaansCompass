@@ -2,7 +2,7 @@
   "_about": "Text for the 'Ask Saans' chat on the plan page. The model's instructions are in prompts.json (chat_system).",
   "open": "Ask Saans",
   "title": "Ask about your air",
-  "intro": "Ask anything about your plan: when to go out, what a rule means for you, or how to protect yourself. Answers come from your plan and {ai}.",
+  "intro": "Ask anything about your plan: when to go out, what a rule means for you, or how to protect yourself.",
   "placeholder": "Type your question…",
   "send": "Send",
   "close": "Close",
@@ -17,7 +17,6 @@
     "Which mask should I wear?",
     "How will tomorrow compare with today?"
   ],
-  "note": "Not medical advice. It never changes a GRAP rule. Your questions are not saved.",
   "errors": {
     "off": "The chat is not set up here.",
     "empty": "Type a question first.",

@@ -119,7 +119,7 @@ def test_dashboard_shows_banded_weather_and_particles(mem_store, monkeypatch, li
     for part in ("Feels like 29°C", "Dew point 22°C", "From the north-west", "Gusts 14 km/h", "Mixing height",
                  "Very low lid", "This hour", "µg/m³", "× WHO"):
         assert part in html
-    assert 'id="particles"' in html and "PM2.5: fine particles" in html and "Deep in the lungs" in html
+    assert 'id="particles"' not in html and "Deep in the lungs" not in html  # the section was dropped
 
 
 def test_particles_use_24_hours_when_known():

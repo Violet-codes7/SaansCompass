@@ -66,8 +66,9 @@ def test_gemini_failures_give_none(plan, gemini_on, session):
 
 
 def test_gemini_reads_work(gemini_on):
-    s = FakeSession(body=answer(json.dumps({"persona": "worker", "start_hour": 22, "end_hour": 6})))
-    assert ai.classify_work("Night guard", session=s) == {"persona": "worker", "start_hour": 22, "end_hour": 6}
+    s = FakeSession(body=answer(json.dumps({"persona": "college", "role": "student at nit delhi", "start_hour": 22, "end_hour": 6})))
+    assert ai.classify_work("I am a student in nit delhi", session=s) == {
+        "persona": "college", "role": "Student at NIT Delhi", "start_hour": 22, "end_hour": 6}
     cfg = s.calls[0]["json"]["generationConfig"]
     assert cfg["responseMimeType"] == "application/json" and "persona" in cfg["responseSchema"]["properties"]
     fenced = FakeSession(body=answer('```json\n{"persona": "rider", "start_hour": -1, "end_hour": -1}\n```'))
@@ -95,8 +96,9 @@ def test_key_comes_from_parameter_store(monkeypatch):
 def test_pages_name_gemini(mem_store, monkeypatch, live_fetcher, gemini_on):
     monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
     client = create_app().test_client()
-    assert "Google Gemini reads this" in client.get("/").get_data(as_text=True)
-    assert "Written by Google Gemini" in client.get("/plan?persona=rider&area=ito").get_data(as_text=True)
+    assert "Google Gemini" not in client.get("/").get_data(as_text=True)  # no "made by" lines
+    plan = client.get("/plan?persona=rider&area=ito").get_data(as_text=True)
+    assert 'id="ai"' in plan and "Written by" not in plan
 
 
 def test_busy_gemini_is_tried_again_once(plan, gemini_on, monkeypatch):

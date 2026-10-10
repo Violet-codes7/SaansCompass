@@ -343,29 +343,33 @@ def chat(plan, question, history=(), lang="en", client=None, session=None, runti
     return _ask(system, user, client, session, runtime, what="chat answer")
 
 
-WORK_SYSTEM = _PROMPTS["work_system"]
+_PERSONA_LIST = settings.load("personas")["personas"]
+WORK_SYSTEM = _PROMPTS["work_system"].format(
+    groups="\n".join(f"- {p['id']}: {p['ai_hint']}" for p in _PERSONA_LIST),
+    role_max=settings.load("profile")["role"]["max_chars"])
+WORK_IDS = [p["id"] for p in _PERSONA_LIST]
 
 WORK_SCHEMA = {
     "type": "object",
     "properties": {
-        "persona": {"type": "string", "enum": ["school", "rider", "worker", "commuter", "older", "athlete"]},
+        "persona": {"type": "string", "enum": WORK_IDS},
+        "role": {"type": "string", "description": "a short role line, e.g. Student at NIT Delhi"},
         "start_hour": {"type": "integer", "description": "0-23, or -1 if not stated"},
         "end_hour": {"type": "integer", "description": "0-23, or -1 if not stated"},
     },
-    "required": ["persona", "start_hour", "end_hour"],
+    "required": ["persona", "role", "start_hour", "end_hour"],
     "additionalProperties": False,
 }
-
-
 
 GEMINI_WORK_SCHEMA = {
     "type": "OBJECT",
     "properties": {
-        "persona": {"type": "STRING", "enum": WORK_SCHEMA["properties"]["persona"]["enum"]},
+        "persona": {"type": "STRING", "enum": WORK_IDS},
+        "role": {"type": "STRING"},
         "start_hour": {"type": "INTEGER"},
         "end_hour": {"type": "INTEGER"},
     },
-    "required": ["persona", "start_hour", "end_hour"],
+    "required": ["persona", "role", "start_hour", "end_hour"],
 }
 
 
@@ -412,7 +416,7 @@ def _json(raw):
 
 
 def classify_work(text, client=None, session=None, runtime=None):
-    """{"persona", "start_hour", "end_hour"} read from someone's own words by
+    """{"persona", "role", "start_hour", "end_hour"} read from someone's own words by
     the AI model, or None when it is off or fails (the caller falls back to
     keywords). Hours are None unless the text gives them."""
     if not text:
@@ -423,12 +427,15 @@ def classify_work(text, client=None, session=None, runtime=None):
 def _work_reading(raw):
     """Check the model's JSON answer; None if it is not a valid reading."""
     out = _json(raw)
-    if not out or out.get("persona") not in WORK_SCHEMA["properties"]["persona"]["enum"]:
+    if not out or out.get("persona") not in WORK_IDS:
         return None
     hours = [out.get("start_hour"), out.get("end_hour")]
     if not all(isinstance(h, int) and 0 <= h <= 23 for h in hours) or hours[0] == hours[1]:
         hours = [None, None]
-    return {"persona": out["persona"], "start_hour": hours[0], "end_hour": hours[1]}
+    from .profile import tidy_role  # here to avoid an import cycle
+
+    role = tidy_role(out.get("role")) if isinstance(out.get("role"), str) else None
+    return {"persona": out["persona"], "role": role, "start_hour": hours[0], "end_hour": hours[1]}
 
 
 ROUTE_SYSTEM = _PROMPTS["route_system"]

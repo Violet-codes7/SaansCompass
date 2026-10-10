@@ -75,7 +75,7 @@ def test_plan_page_explains_where_delhi_stands(mem_store, monkeypatch):
     monkeypatch.setattr(web, "_work_cache", {})
     html = web.create_app().test_client().get("/plan?persona=commuter&area=ito&day=today").get_data(as_text=True)
     for text in ("Where Delhi stands", "the 24-hour AQI of 9 areas, averaged", "Worst: Dwarka",
-                 "points to go", "How a stage is decided", "What Stage I would bring", "anti-smog guns",
+                 "points to go", "What Stage I would bring", "anti-smog guns",
                  "the same figure as the air dials"):
         assert text in html, text
 

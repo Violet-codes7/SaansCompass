@@ -55,6 +55,8 @@ class Persona:
     whole_window_exposure: bool = False
     # What each hour's verdict means for this persona, shown hour by hour.
     hour_advice: dict = field(default_factory=dict)
+    # How the AI model is told about this kind of day when it reads someone's words.
+    ai_hint: str = ""
 
     def hours(self):
         """Hours of day in the persona's window, in order, wrapping past midnight."""

@@ -98,7 +98,7 @@ def test_typed_route_is_read_once_into_the_link(client):
         assert part in loc
     html = client.get(loc).get_data(as_text=True)
     assert "Your trips" in html and "Going" in html and "Coming back" in html
-    assert "Anand Vihar</b> → <b>ITO" in html and "Auto-rickshaw + Metro" in html
+    assert "Anand Vihar → ITO" in html and "Auto-rickshaw + Metro" in html
     assert "Air quality at ITO" in html
 
 
@@ -119,7 +119,7 @@ def test_unknown_place_says_so_and_offers_areas(client):
 def test_trip_can_be_corrected_by_hand(client):
     html = client.get("/plan?persona=commuter&area=rohini&to_area=okhla&commute=bus&route_read=picked"
                       ).get_data(as_text=True)
-    assert "Rohini</b> → <b>Okhla" in html and "Bus" in html and "(your choice)" in html
+    assert "Rohini → Okhla" in html and "Bus" in html and "(your choice)" not in html
 
 
 def test_poster_shows_trips(client):

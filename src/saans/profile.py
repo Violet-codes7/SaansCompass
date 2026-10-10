@@ -210,8 +210,8 @@ def guess_work(text):
     words = re.findall(r"[a-z]+", text)
 
     def has(k):
-        if not k.isascii():
-            return k in text  # Hindi: match inside the text
+        if not k.isascii() or " " in k:
+            return k in text  # Hindi or a phrase: match inside the text
         # "marathons" matches "marathon"; short words must match exactly.
         return any(w == k or (len(k) >= 4 and w.startswith(k)) for w in words)
 

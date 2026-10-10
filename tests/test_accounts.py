@@ -154,7 +154,8 @@ def test_saved_profile_drives_plan_and_poster_without_link_details(client, mem_s
     assert saved["persona"] == "rider" and saved["read"] == "keywords" and saved["area"] == "rohini"
     assert saved["to_area"] == "ito" and saved["commute"] == "two_wheeler"
     html = client.get("/plan").get_data(as_text=True)
-    assert "From your saved profile, Asha" in html and "Your trips" in html and "Rohini" in html
+    assert "Edit profile" in html and "Your trips" in html and "Rohini" in html
+    assert "We read you as" not in html and 'name="persona"' not in html
     assert '<h1 translate="no">Asha</h1>' in html  # the person's name, not the persona
     assert "Air quality at ITO" in html  # the day is spent at the destination
     assert "Asthma" in html and "Age 66" in html
@@ -206,7 +207,7 @@ def test_expired_access_token_is_refreshed(client, cognito):
     cognito.tokens = {t: e for t, e in cognito.tokens.items() if not t.startswith("at-")}  # access token expired
     accounts.set_client(cognito)  # drop the cached user
     resp = client.get("/plan")
-    assert "From your saved profile" in resp.get_data(as_text=True)
+    assert '<h1 translate="no">Asha</h1>' in resp.get_data(as_text=True)
     assert any(c.startswith(ACCESS_COOKIE + "=at2") for c in resp.headers.getlist("Set-Cookie"))
 
 

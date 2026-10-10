@@ -41,7 +41,9 @@ def test_test_rules_validate_against_schema(book):
 def test_every_persona_activity_is_a_schema_action():
     for persona in PERSONAS.values():
         for a in persona.activities:
-            assert f'"{a.id}"' in SCHEMA, a.id
+            if a.ruled:
+                assert f'"{a.rules_action or a.id}"' in SCHEMA, a.id
+                assert (a.rules_as or persona.id) in PERSONAS, a.id
 
 
 def test_validate_reports_missing_annotations_and_bad_actions():

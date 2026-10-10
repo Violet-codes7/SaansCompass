@@ -6,7 +6,7 @@ from werkzeug.datastructures import MultiDict
 from conftest import FIXED_NOW
 from saans import ai, data
 from saans.personas import PERSONAS
-from saans.profile import parse_profile
+from saans.profile import guess_work, parse_profile, tidy_role
 from saans.rules import ADVISED_AGAINST, ALLOWED, CHECK, NOT_ALLOWED, RuleBook
 from saans.service import get_plan, parse_day
 
@@ -126,3 +126,29 @@ def test_vehicle_keeps_only_its_own_rule():
     assert car.rules_as == "commuter" and car.label.startswith("Driving your BS-III")
     with pytest.raises(ValueError):
         parse_profile(args(vehicle="spaceship"), "commuter")
+
+
+def test_every_kind_of_day_has_a_label_keywords_and_an_ai_hint():
+    from saans.personas import PERSONAS
+    from saans.profile import WORK, WORK_KEYWORDS
+
+    assert len(PERSONAS) >= 19 and set(WORK) == set(PERSONAS)
+    assert set(PERSONAS) == {pid for pid, _ in WORK_KEYWORDS}
+    assert all(p.ai_hint for p in PERSONAS.values())
+
+
+@pytest.mark.parametrize("text, persona", [
+    ("I am a student in nit delhi", "college"), ("Class 4 student, I walk to school", "school"),
+    ("Retired teacher, I walk in the park", "older"), ("I drive an auto in Laxmi Nagar", "driver"),
+    ("I sell chai from a stall", "vendor"), ("I work from home", "wfh"), ("Nurse at AIIMS", "healthcare"),
+    ("Traffic police at ITO", "guard"), ("7 months pregnant", "pregnant"), ("Mother of a 2 year old baby", "young_child"),
+    ("Factory worker in Okhla", "factory"), ("Safai karmchari", "sanitation"), ("Teacher at DPS", "teacher"),
+    ("I run 10 km before work", "athlete"), ("Swiggy delivery rider at night", "rider"),
+])
+def test_keywords_pick_the_closer_kind_of_day(text, persona):
+    assert guess_work(text) == persona
+
+
+def test_role_line_is_tidy():
+    assert tidy_role("I am a student in nit delhi") == "Student in NIT Delhi"
+    assert tidy_role("traffic police at ito.") == "Traffic police at ITO"

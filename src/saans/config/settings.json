@@ -47,11 +47,15 @@
   "grap_revision": "29.09.2026",
   "source_links": [
     {
-      "label": "IITM air quality early warning and decision support system",
-      "url": "https://ews.tropmet.res.in/"
+      "label": "CPCB",
+      "url": "https://airquality.cpcb.gov.in/AQI_India/"
     },
     {
-      "label": "CAQM (official GRAP orders)",
+      "label": "Open-Meteo",
+      "url": "https://open-meteo.com/"
+    },
+    {
+      "label": "CAQM",
       "url": "https://caqm.nic.in/"
     }
   ],

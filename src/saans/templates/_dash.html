@@ -16,11 +16,11 @@
     </div>
     <ul class="pm-chips">
       {% for p in particles.particles %}{% set v = pt[p.key] %}
-      <li><a href="#particles"><b>{{ p.id }}</b> {{ v if v is not none else '–' }} <small>µg/m³</small>
-        {% if v is not none %}<span class="{{ 'over' if v > p.limits.cpcb_24h else 'ok' }}">{{ (v / p.limits.who_24h)|round(1) }}× WHO</span>{% endif %}</a></li>
+      <li><span><b>{{ p.id }}</b> {{ v if v is not none else '–' }} <small>µg/m³</small>
+        {% if v is not none %}<span class="{{ 'over' if v > p.limits.cpcb_24h else 'ok' }}">{{ (v / p.limits.who_24h)|round(1) }}× WHO</span>{% endif %}</span></li>
       {% endfor %}
     </ul>
-    <p class="small">Estimated from the Open-Meteo PM2.5/PM10 forecast with CPCB breakpoints. The hourly value is a guide; official AQI uses 24-hour averages{% if is_stale %}. <b>The live forecast is unreachable: this is the last one, fetched {{ fetched_at[:16]|replace('T', ' ') }} IST</b>{% endif %}.</p>
+    {% if is_stale %}<p class="small"><b>The live forecast is unreachable: this is the last one, fetched {{ fetched_at[:16]|replace('T', ' ') }} IST.</b></p>{% endif %}
   </div>
   <div class="dash-group">
     <h2>Weather now</h2>

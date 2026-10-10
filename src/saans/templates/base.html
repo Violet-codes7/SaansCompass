@@ -10,7 +10,8 @@
   <meta property="og:type" content="website">
   <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
-  <script>try { if (/[?&]lang=hi\b/.test(location.search) || localStorage.getItem("saans-lang") === "hi") document.documentElement.lang = "hi"; } catch (e) {}</script>
+  <script>try { if (/[?&]lang=hi\b/.test(location.search) || localStorage.getItem("saans-lang") === "hi") document.documentElement.lang = "hi"; } catch (e) {}
+  try { if (localStorage.getItem("saans-theme") === "dark") document.documentElement.dataset.theme = "dark"; } catch (e) {}</script>
   {% block head %}{% endblock %}
 </head>
 <body>
@@ -22,19 +23,30 @@
       <form method="post" action="{{ url_for('account_signout') }}"><button type="submit" class="linkish">Sign out</button></form>
       {% else %}<a href="{{ url_for('account') }}">Sign in</a> <a href="{{ url_for('account', mode='signup') }}">Create account</a>{% endif %}
     </nav>{% endif %}
+    <button type="button" class="theme-toggle" id="theme-toggle" translate="no" aria-pressed="false" data-dark="{{ layout.theme.dark }}" data-light="{{ layout.theme.light }}">{{ layout.theme.dark }}</button>
     <div class="langs" role="group" aria-label="Language" translate="no">
       <button type="button" data-setlang="en" aria-pressed="true">English</button>
       <button type="button" data-setlang="hi" aria-pressed="false">हिंदी</button>
     </div>
     <span class="lang-status small" id="lang-status" aria-live="polite" translate="no"></span>
   </header>
-  <div class="skyline"><picture><source srcset="{{ url_for('static', filename='skyline-dark.svg') }}" media="(prefers-color-scheme: dark)"><img src="{{ url_for('static', filename='skyline.svg') }}" alt="{{ layout.banner_label }}" width="960" height="72"></picture></div>
+  <div class="skyline"><img class="sky-light" src="{{ url_for('static', filename='skyline.svg') }}" alt="{{ layout.banner_label }}" width="960" height="72"><img class="sky-dark" src="{{ url_for('static', filename='skyline-dark.svg') }}" alt="" width="960" height="72" loading="lazy"></div>
   <main>{% block main %}{% endblock %}</main>
   <footer class="site">
-    Advisory only. Not medical advice and not an official order; CAQM declares the GRAP stage.
-    Forecast: Open-Meteo air-quality model. AQI: CPCB breakpoints applied hourly (estimate).
-    More: {% for l in source_links %}<a href="{{ l.url }}">{{ l.label }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+    {{ layout.footer }} {% for l in source_links %}<a href="{{ l.url }}" rel="noopener">{{ l.label }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
   </footer>
+  <script>
+  (function () {
+    var b = document.getElementById("theme-toggle"), root = document.documentElement;
+    function show() { var dark = root.dataset.theme === "dark"; b.textContent = dark ? b.dataset.light : b.dataset.dark; b.setAttribute("aria-pressed", dark); }
+    b.addEventListener("click", function () {
+      if (root.dataset.theme === "dark") delete root.dataset.theme; else root.dataset.theme = "dark";
+      try { localStorage.setItem("saans-theme", root.dataset.theme || "light"); } catch (e) {}
+      show();
+    });
+    show();
+  })();
+  </script>
   <script src="{{ url_for('static', filename='i18n.js') }}" data-api="{{ url_for('api_translate') }}"></script>
 </body>
 </html>

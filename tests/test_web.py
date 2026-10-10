@@ -31,8 +31,7 @@ def test_plan_page_shows_rules_first(client, persona):
     assert resp.status_code == 200
     body = html[html.index("</nav>", html.index('class="sections"')):]  # after the section bar
     assert body.index("GRAP rules for you") < body.index("At a glance") < body.index("Your health")
-    assert "Check the official order" in html
-    assert "Not medical advice" in html or "not medical advice" in html
+    assert "Not medical advice" in html and "112" in html
 
 
 def test_api_plan_json(client):
@@ -57,7 +56,7 @@ def test_bad_input_page_is_400_and_escaped(client):
 
 def test_poster(client):
     html = client.get("/poster?persona=older&area=rohini").get_data(as_text=True)
-    assert "Rohini" in html and "not an official order" in html
+    assert "Rohini" in html and "Not medical advice" in html
     for part in ("Today for you", "Your day, hour by hour", 'class="strip"', "Rules", "Do this today",
                  "Scan for the live plan", "<svg", "i18n.js"):
         assert part in html
@@ -164,3 +163,15 @@ def test_personal_ai_advice_is_not_stored(client, monkeypatch, mem_store):
     body = client.get("/api/summary?persona=rider&area=ito&cond=asthma").get_json()
     assert body["summary"] == "Today: fine."
     assert not any(sk == "TEXT" for _, sk in mem_store.items)
+
+
+def test_light_theme_by_default_with_a_dark_toggle(client):
+    html = client.get("/").get_data(as_text=True)
+    assert '<html lang="en">' in html and 'id="theme-toggle"' in html and "saans-theme" in html
+
+
+@pytest.mark.parametrize("persona", ["college", "teacher", "young_child", "pregnant", "driver", "vendor", "guard",
+                                     "sanitation", "healthcare", "factory", "wfh", "homemaker", "breathing"])
+def test_new_kinds_of_day_render_a_plan(client, persona):
+    resp = client.get(f"/plan?persona={persona}&area=ito&stage=IV")
+    assert resp.status_code == 200 and "GRAP rules for you" in resp.get_data(as_text=True)

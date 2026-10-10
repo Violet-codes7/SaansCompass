@@ -15,58 +15,53 @@
 </nav>
 
 <section class="summary">
-  <div>
+  <div class="who">
+    {% set hd = layout.header %}{% set pf = plan.profile %}
     <p class="eyebrow">{{ plan.area.name }} · {{ plan.date }}</p>
-    {% set own = plan.profile.own_words if plan.profile else None %}
-    {% set work_line = (own[0]|upper ~ own[1:]) if own else (plan.profile.work if plan.profile else plan.persona.label) %}
-    {% if display_name %}<h1 translate="no">{{ display_name }}</h1>
-    <p class="work-line" {% if own %}translate="no"{% endif %}>{{ work_line }}</p>
-    {% else %}<h1 {% if own %}translate="no"{% endif %}>{{ work_line }}</h1>{% endif %}
-    {% if plan.profile %}
-    <p class="question">
-      {%- set bits = [] -%}
-      {%- if plan.profile.age %}{% set _ = bits.append('Age ' ~ plan.profile.age) %}{% endif -%}
-      {%- for c in plan.health.condition_names %}{% set _ = bits.append(c) %}{% endfor -%}
-      {%- if plan.profile.commute %}{% set _ = bits.append(plan.profile.commute) %}{% endif -%}
-      {%- if plan.profile.hours %}{% set _ = bits.append('Outdoors ' ~ plan.profile.hours) %}{% endif -%}
-      {%- if plan.profile.has_n95_mask %}{% set _ = bits.append('Has an N95') %}{% endif -%}
-      {{ bits|join(' · ') }}</p>
+    <h1 translate="no">{{ display_name or hd.title_anon }}</h1>
+    {% if role %}<p class="role" translate="no">{{ role }}</p>{% endif %}
+    {% if pf %}
+    <ul class="chips">
+      {%- if pf.age %}<li>{{ hd.age.format(age=pf.age) }}</li>{% endif -%}
+      {%- for c in plan.health.condition_names %}<li class="c-health">{{ c[:1]|upper ~ c[1:] }}</li>{% endfor -%}
+      {%- if not plan.route and pf.commute %}<li>{{ pf.commute }}</li>{% endif -%}
+      {%- if pf.hours %}<li>{{ hd.outdoors.format(hours=pf.hours) }}</li>{% endif -%}
+      {%- if pf.has_n95_mask %}<li>{{ hd.n95 }}</li>{% endif -%}
+    </ul>
     {% else %}<p class="question">{{ plan.persona.question }}</p>{% endif %}
-    {% if using_saved %}
-    <p class="readas saved-note">From your saved profile{% if saved.name %}, {{ saved.name }}{% endif %}: we read you as <b>{{ work[plan.persona.id] }}</b>. <a href="{{ url_for('account_profile') }}">Edit profile</a></p>
-    {% elif own or request.args.get('read') %}
-    <form class="readas" method="get" action="{{ url_for('plan_page') }}">
-      {% for k, vs in request.args.lists() if k not in ('persona', 'read') %}{% for v in vs %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endfor %}
-      <input type="hidden" name="read" value="picked">
-      <p><span>We read you as:</span> <b>{{ work[plan.persona.id] }}</b>
-        <small class="muted">{{ {'ai': '(read by ' ~ ai_label ~ ')', 'keywords': '(matched from your words)',
-          'default': '(we could not tell from your words, so this is a guess)', 'picked': '(your choice)'}.get(request.args.get('read'), '') }}</small></p>
-      <label>Not right? Pick the closest:
-        <select name="persona">{% for id, label in work.items() %}<option value="{{ id }}" {% if id == plan.persona.id %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-      <button type="submit" class="ghost">Update</button>
-    </form>
-    {% endif %}
-  {% set unplaced_from = route_texts.from and not request.args.get('area') and not using_saved %}
-  {% set unplaced_to = route_texts.to and not request.args.get('to_area') and not using_saved %}
-  {% if plan.route or unplaced_from or unplaced_to %}
-  {% set r = plan.route %}
-  {% if using_saved %}
-  <p class="readas saved-note">Your trip: <b>{{ r.from.name }}</b> → <b>{{ r.to.name }}</b>{% if r.mode_labels %} by {{ r.mode_labels|join(' + ') }}{% endif %}. <a href="{{ url_for('account_profile') }}">Edit profile</a></p>
-  {% else %}
-  <form class="readas trip-read" method="get" action="{{ url_for('plan_page') }}">
-    {% for k, vs in request.args.lists() if k not in ('area', 'to_area', 'commute', 'modes', 'route_read') %}{% for v in vs %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endfor %}
-    <input type="hidden" name="route_read" value="picked">
-    {% if r %}<p><span>Your trip:</span> <b>{{ r.from.name }}</b> → <b>{{ r.to.name }}</b>{% if r.mode_labels %} by {{ r.mode_labels|join(' + ') }}{% endif %}
-      <small class="muted">{{ {'ai': '(places read by ' ~ ai_label ~ ')', 'keywords': '(matched from your words)', 'picked': '(your choice)'}.get(request.args.get('route_read'), '') }}</small></p>{% endif %}
-    {% if unplaced_from %}<p class="note err">{{ route_text.messages.not_found.format(text=route_texts.from) }}</p>{% endif %}
-    {% if unplaced_to %}<p class="note err">{{ route_text.messages.not_found.format(text=route_texts.to) }}</p>{% endif %}
-    <label>Start <select name="area">{% for a in areas.values() %}<option value="{{ a.id }}" {% if r and a.id == r.from.id or (not r and a.id == plan.area.id) %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></label>
-    <label>Day spent at <select name="to_area">{% for a in areas.values() %}<option value="{{ a.id }}" {% if r and a.id == r.to.id or (not r and a.id == plan.area.id) %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></label>
-    <label>Travel <select name="commute"><option value="">Not given</option>{% for id, label in commute_modes.items() %}<option value="{{ id }}" {% if r and r.modes and id == r.modes[0] %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-    <button type="submit" class="ghost">Update</button>
-  </form>
-  {% endif %}
-  {% endif %}
+    {% set unplaced_from = route_texts.from and not request.args.get('area') and not using_saved %}
+    {% set unplaced_to = route_texts.to and not request.args.get('to_area') and not using_saved %}
+    {% set r = plan.route %}
+    <div class="fixes">
+      {% if using_saved %}
+      <p class="fix"><span>{{ work[plan.persona.id] }}</span>{% if r %} <span>{{ r.from.name }} → {{ r.to.name }}{% if r.mode_labels %} · {{ r.mode_labels|join(' + ') }}{% endif %}</span>{% endif %} <a href="{{ url_for('account_profile') }}">{{ hd.edit_profile }}</a></p>
+      {% else %}
+      <details class="fix"{% if request.args.get('read') == 'default' %} open{% endif %}>
+        <summary><span>{{ work[plan.persona.id] }}</span> <b>{{ hd.change }}</b></summary>
+        <form method="get" action="{{ url_for('plan_page') }}">
+          {% for k, vs in request.args.lists() if k not in ('persona', 'read') %}{% for v in vs %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endfor %}
+          <input type="hidden" name="read" value="picked">
+          <label>{{ hd.pick }} <select name="persona">{% for id, label in work.items() %}<option value="{{ id }}" {% if id == plan.persona.id %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+          <button type="submit" class="ghost">{{ hd['update'] }}</button>
+        </form>
+      </details>
+      {% if r or unplaced_from or unplaced_to %}
+      <details class="fix trip-read"{% if unplaced_from or unplaced_to %} open{% endif %}>
+        <summary><span>{% if r %}{{ r.from.name }} → {{ r.to.name }}{% if r.mode_labels %} · {{ r.mode_labels|join(' + ') }}{% endif %}{% else %}{{ hd.trip }}{% endif %}</span> <b>{{ hd.change }}</b></summary>
+        {% if unplaced_from %}<p class="note err">{{ route_text.messages.not_found.format(text=route_texts.from) }}</p>{% endif %}
+        {% if unplaced_to %}<p class="note err">{{ route_text.messages.not_found.format(text=route_texts.to) }}</p>{% endif %}
+        <form method="get" action="{{ url_for('plan_page') }}">
+          {% for k, vs in request.args.lists() if k not in ('area', 'to_area', 'commute', 'modes', 'route_read') %}{% for v in vs %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endfor %}
+          <input type="hidden" name="route_read" value="picked">
+          <label>Start <select name="area">{% for a in areas.values() %}<option value="{{ a.id }}" {% if r and a.id == r.from.id or (not r and a.id == plan.area.id) %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></label>
+          <label>Day spent at <select name="to_area">{% for a in areas.values() %}<option value="{{ a.id }}" {% if r and a.id == r.to.id or (not r and a.id == plan.area.id) %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></label>
+          <label>Travel <select name="commute"><option value="">Not given</option>{% for id, label in commute_modes.items() %}<option value="{{ id }}" {% if r and r.modes and id == r.modes[0] %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+          <button type="submit" class="ghost">{{ hd['update'] }}</button>
+        </form>
+      </details>
+      {% endif %}
+      {% endif %}
+    </div>
   </div>
   {% set sg = plan.stage %}
   <div class="stage-box s{{ sg.stage or 0 }}">
@@ -100,7 +95,7 @@
     </ol>
   </div>
   {% endfor %}
-  <p class="small">{{ route_text.messages.day_area.format(area=plan.route.to.name) }} Stops are the areas we cover near a straight line between the two places, not the exact road.</p>
+  <p class="small">{{ route_text.messages.day_area.format(area=plan.route.to.name) }}</p>
 </section>
 {% endif %}
 
@@ -168,7 +163,6 @@
         <details><summary>Official source</summary>
           {% if r.clause %}<span class="clause">{{ r.clause }}</span> <code class="pid" title="Cedar policy" translate="no">{{ r.policy_id }}</code>{% endif %}
           {% if r.note %}<span class="note">{{ r.note }}</span>{% endif %}
-          <span class="small">From CAQM's GRAP schedule, Revision {{ grap_revision }}. Anything the schedule does not cover says "Check the official order", never "Allowed".</span>
         </details>
       </li>
       {% endif %}
@@ -176,13 +170,9 @@
     </ul>
     {% if no_stage %}{% set uncovered = plan.activities|selectattr('rule')|selectattr('rule.decision', 'equalto', 'check_official_order')|map(attribute='label')|list %}
     {% if uncovered %}<p class="small">Not covered by GRAP at any stage: {{ uncovered|join(', ') }}.</p>{% endif %}{% endif %}
-    <details class="grap-more"><summary>{{ grap.how_title }}</summary>
-      <ul>{% for line in grap.how %}<li>{{ line }}</li>{% endfor %}</ul></details>
-    <details class="grap-more"><summary>{{ grap.estimate_title }}</summary>
-      <ul>{% for line in grap.estimate %}<li>{{ line }}</li>{% endfor %}</ul>
-      {% if sg.city %}<p class="small"><b>{{ grap.sites_title }}</b></p>
-      <ol class="stops sites">{% for st in sg.city.sites %}<li class="{{ st.slug }}"><span>{{ st.name }}</span><b>{{ st.aqi }}</b></li>{% endfor %}</ol>{% endif %}
-    </details>
+    {% if sg.city %}<details class="grap-more"><summary>{{ grap.sites_title }}</summary>
+      <ol class="stops sites">{% for st in sg.city.sites %}<li class="{{ st.slug }}"><span>{{ st.name }}</span><b>{{ st.aqi }}</b></li>{% endfor %}</ol>
+    </details>{% endif %}
     <p class="small">{{ grap.sources_label }}: {% for src in grap.sources %}<a href="{{ src.url }}" rel="noopener" target="_blank">{{ src.label }}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>
   </section>
 
@@ -239,7 +229,6 @@
     </div>
     <div id="ai-text" class="ai-text" aria-live="polite" translate="no"></div>
     <audio id="ai-audio" controls hidden></audio>
-    <p class="small">{{ gt.ai_from.format(ai=ai_label) }}</p>
   </div>
   <script>
 (function () {
@@ -308,7 +297,7 @@
       {% if L.aqi is not none %}<span class="lmark" style="left: {{ L.aqi_pct }}%"><b>{{ plan.area.name }} {{ L.aqi }}</b></span>{% endif %}
       <div class="lticks"><span style="left: {{ L.go_pct }}%">{{ L.go }}</span><span style="left: {{ L.limit_pct }}%">{{ L.limit }}</span></div>
     </div>
-    <p class="small">{{ L.note }} {{ ht.limits_note }}</p>
+    {% if L.note %}<p class="small">{{ L.note }}</p>{% endif %}
     {% if h.details %}
     <p>{% if h.shift >= 100 %}Your lungs, heart or blood vessels react sooner to polluted air, so your limits are {{ h.shift }} AQI points lower than usual.{% elif h.shift %}You feel polluted air sooner than most, so your limits are {{ h.shift }} AQI points lower than usual.{% else %}Polluted air bothers you, but it does not change your limits.{% endif %}
       {% if h.charter %}At Stage IV, GRAP's citizen charter names you among the people who should stay indoors as much as possible{% if plan.stage.stage == 4 %}, and Stage IV is in force{% endif %}.{% endif %}</p>
@@ -324,8 +313,8 @@
     </div>
     {% elif plan.profile %}
     <p>Nothing in your details adds extra sensitivity, so the plan uses the usual limits for your kind of day. Polluted air still harms healthy people over time, especially at Poor and worse.</p>
-    {% elif plan.persona.id in ('school', 'older') %}
-    <p>Children and older adults are among the groups GRAP's citizen charter protects, so this plan already uses lower limits. Add age and health details on the <a href="{{ url_for('index') }}">first page</a> for advice that fits one person.</p>
+    {% elif plan.persona.sensitive %}
+    <p>{{ plan.persona.label }}: this is one of the groups GRAP's citizen charter protects, so your limits are already lower. Add age and health details on the <a href="{{ url_for('index') }}">first page</a> for advice that fits one person.</p>
     {% else %}
     <p>Add your age and any health conditions on the <a href="{{ url_for('index') }}">first page</a> for advice that fits you.</p>
     {% endif %}
@@ -443,13 +432,6 @@
   })();
   </script>
 </section>
-
-{% with area_name=plan.area.name, air_now=plan.air_now %}{% include "_particles.html" %}{% endwith %}
-
-<details class="notes-mini"{% if plan.is_stale %} open{% endif %}>
-  <summary>ℹ️ {{ glance_text.notes_title }} <span class="small">{{ plan.notes|map(attribute='title')|join(' · ') }}</span></summary>
-  <ul>{% for n in plan.notes %}<li class="note-{{ n.key }}"><b>{{ n.title }}.</b> {{ n.text }}</li>{% endfor %}</ul>
-</details>
 
 <section class="panel actions">
   <a class="button" href="{{ url_for('poster') }}?{{ request.query_string.decode() }}">Daily poster</a>

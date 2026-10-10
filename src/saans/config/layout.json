@@ -26,23 +26,12 @@
     {
       "id": "day",
       "label": "Hour by hour"
-    },
-    {
-      "id": "particles",
-      "label": "PM2.5 & PM10"
     }
   ],
   "banner_label": "Pixel-art Delhi skyline with India Gate, Qutub Minar, the Lotus Temple, the Red Fort and Jama Masjid",
   "header": {
     "title_anon": "Your air plan",
-    "read_as": "We read you as",
     "change": "Change",
-    "how": {
-      "ai": "read by {ai}",
-      "keywords": "matched from your words",
-      "default": "a guess: we could not tell from your words",
-      "picked": "your choice"
-    },
     "pick": "Pick the closest",
     "update": "Update",
     "trip": "Your trip",
@@ -50,5 +39,44 @@
     "outdoors": "Outdoors {hours}",
     "age": "Age {age}",
     "n95": "Has an N95"
+  },
+  "footer": "Not medical advice. In an emergency, call 112. Data:",
+  "try_title": "Clean air today? See a bad-air day:",
+  "try_examples": [
+    {
+      "label": "Child with asthma, Stage IV",
+      "args": {
+        "persona": "school",
+        "area": "anand-vihar",
+        "stage": "IV",
+        "age": 9,
+        "cond": "asthma",
+        "commute": "bus"
+      }
+    },
+    {
+      "label": "Construction worker, Stage III",
+      "args": {
+        "persona": "worker",
+        "area": "anand-vihar",
+        "stage": "III",
+        "age": 38,
+        "commute": "cycle"
+      }
+    },
+    {
+      "label": "Office commuter by car, Stage III",
+      "args": {
+        "persona": "commuter",
+        "area": "ito",
+        "stage": "III",
+        "age": 29,
+        "commute": "car"
+      }
+    }
+  ],
+  "theme": {
+    "dark": "🌙 Dark",
+    "light": "☀️ Light"
   }
 }

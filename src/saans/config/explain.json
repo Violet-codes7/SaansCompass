@@ -334,7 +334,7 @@
       "short": "declared by CAQM"
     },
     "estimate": {
-      "label": "Our estimate from Delhi's average AQI",
+      "label": "Estimated from Delhi's AQI",
       "short": "estimated from Delhi's AQI"
     }
   },
@@ -359,24 +359,10 @@
     "outlook_same": "Tomorrow looks similar for Delhi: {label_text} (AQI {aqi}).",
     "stage_word": "Stage {label}",
     "no_stage_word": "no stage",
-    "differs": "Our estimate from Delhi's AQI is {estimate}.",
+    "differs": "Delhi's AQI alone points to {estimate}.",
     "measures_title": "What Stage {label} brings",
     "measures_next": "What Stage {label} would bring",
     "actions_count": "{count} actions in the schedule. The main ones:",
-    "how_title": "How a stage is decided",
-    "how": [
-      "CAQM's GRAP sub-committee watches Delhi's average AQI from CPCB's monitoring stations, and the IMD and IITM forecasts.",
-      "When the AQI reaches a stage's range, or is forecast to, it orders that stage for all of Delhi-NCR. It can act a few days early.",
-      "Stages add up: Stage III means the Stage I, II and III actions all apply.",
-      "When the air improves for a while, CAQM revokes the stage. A revoked stage's rules stop applying.",
-      "Delhi and the NCR states can also issue their own extra orders on top of GRAP."
-    ],
-    "estimate_title": "How accurate is this?",
-    "estimate": [
-      "When the Saans Compass team has entered CAQM's latest order, the stage shown is that order.",
-      "Otherwise it is our estimate from Delhi's AQI, worked out like CPCB's: each area's 24-hour average, then the average across Delhi.",
-      "Our numbers come from the Open-Meteo forecast model, not CPCB's stations, so they can be some points off. Near a stage's edge, the official stage may differ."
-    ],
     "sites_title": "Delhi's AQI, area by area",
     "sources": [
       {

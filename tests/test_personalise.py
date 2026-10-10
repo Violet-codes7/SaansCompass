@@ -129,9 +129,9 @@ class FakeMessages:
 
 def test_classify_work_with_claude(monkeypatch):
     monkeypatch.setenv("BEDROCK_MODEL", "anthropic.claude-opus-5-5")
-    msgs = FakeMessages(json.dumps({"persona": "worker", "start_hour": 22, "end_hour": 6}))
+    msgs = FakeMessages(json.dumps({"persona": "guard", "role": "night security guard at a mall.", "start_hour": 22, "end_hour": 6}))
     out = ai.classify_work("Night security guard at a mall", client=SimpleNamespace(messages=msgs))
-    assert out == {"persona": "worker", "start_hour": 22, "end_hour": 6}
+    assert out == {"persona": "guard", "role": "Night security guard at a mall", "start_hour": 22, "end_hour": 6}
     assert msgs.calls[0]["output_config"]["format"]["type"] == "json_schema"
     bad = FakeMessages(json.dumps({"persona": "pilot", "start_hour": -1, "end_hour": -1}))
     assert ai.classify_work("x", client=SimpleNamespace(messages=bad)) is None
@@ -151,7 +151,9 @@ def test_job_box_redirects_to_a_reading_you_can_correct(client, monkeypatch):
     loc = resp.headers["Location"]
     assert "persona=rider" in loc and "read=keywords" in loc and "job=Zomato" in loc
     html = client.get(loc).get_data(as_text=True)
-    assert "We read you as:" in html and "Delivery or gig rider" in html and "Zomato rider" in html
+    assert "role=Zomato+rider" in loc
+    assert "We read you as" not in html and "Delivery or gig rider" in html and '<p class="role" translate="no">Zomato rider</p>' in html
+    assert '<details class="fix"' in html and "Change" in html
     assert 'name="read" value="picked"' in html and 'name="job" value="Zomato rider"' in html
 
 

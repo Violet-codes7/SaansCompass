@@ -198,11 +198,24 @@
     "none": null
   },
   "work": {
-    "school": "Student, parent or school staff",
+    "school": "School student or school staff",
+    "college": "College or university student",
+    "teacher": "Teacher",
+    "young_child": "Parent of a baby or young child",
+    "commuter": "Office worker who commutes",
+    "healthcare": "Doctor, nurse or hospital staff",
+    "wfh": "Works from home",
+    "homemaker": "Homemaker",
+    "pregnant": "Pregnant",
+    "older": "Retired or older adult",
+    "breathing": "Has asthma, COPD or a heart condition",
     "rider": "Delivery or gig rider",
-    "worker": "Outdoor or construction worker",
-    "commuter": "Office worker or college student who commutes",
-    "older": "Retired or mostly at home",
+    "driver": "Auto, cab or truck driver",
+    "worker": "Construction or outdoor labourer",
+    "factory": "Factory or warehouse worker",
+    "vendor": "Street vendor or shopkeeper",
+    "guard": "Traffic police or security guard",
+    "sanitation": "Sanitation or waste worker",
     "athlete": "Runner or athlete"
   },
   "work_keywords": {
@@ -218,17 +231,38 @@
       "courier",
       "gig",
       "rapido",
-      "uber",
-      "ola",
-      "cab",
-      "taxi",
-      "driver",
-      "auto",
-      "rickshaw",
       "scooter",
       "bike",
-      "डिलीवरी",
-      "ड्राइवर"
+      "डिलीवरी"
+    ],
+    "driver": [
+      "driver",
+      "driving",
+      "cab",
+      "taxi",
+      "uber",
+      "ola",
+      "auto",
+      "rickshaw",
+      "erickshaw",
+      "tempo",
+      "truck",
+      "trucker",
+      "chauffeur",
+      "ड्राइवर",
+      "ऑटो"
+    ],
+    "sanitation": [
+      "sweeper",
+      "sanitation",
+      "safai",
+      "garbage",
+      "waste",
+      "kabadi",
+      "ragpicker",
+      "drain",
+      "cleaner",
+      "सफाई"
     ],
     "worker": [
       "construction",
@@ -244,14 +278,6 @@
       "carpenter",
       "welder",
       "farmer",
-      "vendor",
-      "hawker",
-      "guard",
-      "security",
-      "police",
-      "sweeper",
-      "sanitation",
-      "safai",
       "gardener",
       "mali",
       "porter",
@@ -259,6 +285,35 @@
       "field",
       "मजदूर",
       "किसान"
+    ],
+    "guard": [
+      "guard",
+      "security",
+      "police",
+      "traffic",
+      "watchman",
+      "chowkidar",
+      "gatekeeper",
+      "parking",
+      "constable",
+      "पुलिस",
+      "गार्ड"
+    ],
+    "vendor": [
+      "vendor",
+      "hawker",
+      "stall",
+      "cart",
+      "thela",
+      "rehri",
+      "chaiwala",
+      "shopkeeper",
+      "shop",
+      "kirana",
+      "market",
+      "seller",
+      "फेरीवाला",
+      "दुकान"
     ],
     "athlete": [
       "runner",
@@ -279,14 +334,106 @@
       "gym",
       "jogging",
       "jog",
-      "खिलाड़ी"
+      "खिलाड़ी",
+      "run",
+      "runs",
+      "walker",
+      "yoga",
+      "swimmer",
+      "badminton",
+      "tennis"
+    ],
+    "factory": [
+      "factory",
+      "warehouse",
+      "workshop",
+      "industrial",
+      "plant",
+      "mill",
+      "godown",
+      "packer",
+      "machine",
+      "फैक्ट्री"
+    ],
+    "healthcare": [
+      "doctor",
+      "nurse",
+      "hospital",
+      "clinic",
+      "pharmacist",
+      "pharmacy",
+      "paramedic",
+      "medical",
+      "dentist",
+      "physiotherapist",
+      "डॉक्टर",
+      "नर्स"
+    ],
+    "teacher": [
+      "teacher",
+      "teach",
+      "teaching",
+      "principal",
+      "tutor",
+      "शिक्षक",
+      "अध्यापक"
+    ],
+    "college": [
+      "college",
+      "university",
+      "campus",
+      "hostel",
+      "coaching",
+      "undergraduate",
+      "postgraduate",
+      "कॉलेज"
+    ],
+    "school": [
+      "student",
+      "school",
+      "class",
+      "parent",
+      "kid",
+      "kids",
+      "child",
+      "children",
+      "son",
+      "daughter",
+      "छात्र",
+      "स्कूल"
+    ],
+    "young_child": [
+      "baby",
+      "toddler",
+      "infant",
+      "newborn",
+      "nursery",
+      "playschool",
+      "creche",
+      "बच्चा"
+    ],
+    "pregnant": [
+      "pregnant",
+      "pregnancy",
+      "expecting",
+      "trimester",
+      "गर्भवती"
+    ],
+    "breathing": [
+      "asthma",
+      "copd",
+      "bronchitis",
+      "breathless",
+      "inhaler",
+      "heart",
+      "lung",
+      "lungs",
+      "दमा"
     ],
     "older": [
       "retired",
       "retiree",
       "pensioner",
-      "homemaker",
-      "housewife",
       "grandmother",
       "grandfather",
       "grandma",
@@ -297,22 +444,21 @@
       "रिटायर",
       "गृहिणी"
     ],
-    "school": [
-      "student",
-      "school",
-      "class",
-      "teacher",
-      "principal",
-      "parent",
-      "kid",
-      "kids",
-      "child",
-      "children",
-      "son",
-      "daughter",
-      "छात्र",
-      "स्कूल",
-      "शिक्षक"
+    "wfh": [
+      "wfh",
+      "remote",
+      "freelance",
+      "freelancer",
+      "online",
+      "work from home"
+    ],
+    "homemaker": [
+      "homemaker",
+      "housewife",
+      "househusband",
+      "home",
+      "household",
+      "गृहिणी"
     ],
     "commuter": [
       "office",
@@ -329,13 +475,7 @@
       "clerk",
       "government",
       "sales",
-      "doctor",
-      "nurse",
       "lawyer",
-      "shop",
-      "shopkeeper",
-      "college",
-      "university",
       "intern",
       "ऑफिस",
       "दफ्तर",
@@ -386,7 +526,7 @@
     "evening_commute"
   ],
   "work_keyword_overrides": {
-    "commuter": [
+    "college": [
       "college",
       "university",
       "nit",
@@ -396,7 +536,6 @@
       "nsut",
       "jnu",
       "du",
-      "aiims",
       "btech",
       "mtech",
       "bca",
@@ -412,6 +551,17 @@
       "postgraduate",
       "phd",
       "researcher"
+    ],
+    "pregnant": [
+      "pregnant",
+      "pregnancy",
+      "गर्भवती"
+    ],
+    "older": [
+      "retired",
+      "retiree",
+      "pensioner",
+      "रिटायर"
     ]
   },
   "role": {
@@ -466,7 +616,10 @@
       "zepto": "Zepto",
       "uber": "Uber",
       "ola": "Ola",
-      "rapido": "Rapido"
+      "rapido": "Rapido",
+      "ito": "ITO",
+      "ncr": "NCR",
+      "cp": "CP"
     },
     "places": [
       "delhi",
@@ -490,7 +643,6 @@
       "hauz khas",
       "chandni chowk",
       "nehru place",
-      "ito",
       "anand vihar",
       "rk puram",
       "r k puram",

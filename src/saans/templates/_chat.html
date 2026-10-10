@@ -8,7 +8,7 @@
     <button type="button" class="chat-x" id="chat-close" aria-label="{{ ct.close }}">×</button>
   </header>
   <div class="chat-log" id="chat-log" aria-live="polite">
-    <div class="chat-msg bot"><b>{{ ct.bot }}</b><p>{{ ct.intro.format(ai=ai_label) }}</p></div>
+    <div class="chat-msg bot"><b>{{ ct.bot }}</b><p>{{ ct.intro }}</p></div>
   </div>
   <div class="chat-sugg" id="chat-sugg">
     <span class="small">{{ ct.suggestions_title }}:</span>
@@ -19,7 +19,6 @@
     <textarea id="chat-q" rows="1" maxlength="{{ chat_max_chars }}" placeholder="{{ ct.placeholder }}"></textarea>
     <button type="submit" id="chat-send">{{ ct.send }}</button>
   </form>
-  <p class="chat-note small">{{ ct.note }}</p>
 </section>
 <script>
 (function () {
