@@ -164,3 +164,18 @@ def test_rules_rank_most_severe_first(mem_store, monkeypatch, live_fetcher):
     plan = get_plan("rider", "ito", stage="IV", now=FIXED_NOW)
     ranked = sorted((a for a in plan["activities"] if a["rule"]), key=lambda a: a["rank"])
     assert ranked[0]["rule"]["decision"] == "not_allowed"
+
+
+def test_today_never_suggests_an_hour_that_has_passed(mem_store, live_fetcher):
+    # The live fetcher's cleanest hours are 13:00-14:00; at 14:30 the 13:00 slot is gone.
+    later = FIXED_NOW.replace(hour=14, minute=30)
+    plan = get_plan("older", "ito", now=later, fetcher=live_fetcher)
+    assert plan["best_window"]["start_hour"] >= 14
+    tomorrow = get_plan("older", "ito", day="tomorrow", now=later, fetcher=live_fetcher)
+    assert tomorrow["best_window"]["start_hour"] < 14
+
+
+def test_a_day_that_is_over_still_shows_its_plan(mem_store, live_fetcher):
+    late = FIXED_NOW.replace(hour=23, minute=30)
+    plan = get_plan("school", "ito", now=late, fetcher=live_fetcher)
+    assert plan["best_window"] is not None

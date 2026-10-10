@@ -186,7 +186,19 @@ def _notes(forecast, stage_info, profile, rule_results):
     return out
 
 
-def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=None):
+def upcoming(readings, now_key, minutes):
+    """The readings from the current hour on (now_key "YYYY-MM-DDTHH:00"),
+    when enough of them are left for `minutes`; else all of them, so a day
+    that is over still shows its plan."""
+    if not now_key:
+        return readings
+    left = [r for r in readings if r["time"] >= now_key]
+    return left if len(left) >= max(1, math.ceil(minutes / 60)) else readings
+
+
+def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=None, now_key=None):
+    """`now_key` ("YYYY-MM-DDTHH:00", today's plan only) keeps the suggested
+    time for the movable activity in the hours still to come."""
     readings = data.readings_for(forecast, date, persona.hours())
     for r in readings:
         r["advice"] = hour_advice(persona, r["aqi"])
@@ -196,6 +208,7 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
     flex = persona.activity(persona.flex_activity)
     # A break off the road is taken mid-shift, not in the first or last hour.
     pool = readings[1:-1] if persona.flex_prefers == "worst" and len(readings) > 3 else readings
+    pool = upcoming(pool, now_key, flex.minutes or 60)
     window = best_window(pool, flex.minutes or 60, persona.flex_prefers)
 
     # Outdoor-by-choice personas: if even the cleanest window is bad, stay in.

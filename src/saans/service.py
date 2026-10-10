@@ -188,7 +188,10 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
     stage_info.update(area_aqi=area_aqi, day=day)
     sensitive = persona.sensitive or bool(profile and profile.sensitive)
     rule_results = rulebook.evaluate_persona(persona, area.id, stage_info["stage"], sensitive) if grap_here else []
-    plan = build_plan(persona, area, forecast, date, stage_info, rule_results, profile)
+    # Today's suggested time is never one that has already passed.
+    now_key = now.astimezone(data.IST).strftime("%Y-%m-%dT%H:00") if day == "today" and settings.get(
+        "skip_past_hours") else None
+    plan = build_plan(persona, area, forecast, date, stage_info, rule_results, profile, now_key=now_key)
     plan["day"] = day
     plan["route"] = (route.trips(persona, start, dest, date, store, now, fetcher, modes=modes)
                      if dest and person.travel_mode(modes) != "none" else None)
