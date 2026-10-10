@@ -58,7 +58,8 @@
     },
     {
       "label": "CAQM",
-      "url": "https://caqm.nic.in/"
+      "url": "https://caqm.nic.in/",
+      "grap": true
     }
   ],
   "alert_morning_hour": 6,
@@ -73,6 +74,7 @@
   "area_snap_km": 5,
   "model_pm10_pm25_ratio_max": 3.0,
   "place_bounds": {"lat": [6.5, 37.5], "lon": [68.0, 97.5]},
+  "grap_enabled": false,
   "grap_region_km": 150,
   "place_station_km": 10,
   "place_round_digits": 2,

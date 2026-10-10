@@ -185,6 +185,6 @@ def test_plan_page_outside_ncr(client, monkeypatch):
     loc = client.get("/plan?persona=commuter&from=Lucknow&area=&day=today").headers["Location"]
     assert "26.8" not in loc and "80.9" not in loc  # coordinates never go in the link
     html = client.get(loc).get_data(as_text=True)
-    assert "No GRAP stage in Lucknow" in html and "GRAP rules apply only in Delhi-NCR." in html
+    assert 'class="stage-box' not in html  # no GRAP stage outside Delhi-NCR
     assert 'id="grap"' not in html and 'href="#grap"' not in html
     assert "Weather in Lucknow" in html and seen == ["Lucknow"]

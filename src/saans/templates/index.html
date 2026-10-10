@@ -2,7 +2,7 @@
 {% block main %}
 <section class="hero">
   <h1>Your air plan for today</h1>
-  {% if not saved %}<p>Tell us a little about you. We check today's and tomorrow's forecast for your area, work out the GRAP stage, show the rules that apply to you, and plan your day around the cleanest air.</p>{% endif %}
+  {% if not saved %}<p>{{ brand.home_intro }}</p>{% endif %}
 </section>
 {% set hm = layout.home %}
 {% if user %}
@@ -56,9 +56,9 @@
   {% if accounts_on and not user %}<p class="small"><a href="{{ url_for('account', mode='signup') }}">Create an account</a> to skip this form next time.</p>{% endif %}
 </form>
 {% endif %}
-<p class="try">{{ layout.try_title }}
+{% if grap_on %}<p class="try">{{ layout.try_title }}
   {% for ex in layout.try_examples %}<a href="{{ url_for('plan_page', **ex.args) }}">{{ ex.label }}</a>
-  {% endfor %}</p>
+  {% endfor %}</p>{% endif %}
 <script>
 (function () {
   var f = document.querySelector("form[data-draft]");

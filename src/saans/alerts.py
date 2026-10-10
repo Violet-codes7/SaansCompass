@@ -39,10 +39,13 @@ def compose(area, run, plans, site_url=None):
     first = plans[0]
     when = "Today" if run == "today" else "Tomorrow"
     stage = first["stage"]
-    stage_text = (f"GRAP Stage {stage['label']} ({stage['source']})" if stage["stage"]
-                  else f"No GRAP stage ({stage['source']})")
-    if stage.get("day_aqi") is not None:
-        stage_text += f", Delhi AQI about {stage['day_aqi']}"
+    if not first.get("grap_applies", True):  # GRAP switched off: the area's own air
+        stage_text = f"AQI about {first['air']['day_aqi']}" if first["air"].get("day_aqi") is not None else "no AQI yet"
+    else:
+        stage_text = (f"GRAP Stage {stage['label']} ({stage['source']})" if stage["stage"]
+                      else f"No GRAP stage ({stage['source']})")
+        if stage.get("day_aqi") is not None:
+            stage_text += f", Delhi AQI about {stage['day_aqi']}"
     subject = f"Saans Compass: {area.name}, {when.lower()} {first['date']}"
     lines = [
         f"{when} in {area.name} ({first['date']}): {stage_text}.",

@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Saans Compass{% endblock %}</title>
-  <meta name="description" content="Delhi's GRAP air rules and your day, in one plan: what is allowed at today's stage, and the cleanest hours for school, delivery riders and older adults.">
-  <meta property="og:title" content="Saans Compass: Delhi's air rules and your day">
-  <meta property="og:description" content="What GRAP allows today, traced to the official rule, plus an hour-by-hour plan for your area.">
+  <meta name="description" content="{{ brand.description }}">
+  <meta property="og:title" content="{{ brand.og_title }}">
+  <meta property="og:description" content="{{ brand.og_description }}">
   <meta property="og:type" content="website">
   <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
@@ -17,7 +17,7 @@
 <body>
   <header class="site">
     <a class="brand" href="{{ url_for('index') }}">Saans Compass</a>
-    <span class="tag">Delhi's air rules and your day, in one plan</span>
+    <span class="tag">{{ brand.tag }}</span>
     {% if accounts_on %}<nav class="account" aria-label="Account">
       {% if user %}<a href="{{ url_for('account_profile') }}">My profile</a>
       <form method="post" action="{{ url_for('account_signout') }}"><button type="submit" class="linkish">Sign out</button></form>

@@ -25,8 +25,10 @@
     <input type="hidden" name="area" value="{{ p.area or '' }}">
     <label>Where you go most days <input name="to" maxlength="120" autocomplete="off" placeholder="e.g. Connaught Place, or DPS R K Puram" value="{{ p.to or '' }}"></label>
     <label>How you travel <input name="travel" maxlength="120" autocomplete="off" placeholder="e.g. Metro, then an e-rickshaw from the station" value="{{ p.travel or '' }}"></label>
+    {% if grap_on %}
     <label>{{ vehicle_labels.question }} <select name="vehicle"><option value="">{{ vehicle_labels.unknown }}</option>{% for id, v in vehicles.items() %}<option value="{{ id }}" {% if p.vehicle == id %}selected{% endif %}>{{ v.label }}</option>{% endfor %}</select>
       <small class="small">{{ vehicle_labels.help }}</small></label>
+    {% endif %}
   </div>
   <p class="small locate-status" aria-live="polite"></p>
 </fieldset>

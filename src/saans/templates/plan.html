@@ -64,18 +64,20 @@
     </div>
   </div>
   {% set sg = plan.stage %}
+  {% if plan.grap_applies %}
   <div class="stage-box s{{ sg.stage or 0 }}">
-    <span class="eyebrow">{{ 'GRAP stage, Delhi-NCR' if plan.grap_applies else 'GRAP stage' }}</span>
+    <span class="eyebrow">GRAP stage, Delhi-NCR</span>
     <strong>{{ sg.headline.title }}</strong>
     <span class="small">{{ sg.headline.sub }}</span>
     {% if sg.area_aqi is not none %}<span class="small aqi-line">{% if plan.day == 'today' and plan.official %}{{ grap.box_area_cpcb.format(area=plan.area.name, aqi=sg.area_aqi, category=aqi_category(sg.area_aqi), station=plan.official.short, time=plan.official.time) }}{% else %}{{ (grap.box_area if plan.day == 'today' else grap.box_area_tomorrow).format(area=plan.area.name, aqi=sg.area_aqi, category=aqi_category(sg.area_aqi)) }}{% endif %}</span>{% endif %}
     {% if sg.city %}<span class="small">{{ grap.box_city.format(aqi=sg.day_aqi, category=aqi_category(sg.day_aqi)) }}</span>{% endif %}
-    {% if plan.grap_applies %}<span class="src {{ sg.source }}">{{ stage_sources[sg.source].label }}</span>{% endif %}
+    <span class="src {{ sg.source }}">{{ stage_sources[sg.source].label }}</span>
     {% if sg.source != 'estimate' and sg.estimate and sg.estimate != sg.label %}<span class="small">{{ grap.differs.format(estimate=grap.no_stage_word if sg.estimate == 'None' else grap.stage_word.format(label=sg.estimate)) }}</span>{% endif %}
     {% if sg.outlook and sg.outlook.stage > (sg.stage or 0) %}<span class="small outlook">{{ grap.outlook_worse.format(label=sg.outlook.label, aqi=sg.outlook.aqi) }}</span>{% endif %}
-    {% if plan.grap_applies %}<a class="small" href="#grap">What this stage means</a>{% endif %}
+    <a class="small" href="#grap">What this stage means</a>
     {% if sg.source == 'official' %}<a class="small" href="{{ plan_link(stage='') }}">Back to the real stage</a>{% endif %}
   </div>
+  {% endif %}
 </section>
 
 {# Each numbered section is drawn once, then placed in the order of layout.json "sections". #}
@@ -303,7 +305,7 @@
     {% if L.note %}<p class="small">{{ L.note }}</p>{% endif %}
     {% if h.details %}
     <p>{% if h.shift >= 100 %}Your lungs, heart or blood vessels react sooner to polluted air, so your limits are {{ h.shift }} AQI points lower than usual.{% elif h.shift %}You feel polluted air sooner than most, so your limits are {{ h.shift }} AQI points lower than usual.{% else %}Polluted air bothers you, but it does not change your limits.{% endif %}
-      {% if h.charter %}At Stage IV, GRAP's citizen charter names you among the people who should stay indoors as much as possible{% if plan.stage.stage == 4 %}, and Stage IV is in force{% endif %}.{% endif %}</p>
+      {% if h.charter and plan.grap_applies %}At Stage IV, GRAP's citizen charter names you among the people who should stay indoors as much as possible{% if plan.stage.stage == 4 %}, and Stage IV is in force{% endif %}.{% endif %}</p>
     <h3>{{ ht.conditions_title }}</h3>
     <div class="conds">
       {% for it in h.details %}
@@ -317,7 +319,7 @@
     {% elif plan.profile %}
     <p>Nothing in your details adds extra sensitivity, so the plan uses the usual limits for your kind of day. Polluted air still harms healthy people over time, especially at Poor and worse.</p>
     {% elif plan.persona.sensitive %}
-    <p>{{ plan.persona.label }}: this is one of the groups GRAP's citizen charter protects, so your limits are already lower. Add age and health details on the <a href="{{ url_for('index') }}">first page</a> for advice that fits one person.</p>
+    <p>{{ plan.persona.label }}: {{ 'this is one of the groups GRAP\'s citizen charter protects, so ' if plan.grap_applies }}your limits are already lower. Add age and health details on the <a href="{{ url_for('index') }}">first page</a> for advice that fits one person.</p>
     {% else %}
     <p>Add your age and any health conditions on the <a href="{{ url_for('index') }}">first page</a> for advice that fits you.</p>
     {% endif %}

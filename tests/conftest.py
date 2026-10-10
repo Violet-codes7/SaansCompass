@@ -64,6 +64,7 @@ def no_real_network(monkeypatch):
     monkeypatch.setattr(ai, "_key_cache", {"at": -1e9, "value": None})
     monkeypatch.setattr(ai, "_resting", {})
     monkeypatch.setattr(data, "geocode", lambda text, session=None: None)  # no real geocoding in tests
+    monkeypatch.setenv("GRAP_ENABLED", "true")  # the GRAP rules are tested on; test_grap_off covers off
     monkeypatch.setattr(data, "_places", {})
     # No CPCB feed unless a test turns one on.
     from saans import cpcb

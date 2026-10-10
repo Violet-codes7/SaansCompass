@@ -41,6 +41,11 @@ Parameters:
     Default: "on"
     AllowedValues: ["on", "off"]
     Description: Sign-up and sign-in with Amazon Cognito, so people can save their profile.
+  Grap:
+    Type: String
+    Default: "off"
+    AllowedValues: ["on", "off"]
+    Description: Delhi-NCR's GRAP stage and the GRAP rules that apply to each person (Cedar). Off shows the air plan only.
   DefaultArea:
     Type: String
     Default: anand-vihar
@@ -85,6 +90,7 @@ Globals:
     Environment:
       Variables:
         TABLE: !Ref Table
+        GRAP_ENABLED: !Ref Grap
         TOPIC_ARN: !Ref AlertTopic
         OFFICIAL_STAGE_PARAM: !Ref OfficialStageParam
         # Any key in src/saans/config/settings.json can be overridden by an

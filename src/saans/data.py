@@ -76,7 +76,10 @@ def make_place(lat, lon, name, store=None):
 
 def in_grap_region(area):
     """True when GRAP applies to the place: Delhi's areas, and typed places
-    within grap_region_km of Delhi (Delhi-NCR)."""
+    within grap_region_km of Delhi (Delhi-NCR). Never when GRAP is switched
+    off (grap_enabled)."""
+    if not settings.get("grap_enabled"):
+        return False
     if area.id in AREAS:
         return True
     centre = settings.get("weather_place")

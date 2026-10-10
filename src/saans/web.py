@@ -196,13 +196,15 @@ def create_app():
 
     @app.context_processor
     def globals_():
+        grap_on = settings.get("grap_enabled")
         return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN, "ai_enabled": ai.enabled(), "ai_label": ai.label(),
                 "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link,
                 "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge, "band_gauge": gauges.band_gauge,
                 "weather_dials": weather.DIALS, "weather_text": weather.TEXT["explain"], "weather_place": weather.city_place().name, "particles": PARTICLES,
                 "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "glance_text": guide.TEXT, "chat_text": CHAT_TEXT, "layout": LAYOUT, "chat_max_chars": settings.get("chat_max_chars"), "aqi_category": aqi_category, "vehicles": VEHICLES, "vehicle_labels": VEHICLE_LABELS,
                 "hour_labels": ADVICE_TEXT["hour_verdict_labels"], "hour_tags": ADVICE_TEXT["hour_tags"],
-                "source_links": settings.get("source_links"), "cpcb_on": cpcb.enabled() or waqi.enabled(), "route_messages": route.TEXT["messages"],
+                "source_links": [l for l in settings.get("source_links") if grap_on or not l.get("grap")],
+                "grap_on": grap_on, "brand": LAYOUT["brand"]["grap" if grap_on else "plain"], "cpcb_on": cpcb.enabled() or waqi.enabled(), "route_messages": route.TEXT["messages"],
                 "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision")}
 
     @app.errorhandler(data.ForecastUnavailable)

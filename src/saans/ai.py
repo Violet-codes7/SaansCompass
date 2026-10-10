@@ -232,8 +232,10 @@ def converse(system, user, max_tokens, runtime=None):
 
 
 def plan_facts(plan):
-    """The small, decision-level slice of the plan Claude is allowed to use."""
-    return {
+    """The small, decision-level slice of the plan Claude is allowed to use.
+    Without GRAP (switched off, or a place outside Delhi-NCR) there is no
+    stage to tell."""
+    facts = {
         "who": plan["persona"]["label"],
         "area": plan["area"]["name"],
         "date": plan["date"],
@@ -261,6 +263,10 @@ def plan_facts(plan):
         "trips": _trip_facts(plan.get("route")),
         "stale_forecast": plan["is_stale"],
     }
+    if not facts["grap_applies"]:
+        for key in ("grap_stage", "stage_source", "delhi_aqi", "stage_outlook_tomorrow"):
+            del facts[key]
+    return facts
 
 
 def _trip_facts(route):
