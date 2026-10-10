@@ -82,7 +82,7 @@
 
 {# Each numbered section is drawn once, then placed in the order of layout.json "sections". #}
 {% set sec_air %}
-{% with area_name=plan.area.name, air_now=plan.air_now, air_tomorrow=plan.air_tomorrow, is_stale=plan.is_stale, fetched_at=plan.fetched_at %}{% include "_dash.html" %}{% endwith %}
+{% with area_name=air.area, air_now=air.air_now, air_tomorrow=air.air_tomorrow, is_stale=air.is_stale, fetched_at=air.fetched_at, air_change=true %}{% include "_dash.html" %}{% endwith %}
 {% endset %}
 
 {% set sec_trips %}
@@ -470,4 +470,5 @@
 })();
 </script>
 {% if ai_enabled %}{% include "_chat.html" %}{% endif %}
+{% include "_locate.html" %}
 {% endblock %}

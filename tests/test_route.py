@@ -233,3 +233,19 @@ def test_typed_town_and_state_is_found_and_named_with_its_state(client, monkeypa
     assert data.get_area(dict(p.split("=") for p in loc.split("?")[1].split("&"))["area"]).lat == 24.75
     assert client.get("/api/places?q=Aurangabad").get_json() == {"places": ["Aurangabad, Maharashtra", "Aurangabad, Bihar"]}
     assert route._place_name("lalbagh, lucknow, uttar pradesh") == "Lalbagh, Uttar Pradesh"
+
+
+# Section 01: the air where the person is today
+
+def test_air_section_can_be_changed_for_the_day(client, monkeypatch):
+    monkeypatch.setattr(data, "geocode", lambda text, session=None: (26.85, 80.95, "Lucknow"))
+    base = "/plan?persona=commuter&area=ito&route_read=picked&day=today"
+    html = client.get(base).get_data(as_text=True)
+    assert "Air quality at ITO" in html and 'name="air_place"' in html
+    loc = client.get(base + "&air_place=Lucknow").headers["Location"]
+    assert "air=p-" in loc and "air_place" not in loc and "26.8" not in loc
+    html = client.get(loc).get_data(as_text=True)
+    assert "Air quality at Lucknow" in html and "Weather in Lucknow" in html
+    assert "<h1" in html and "ITO · " in html  # the plan itself stays on ITO
+    monkeypatch.setattr(data, "geocode", lambda text, session=None: None)
+    assert "Atlantis" in client.get(client.get(base + "&air_place=Atlantis").headers["Location"]).get_data(as_text=True)

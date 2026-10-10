@@ -3,6 +3,16 @@
 <section class="panel dash" id="air" aria-label="Air and weather now">
   <div class="dash-group">
     <h2>Air quality{% if area_name %} at {{ area_name }}{% endif %}</h2>
+    {% if air_change %}
+    <details class="air-change"{% if air_nf %} open{% endif %}><summary>{{ layout.air_change.summary }}</summary>
+      <form method="get" action="{{ url_for('plan_page') }}">
+        {% for k, vs in request.args.lists() if k not in ('air', 'air_place', 'air_nf') %}{% for v in vs %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endfor %}
+        <label>{{ layout.air_change.label }} <input name="air_place" data-places required maxlength="120" autocomplete="off"></label>
+        <button type="submit" class="ghost">{{ layout.air_change.button }}</button>
+      </form>
+      {% if air_nf %}<p class="note err">{{ route_messages.not_found_typed.format(text=air_nf) }}</p>{% endif %}
+    </details>
+    {% endif %}
     <div class="gauges">
       {% if pt.basis == 'cpcb' %}
       <figure>{{ aqi_gauge(pt.aqi, 'AQI now, CPCB') }}

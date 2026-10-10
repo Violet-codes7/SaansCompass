@@ -178,6 +178,24 @@ def _log_plan(plan):
 _personal_cache = {}
 
 
+def _air_panel(area, store, now):
+    """The air for section 01 at one place (now, this hour, tomorrow), or None
+    when there is no forecast for it."""
+    try:
+        forecast = data.get_forecast(area, store, now=now)
+    except data.ForecastUnavailable:
+        return None
+    tomorrow = data.day_aqi(forecast, now.astimezone(data.IST).date() + timedelta(days=1))
+    official, _ = official_air(area, store, now)
+    return {"area": area.name, "air_now": air_now(forecast, now, official), "is_stale": forecast["is_stale"],
+            "fetched_at": forecast["fetched_at"], "air_tomorrow": {"aqi": tomorrow, "category": aqi_category(tomorrow)}}
+
+
+def _weather_place(area):
+    """A typed town has its own weather; Delhi's areas share the city's."""
+    return area if data.is_place(area) else weather.city_place()
+
+
 def _plan_link(**changes):
     """This plan page's URL with some arguments changed; an empty value removes one."""
     args = request.args.to_dict(flat=False)
@@ -225,20 +243,15 @@ def create_app():
     def index():
         # A live dashboard above the form: the signed-in person's area, else dashboard_area.
         saved = web_accounts.saved_profile()
-        area = data.get_area((saved and saved.get("area")) or settings.get("dashboard_area"))
-        store = get_store()
-        now = data.now_ist()
         try:
-            forecast = data.get_forecast(area, store, now=now)
-        except data.ForecastUnavailable:
-            dash = None
-        else:
-            tomorrow = data.day_aqi(forecast, now.date() + timedelta(days=1))
-            official, _ = official_air(area, store, now)
-            dash = {"area": area.name, "air_now": air_now(forecast, now, official), "is_stale": forecast["is_stale"],
-                    "fetched_at": forecast["fetched_at"],
-                    "air_tomorrow": {"aqi": tomorrow, "category": aqi_category(tomorrow)}}
-        return render_template("index.html", dash=dash, dash_area=area.name, weather=weather.get_weather(weather.city_place(), store))
+            area = data.get_area((saved and saved.get("area")) or settings.get("dashboard_area"))
+        except ValueError:  # a saved typed place that has expired
+            area = data.get_area(settings.get("dashboard_area"))
+        store = get_store()
+        dash = _air_panel(area, store, data.now_ist())
+        wx_place = _weather_place(area)
+        return render_template("index.html", dash=dash, dash_area=area.name, weather=weather.get_weather(wx_place, store),
+                               weather_place=wx_place.name)
 
     @app.get("/plan")
     def plan_page():
@@ -255,6 +268,10 @@ def create_app():
                 changes.update(start=str(reading["start_hour"]), end=str(reading["end_hour"]))
         if not request.args.get("route_read"):
             changes.update(resolve_route(request.args))
+        if request.args.get("air_place"):  # "Change" in section 01: a place for this day's air only
+            text = request.args["air_place"][:settings.get("place_max_chars")]
+            found = _read_route(text, None, None)["area"]
+            changes.update(air=found or "", air_place="", air_nf="" if found else text)
         if changes:
             return redirect(_plan_link(**changes))
         args = _plan_args()
@@ -263,18 +280,36 @@ def create_app():
         except ValueError as exc:
             return render_template("error.html", message=str(exc)), 400
         _log_plan(plan)
-        # A typed town has its own weather; Delhi's areas share the city's.
-        wx_place = data.get_area(plan["area"]["id"])
-        wx_place = wx_place if data.is_place(wx_place) else weather.city_place()
-        wx = weather.get_weather(wx_place, get_store())
+        store = get_store()
+        wx = weather.get_weather(_weather_place(data.get_area(plan["area"]["id"])), store)
         plan["hour_details"] = guide.hour_details(plan, wx)
         saved = _saved()
+        # Section 01 shows the air where the person said they are (the place
+        # changed for this day, else their profile's place), else the plan's.
+        air_area = data.get_area(plan["area"]["id"])
+        for pick in (request.args.get("air"), saved and saved.get("area")):
+            try:
+                air_area = data.get_area(pick) if pick else air_area
+                break
+            except ValueError:
+                continue
+        air = None
+        if air_area.id != plan["area"]["id"]:
+            air = _air_panel(air_area, store, data.now_ist())
+        if air is None:
+            air_area = data.get_area(plan["area"]["id"])
+            air = {"area": plan["area"]["name"], "air_now": plan["air_now"], "air_tomorrow": plan["air_tomorrow"],
+                   "is_stale": plan["is_stale"], "fetched_at": plan["fetched_at"]}
+        air_wx_place = _weather_place(air_area)
+        air_wx = wx if air_area.id == plan["area"]["id"] or air_wx_place.id == _weather_place(
+            data.get_area(plan["area"]["id"])).id else weather.get_weather(air_wx_place, store)
         typed = _typed_trip()
         texts = route_texts(request.args if typed or not saved else saved)
-        return render_template("plan.html", plan=plan, args=args, weather=wx, using_saved=bool(saved),
+        return render_template("plan.html", plan=plan, args=args, weather=air_wx, air=air,
+                               air_nf=request.args.get("air_nf"), using_saved=bool(saved),
                                saved_trip=bool(saved) and not typed,
                                route_texts=texts, route_text=route.TEXT, role=_role(saved),
-                               display_name=saved.get("name") if saved else None, weather_place=wx_place.name)
+                               display_name=saved.get("name") if saved else None, weather_place=air_wx_place.name)
 
     @app.get("/poster")
     def poster():

@@ -31,7 +31,7 @@
 (function () {
   // "Name, State" suggestions while a place is typed, so two places of one name can be told apart.
   var api = "{{ url_for('api_places') }}", min = {{ suggest_min_chars }};
-  document.querySelectorAll("input[name=from], input[name=to]").forEach(function (inp, i) {
+  document.querySelectorAll("input[name=from], input[name=to], input[data-places]").forEach(function (inp, i) {
     if (inp.dataset.places) return;
     inp.dataset.places = "1";
     var list = document.createElement("datalist"), timer;

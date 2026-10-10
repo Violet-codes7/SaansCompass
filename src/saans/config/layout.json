@@ -111,5 +111,10 @@
       "og_description": "The air where you are, hour by hour, with a plan fitted to you.",
       "home_intro": "Tell us a little about you. We check today's and tomorrow's forecast for your area and plan your day around the cleanest air."
     }
+  },
+  "air_change": {
+    "summary": "Change place",
+    "label": "Where are you today?",
+    "button": "Show"
   }
 }
