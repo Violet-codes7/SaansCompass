@@ -71,6 +71,10 @@ def no_real_network(monkeypatch):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(cpcb, "_key_cache", {"at": -1e18, "value": None})
     monkeypatch.setattr(cpcb, "_memo", {"at": -1e18, "value": None})
+    from saans import waqi
+    for name in ("WAQI_TOKEN", "WAQI_TOKEN_PARAM"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(waqi, "_key_cache", {"at": -1e18, "value": None})
 
     class NoBedrock:
         def converse(self, **kw):

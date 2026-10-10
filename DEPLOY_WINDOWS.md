@@ -95,6 +95,18 @@ With this, "AQI now" is CPCB's live reading from the nearest monitoring station,
    It prints a `Version` number when it worked.
 4. Deploy (step 5). Readings refresh every 10 minutes; CPCB itself updates each station once an hour.
 
+## 4d. Backup for CPCB readings: aqicn.org (optional, about 2 minutes)
+When data.gov.in is down (`cpcb feed failed: ConnectionError` in the logs), the site can read the same CPCB station through aqicn.org instead and convert it to India's AQI scale. It uses the station's latest hourly reading, so it can differ a little from the 24-hour figure Sameer shows.
+
+1. Get a free token at https://aqicn.org/data-platform/token (enter your email and name, then confirm the email).
+2. In PowerShell:
+   ```powershell
+   $t = Read-Host "Paste your aqicn token"
+   aws ssm put-parameter --name /saans-compass/waqi-token --type SecureString --value $t --overwrite --region ap-south-1
+   Remove-Variable t
+   ```
+3. Deploy (step 5). The "Now" dial then says "CPCB, ITO station · 19:00 IST · aqicn".
+
 ## 5. Build and deploy
 Keep the `C:\venv312` venv active (sam build uses the Python 3.12 on PATH).
 ```powershell

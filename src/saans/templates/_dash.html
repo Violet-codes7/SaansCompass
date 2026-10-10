@@ -7,7 +7,7 @@
       {% if pt.basis == 'cpcb' %}
       <figure>{{ aqi_gauge(pt.aqi, 'AQI now, CPCB') }}
         <figcaption><b>Now</b><span class="cat-chip {{ (pt.category or 'no data')|lower|replace(' ', '-') }}">{{ pt.category or 'No data' }}</span>
-          <small>CPCB, {{ pt.station }} station · {{ pt.updated }} IST</small></figcaption></figure>
+          <small>CPCB, {{ pt.station }} station · {{ pt.updated }} IST{% if pt.via %} · {{ pt.via }}{% endif %}</small></figcaption></figure>
       {% else %}
       <figure>{{ aqi_gauge(pt.aqi, 'AQI, 24-hour average') }}
         <figcaption><b>{{ 'Last 24 hours' if pt.basis == 'last24' else 'Today' }}</b><span class="cat-chip {{ (pt.category or 'no data')|lower|replace(' ', '-') }}">{{ pt.category or 'No data' }}</span>

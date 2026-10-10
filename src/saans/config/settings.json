@@ -86,6 +86,8 @@
   "cigarette_pm25_ugm3": 22,
   "cpcb_url": "https://api.data.gov.in/resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69",
   "cpcb_filter_field": "state",
+  "waqi_url": "https://api.waqi.info/feed/geo:{lat};{lon}/",
+  "waqi_max_km": 5,
   "cpcb_retries": 1,
   "cpcb_retry_seconds": 1.0,
   "cpcb_filter_value": ["Delhi", "Haryana", "Uttar_Pradesh", "Rajasthan"],

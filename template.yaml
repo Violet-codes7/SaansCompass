@@ -117,6 +117,8 @@ Resources:
           GEMINI_KEY_PARAM: !Sub "/${AWS::StackName}/gemini-api-key"
           # CPCB's live station AQI from data.gov.in; the key is a SecureString you create once.
           DATAGOV_KEY_PARAM: !Sub "/${AWS::StackName}/datagov-api-key"
+          # The same stations through aqicn.org when data.gov.in is down; optional.
+          WAQI_TOKEN_PARAM: !Sub "/${AWS::StackName}/waqi-token"
           BEDROCK_MODEL: !If [HasBedrock, !Ref BedrockModel, ""]
           BEDROCK_REGION: !Ref BedrockRegion
           # The English/Hindi switch uses Amazon Translate, with a built-in
@@ -151,6 +153,8 @@ Resources:
             ParameterName: !Sub "${AWS::StackName}/gemini-api-key"
         - SSMParameterReadPolicy:
             ParameterName: !Sub "${AWS::StackName}/datagov-api-key"
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub "${AWS::StackName}/waqi-token"
         - Statement:
             - Effect: Allow
               Action:
@@ -226,6 +230,7 @@ Resources:
         Variables:
           SITE_URL: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
           DATAGOV_KEY_PARAM: !Sub "/${AWS::StackName}/datagov-api-key"
+          WAQI_TOKEN_PARAM: !Sub "/${AWS::StackName}/waqi-token"
       Events:
         Morning:
           Type: ScheduleV2
@@ -250,6 +255,8 @@ Resources:
             ParameterName: !Sub "${AWS::StackName}/official-stage"
         - SSMParameterReadPolicy:
             ParameterName: !Sub "${AWS::StackName}/datagov-api-key"
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub "${AWS::StackName}/waqi-token"
 
   OfficialStageParam:
     Type: AWS::SSM::Parameter

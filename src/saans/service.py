@@ -3,7 +3,7 @@ forecast -> AQI -> stage -> Cedar rules -> plan and dose."""
 from datetime import timedelta
 
 from . import aqi as aqi_mod
-from . import cpcb, data, guide, route, settings
+from . import cpcb, data, guide, route, settings, waqi
 from .advisor import TEXT as ADVICE
 from .advisor import build_plan
 from .personas import get_persona
@@ -31,14 +31,23 @@ def parse_day(raw, now=None):
 
 
 def official_air(area, store, now):
-    """CPCB's live station reading for an area, and Delhi's CPCB average, or Nones."""
+    """CPCB's live station reading for an area (from data.gov.in, else the
+    same station through aqicn.org), and Delhi's CPCB average, or Nones."""
+    local = now.astimezone(data.IST)
     try:
-        stations = cpcb.get_stations(store, now.astimezone(data.IST))
+        stations = cpcb.get_stations(store, local)
         station = cpcb.nearest(stations, area)
-        return ({**station, "short": cpcb.short_name(station["name"])} if station else None), cpcb.city_air(stations)
+        station = {**station, "short": cpcb.short_name(station["name"])} if station else None
+        city = cpcb.city_air(stations)
     except Exception as exc:  # never let the official feed break a page
         cpcb.log.warning("cpcb reading failed: %s", type(exc).__name__)
-        return None, None
+        station, city = None, None
+    if station is None:  # data.gov.in gave nothing: the same station through aqicn.org
+        try:
+            station = waqi.fresh_and_near(waqi.nearest(area, store), area, local)
+        except Exception as exc:
+            waqi.log.warning("aqicn reading failed: %s", type(exc).__name__)
+    return station, city
 
 
 def air_now(forecast, now, official=None):
@@ -50,7 +59,8 @@ def air_now(forecast, now, official=None):
     particles = data.particles_now(forecast, now)
     if official:
         particles = {**particles, "aqi": official["aqi"], "category": official["category"], "basis": "cpcb",
-                     "dominant": official["dominant"], "station": official["short"], "updated": official["time"]}
+                     "dominant": official["dominant"], "station": official["short"], "updated": official["time"],
+                     "via": official.get("via")}
     return {"aqi": r["aqi"], "category": aqi_mod.category(r["aqi"]), "dominant": r["dominant"],
             "time": local.strftime("%Y-%m-%d %H:00"), "particles": particles}
 
