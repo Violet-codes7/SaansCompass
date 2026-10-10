@@ -17,6 +17,7 @@ QUESTIONS = [
     "What's the best time to go out tomorrow?",
     "Is it okay to go for a run this evening?",
     "What changes for me if Delhi goes to Stage III?",
+    "Explain photosynthesis in simple words.",
 ]
 
 

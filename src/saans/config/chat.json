@@ -2,7 +2,7 @@
   "_about": "Text for the 'Ask Saans' chat on the plan page. The model's instructions are in prompts.json (chat_system).",
   "open": "Ask Saans",
   "title": "Ask about your air",
-  "intro": "Ask anything about your plan: when to go out, what a rule means for you, or how to protect yourself.",
+  "intro": "Ask about your plan, when to go out, what a rule means for you, or anything else.",
   "placeholder": "Type your question…",
   "send": "Send",
   "close": "Close",
