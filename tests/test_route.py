@@ -162,7 +162,8 @@ def all_india(monkeypatch):
     monkeypatch.setenv("PLACE_REGION_KM", "0")
 
 
-def test_site_covers_delhi_ncr_by_default(client, mem_store, monkeypatch):
+def test_site_can_cover_delhi_ncr_only(client, mem_store, monkeypatch):
+    monkeypatch.setenv("PLACE_REGION_KM", "150")
     assert route.place_for(28.4595, 77.0266, "Gurugram").id.startswith("p-")
     assert route.place_for(26.85, 80.95, "Lucknow") is None
     monkeypatch.setattr(data, "_geocode_hits", lambda name, session=None: [])

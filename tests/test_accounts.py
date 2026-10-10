@@ -301,5 +301,5 @@ def test_a_place_that_cannot_be_found_is_said_not_replaced(client, mem_store):
     client.post("/account/profile", data=PROFILE)
     html = client.get("/plan?from=Rohini+Sector+9&area=rohini&to=Atlantis&to_area=&travel=bus&commute=bus&modes=bus",
                       follow_redirects=True).get_data(as_text=True)
-    assert "We could not find &#34;Atlantis&#34; in Delhi-NCR" in html and "Connaught Place" not in html
+    assert "We could not find &#34;Atlantis&#34; in India" in html and "Connaught Place" not in html
     assert "Air quality at Rohini" in html  # no destination today: the start's air
