@@ -17,7 +17,7 @@ def client(mem_store, monkeypatch, live_fetcher):
 
 def test_index_lists_personas_and_areas(client):
     html = client.get("/").get_data(as_text=True)
-    assert "Delivery or gig rider" in html and "Anand Vihar" in html
+    assert 'name="job"' in html and "Anand Vihar" in html and 'name="persona"' not in html
 
 
 @pytest.mark.parametrize("persona", ["school", "rider", "older"])
@@ -47,7 +47,7 @@ def test_api_bad_input_is_400_with_allowed_values(client, query):
 def test_bad_input_page_is_400_and_escaped(client):
     resp = client.get("/plan?persona=<script>alert(1)</script>")
     assert resp.status_code == 400
-    assert "<script>" not in resp.get_data(as_text=True)
+    assert "<script>alert" not in resp.get_data(as_text=True)
 
 
 def test_poster(client):
@@ -117,14 +117,14 @@ def test_stage_links_poster_order_and_favicon(client):
     assert "Try Stage IV" not in hard and "Set by the GRAP rules at Stage IV" in hard
     poster = client.get("/poster?persona=rider&area=ito&stage=IV").get_data(as_text=True)
     assert poster.index("Not allowed") < poster.index("</ul>")
-    assert "No GRAP stage in force" in client.get("/poster?persona=school&area=ito&stage=0").get_data(as_text=True)
+    assert "No GRAP restrictions today" in client.get("/poster?persona=school&area=ito&stage=0").get_data(as_text=True)
     assert client.get("/favicon.ico").status_code == 301
     assert client.get("/static/favicon.svg").status_code == 200
 
 
 def test_profile_page_and_personal_plan(client):
     index = client.get("/").get_data(as_text=True)
-    assert 'name="age"' in index and 'name="cond"' in index and "Outdoor or construction worker" in index
+    assert 'name="age"' in index and 'name="cond"' in index and 'name="job"' in index and "Kidney disease" in index
     assert 'name="stage"' not in index and 'name="day"' not in index
     html = client.get("/plan?persona=school&area=ito&age=9&cond=asthma&commute=bus&stage=IV").get_data(as_text=True)
     assert "child, asthma" in html and "Keep your reliever inhaler" in html

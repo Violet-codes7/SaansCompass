@@ -43,8 +43,29 @@ aws sts get-caller-identity
 It should print your account number. If your CLI says `login` is not a command, update the CLI (step 1.1), or use `aws configure sso`.
 
 ## 4. Turn on Claude in Bedrock (once)
-Console → switch region to **Asia Pacific (Mumbai) ap-south-1** → Amazon Bedrock → Model catalog → **Claude Opus 5.5** → enable / request access. Anthropic asks for a short use-case form the first time ("hackathon demo, air-quality advice app" is fine).
-You can skip this; the site still works, it just hides the "In plain words" box.
+Claude powers three things: reading the "What do you do?" box, the Personal advice panel, and its voice. The site works without it (a keyword match reads the box and the advice panel is hidden), so you can do this before or after deploying. Nothing needs redeploying once access is on.
+
+1. Sign in to https://console.aws.amazon.com as `violet-admin`.
+2. Top right, open the region menu and pick **Asia Pacific (Mumbai) ap-south-1**.
+3. In the search bar type **Bedrock** and open **Amazon Bedrock**.
+4. Left menu: **Model catalog**. Under Providers tick **Anthropic**, then click **Claude Opus 5.5**.
+5. If the page shows **Submit use case details** or **Request model access**, click it and fill in the short Anthropic form once per account:
+   - Company: `Personal / student project`; website: your `SiteUrl` (or the GitHub repo link)
+   - Intended users: `External users`; use case: `Hackathon demo: air-quality advice app for Delhi residents`
+   - Submit. Approval is usually immediate, sometimes up to 15 minutes.
+6. Test it in the console: on the model page click **Open in playground** (or left menu **Playgrounds > Chat**), choose Claude Opus 5.5, type `Hello` and press **Run**. A reply means access works.
+7. Test it on the site: open `<SiteUrl>api/summary?persona=rider&area=ito`. You should see `{"summary": ...}`. On a plan page, **Personal advice** fills in, and the first page's note says "Claude on Amazon Bedrock reads this".
+
+**If step 6 or 7 fails**, look at the reason:
+```powershell
+sam logs -n WebFunction --stack-name saans-compass --start-time "10min ago"
+```
+Find the line that starts `bedrock returned`:
+- **403 "don't have access" / "access denied"**: step 5 is not done or not approved yet. Wait 15 minutes and try again.
+- **Mentions AWS Marketplace, a payment method, or the Free plan**: Free plan accounts cannot buy Marketplace models. Go to **Billing and Cost Management > Upgrade plan** (or the "Upgrade" banner) and switch to the **Paid plan**. Your $100 credit stays. Claude may bill your card rather than the credit: a few cents a day for this demo, since each answer is cached. Set **BudgetEmail** at deploy to get a warning before spend passes $1.
+- **404 / model not found in this region**: run `sam deploy --guided`, press Enter through every question, and change only **Parameter BedrockRegion** to `us-east-1`. (Do not use `--parameter-overrides` for this: it would wipe your saved email settings.)
+
+The Hindi switch uses **Amazon Translate**, which needs no setup. If Hindi only partly converts ("कुछ हिस्से अंग्रेज़ी में ही रहेंगे"), the same `sam logs` command shows `amazon translate failed` with the reason; the built-in Hindi for headings and labels still works.
 
 ## 5. Build and deploy
 Keep the `C:\venv312` venv active (sam build uses the Python 3.12 on PATH).
@@ -85,7 +106,7 @@ Next time you only need `sam build` and `sam deploy` (no `--guided`).
 - **`sam build` fails on a long path:** make sure LongPathsEnabled is on (we did this for pip), or move the project to a short folder like `C:\ac`.
 - **`sam build` says Python 3.12 not found:** activate the venv first (step 2).
 - **Deploy fails with "not authorized":** your AWS user needs admin rights for the deploy.
-- **The summary box says "not available":** Bedrock access (step 4) is not enabled yet.
+- **Personal advice says "not available":** Bedrock access (step 4) is not enabled yet; follow "If step 6 or 7 fails" there.
 - Anything else: paste the last 20 lines of the error in the thread (no keys).
 
 ## Remove everything after the hackathon

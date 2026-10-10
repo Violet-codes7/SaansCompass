@@ -55,7 +55,8 @@ def test_two_personas_on_the_same_air_get_different_plans(mem_store, live_fetche
 def test_rules_come_before_advice_in_the_plan(mem_store, live_fetcher):
     plan = get_plan("school", "ito", stage="IV", now=FIXED_NOW, fetcher=live_fetcher)
     assert plan["stage"] == {"stage": 4, "label": "IV", "source": "official", "day_aqi": plan["stage"]["day_aqi"],
-                             "estimate": plan["stage"]["estimate"]}
+                             "estimate": plan["stage"]["estimate"], "headline": plan["stage"]["headline"]}
+    assert plan["stage"]["headline"]["title"] == "Stage IV: Severe+ air"
     assert len(plan["rules"]) == len(PERSONAS["school"].activities)
     for a in plan["activities"]:
         assert a["rule"]["label"] in ("Allowed", "Not allowed", "Advised against", "Check the official order")

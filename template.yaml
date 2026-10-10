@@ -61,6 +61,9 @@ Resources:
         Variables:
           BEDROCK_MODEL: !Ref BedrockModel
           BEDROCK_REGION: !Ref BedrockRegion
+          # The English/Hindi switch uses Amazon Translate, with a built-in
+          # dictionary when Translate is unavailable.
+          TRANSLATE: "on"
       Events:
         Root:
           Type: HttpApi
@@ -83,6 +86,10 @@ Resources:
               Resource: !Ref AlertTopic
         - SSMParameterReadPolicy:
             ParameterName: !Sub "${AWS::StackName}/official-stage"
+        - Statement:
+            - Effect: Allow
+              Action: translate:TranslateText
+              Resource: "*"
         - !If
           - HasBedrock
           - Statement:

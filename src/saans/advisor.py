@@ -9,7 +9,9 @@ import math
 from collections import Counter
 
 from . import data
+from .aqi import category as aqi_category
 from .dose import total_dose
+from .explain import CATEGORY_IMPACT, POLLUTANTS, rule_text, stage_headline
 from .profile import COMMUTE_TIPS
 from .rules import ADVISED_AGAINST, NOT_ALLOWED, CHECK
 
@@ -47,6 +49,12 @@ def verdict_for(persona, value):
         return "limit"
     return "stay_in"
 
+
+VERDICT_MEANING = {
+    "go": "The air stays within your safe range for normal outdoor activity.",
+    "limit": "Go out if you need to, but keep it short and easy, and mask up.",
+    "stay_in": "The air is above your limit for outdoor activity: keep it indoors where you can.",
+}
 
 SEVERITY = {"go": 0, "limit": 1, "stay_in": 2}
 RULE_ORDER = {NOT_ALLOWED: 0, ADVISED_AGAINST: 1, CHECK: 2}
@@ -198,6 +206,7 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
             "aqi": at_aqi,
             "slug": at["slug"] if at else None,
             "rule": rule.to_dict() if rule else None,
+            "explain": rule_text(a.id, rule.to_dict()) if rule else None,
             "suggestion": suggestion,
             "rank": RULE_ORDER.get(rule.decision, 3) if rule else 4,
         })
@@ -233,6 +242,15 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
     else:
         window_title = f"Best time for: {flex.label} (worst air, get off the road)"
 
+    day_aqi = stage_info.get("day_aqi")
+    day_category = aqi_category(day_aqi) if day_aqi is not None else None
+    stage_info = {**stage_info, "headline": stage_headline(stage_info["stage"], day_aqi, day_category)}
+    known = [r for r in readings if r["aqi"] is not None]
+    worst = max(known, key=lambda r: r["aqi"]) if known else None
+    day_pm25 = [r["pm25"] for r in data.readings_for(forecast, date, list(range(24))) if r.get("pm25") is not None]
+    mean_pm25 = sum(day_pm25) / len(day_pm25) if day_pm25 else None
+    dominant = _dominant(readings)
+
     return {
         "persona": {"id": persona.id, "label": persona.label, "question": persona.question},
         "area": {"id": area.id, "name": area.name},
@@ -243,6 +261,7 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
         "verdict": verdict,
         "verdict_label": persona.verdict_labels[verdict] if verdict else "Not enough data",
         "verdict_note": verdict_note,
+        "verdict_meaning": VERDICT_MEANING.get(verdict),
         "best_window": window,
         "best_window_title": window_title,
         "commute": {"time": f"{commute['hour']:02d}:00", "aqi": commute["aqi"], "category": commute["category"]}
@@ -252,12 +271,26 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
         "hours": readings,
         "dose": total_dose(segments),
         "warnings": warnings,
-        "dominant": _dominant(readings),
+        "dominant": dominant,
+        "air": {
+            "day_aqi": day_aqi,
+            "category": day_category,
+            "impact": CATEGORY_IMPACT.get(day_category),
+            "pollutant": POLLUTANTS.get(dominant),
+            "worst": {"time": f"{worst['hour']:02d}:00", "aqi": worst["aqi"], "category": worst["category"]}
+            if worst else None,
+            # Berkeley Earth's rule of thumb: a day in 22 µg/m³ of PM2.5 is
+            # about one cigarette.
+            "pm25_day": round(mean_pm25) if mean_pm25 is not None else None,
+            "cigarettes": round(mean_pm25 / 22, 1) if mean_pm25 is not None else None,
+        },
         "thresholds": {"go_max": persona.go_max, "limit_max": persona.limit_max},
         "profile": profile.summary() if profile else None,
         "health": {
             "reasons": profile.reasons() if profile else [],
             "tips": profile.tips() if profile else [],
+            **(profile.health() if profile else {"level": "higher" if persona.sensitive else "usual",
+                                                 "shift": 0, "charter": persona.sensitive, "details": []}),
         },
         "actions": _actions(persona, profile, verdict, window, activities, commute, flex),
     }

@@ -6,12 +6,13 @@ from urllib.parse import urlencode
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 
-from . import ai, data
+from . import ai, data, i18n
 from .alerts import subscribe as sns_subscribe
 from .personas import PERSONAS
 from . import gauges, weather
 from .aqi import category as aqi_category
-from .profile import COMMUTE_MODES, CONDITIONS, WORK, parse_profile
+from .explain import STAGES
+from .profile import COMMUTE_MODES, CONDITION_GROUPS, CONDITIONS, WORK, clean_job, guess_work, parse_profile
 from .service import air_now
 from .service import get_plan
 from .stage import ROMAN
@@ -31,9 +32,38 @@ def _sns_client():
     return _sns
 
 
+_work_cache = {}
+
+
+def _read_work(job):
+    """Which persona fits someone's own words: Claude first, then keywords.
+    Cached in this Lambda's memory only, never stored."""
+    hit = _work_cache.get(job)
+    if hit:
+        return hit
+    out = ai.classify_work(job)
+    if out:
+        out = {**out, "how": "ai"}
+    else:
+        guess = guess_work(job)
+        out = {"persona": guess or "commuter", "start_hour": None, "end_hour": None,
+               "how": "keywords" if guess else "default"}
+    if len(_work_cache) >= 256:
+        _work_cache.pop(next(iter(_work_cache)))
+    _work_cache[job] = out
+    return out
+
+
+def _persona_id():
+    if request.args.get("persona"):
+        return request.args["persona"]
+    job = clean_job(request.args.get("job"))
+    return _read_work(job)["persona"] if job else "school"
+
+
 def _plan_args():
     return {
-        "persona_id": request.args.get("persona", "school"),
+        "persona_id": _persona_id(),
         "area_id": request.args.get("area", "anand-vihar"),
         "stage": request.args.get("stage"),
         "day": request.args.get("day") or None,  # empty means pick today/tomorrow from the clock
@@ -78,7 +108,8 @@ def create_app():
     def globals_():
         return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN, "ai_enabled": ai.enabled(),
                 "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link,
-                "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge}
+                "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge,
+                "condition_groups": CONDITION_GROUPS, "stages": STAGES}
 
     @app.after_request
     def security_headers(resp):
@@ -101,6 +132,15 @@ def create_app():
 
     @app.get("/plan")
     def plan_page():
+        job = clean_job(request.args.get("job"))
+        if job and not request.args.get("persona"):
+            # Read the description once, then keep the answer in the link so
+            # the summary, poster and voice all use the same reading.
+            reading = _read_work(job)
+            changes = {"persona": reading["persona"], "read": reading["how"]}
+            if reading["start_hour"] is not None and not (request.args.get("start") or request.args.get("end")):
+                changes.update(start=str(reading["start_hour"]), end=str(reading["end_hour"]))
+            return redirect(_plan_link(**changes))
         args = _plan_args()
         try:
             plan = _build_plan()
@@ -189,6 +229,16 @@ def create_app():
         if not audio:
             return jsonify({"error": "No audio right now."}), 502
         return jsonify({"audio": audio, "text": text})
+
+    @app.post("/api/translate")
+    def api_translate():
+        body = request.get_json(silent=True) or {}
+        texts = body.get("texts")
+        if body.get("to") != "hi" or not isinstance(texts, list) or len(texts) > i18n.MAX_TEXTS \
+                or not all(isinstance(t, str) and len(t) <= i18n.MAX_CHARS for t in texts):
+            return jsonify({"error": f"send to=hi and up to {i18n.MAX_TEXTS} strings"}), 400
+        out, complete = i18n.to_hindi(texts)
+        return jsonify({"texts": out, "complete": complete})
 
     @app.post("/subscribe")
     def subscribe():

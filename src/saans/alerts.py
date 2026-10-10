@@ -41,7 +41,7 @@ def compose(area, run, plans, site_url=None):
     when = "Today" if run == "today" else "Tomorrow"
     stage = first["stage"]
     stage_text = (f"GRAP Stage {stage['label']} ({stage['source']})" if stage["stage"]
-                  else f"No GRAP stage ({stage['source']})")
+                  else f"No GRAP restrictions ({stage['source']})")
     subject = f"Saans Compass: {area.name}, {when.lower()} {first['date']}"
     lines = [
         f"{when} in {area.name} ({first['date']}): {stage_text}.",

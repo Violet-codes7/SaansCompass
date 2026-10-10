@@ -12,23 +12,37 @@
 <section class="summary">
   <div>
     <p class="eyebrow">{{ plan.area.name }} · {{ plan.date }}</p>
-    <h1>{{ plan.profile.work if plan.profile else plan.persona.label }}</h1>
+    {% set own = plan.profile.own_words if plan.profile else None %}
+    <h1 {% if own %}translate="no"{% endif %}>{{ (own[0]|upper ~ own[1:]) if own else (plan.profile.work if plan.profile else plan.persona.label) }}</h1>
     {% if plan.profile %}
     <p class="question">
       {%- set bits = [] -%}
       {%- if plan.profile.age %}{% set _ = bits.append('Age ' ~ plan.profile.age) %}{% endif -%}
-      {%- for c in plan.profile.conditions %}{% set _ = bits.append(c) %}{% endfor -%}
+      {%- for c in plan.health.reasons if c not in ('child', 'over 60') %}{% set _ = bits.append(c) %}{% endfor -%}
       {%- if plan.profile.commute %}{% set _ = bits.append(plan.profile.commute) %}{% endif -%}
       {%- if plan.profile.hours %}{% set _ = bits.append('Outdoors ' ~ plan.profile.hours) %}{% endif -%}
       {%- if plan.profile.has_n95_mask %}{% set _ = bits.append('Has an N95') %}{% endif -%}
       {{ bits|join(' · ') }}</p>
     {% else %}<p class="question">{{ plan.persona.question }}</p>{% endif %}
+    {% if own or request.args.get('read') %}
+    <form class="readas" method="get" action="{{ url_for('plan_page') }}">
+      {% for k, vs in request.args.lists() if k not in ('persona', 'read') %}{% for v in vs %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endfor %}
+      <input type="hidden" name="read" value="picked">
+      <p><span>We read you as:</span> <b>{{ work[plan.persona.id] }}</b>
+        <small class="muted">{{ {'ai': '(read by Claude on Amazon Bedrock)', 'keywords': '(matched from your words)',
+          'default': '(we could not tell from your words, so this is a guess)', 'picked': '(your choice)'}.get(request.args.get('read'), '') }}</small></p>
+      <label>Not right? Pick the closest:
+        <select name="persona">{% for id, label in work.items() %}<option value="{{ id }}" {% if id == plan.persona.id %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <button type="submit" class="ghost">Update</button>
+    </form>
+    {% endif %}
   </div>
-  <div class="stage-box">
+  <div class="stage-box s{{ plan.stage.stage or 0 }}">
     <span class="eyebrow">GRAP stage</span>
-    <strong>{{ 'None' if plan.stage.stage == 0 else plan.stage.label }}</strong>
+    <strong>{{ plan.stage.headline.title }}</strong>
+    <span class="small">{{ plan.stage.headline.sub }}</span>
     <span class="src {{ plan.stage.source }}">{{ {'official': 'Demo: set by you', 'declared': 'Declared by CAQM'}.get(plan.stage.source, 'Estimated from the PM2.5/PM10 forecast') }}</span>
-    {% if plan.stage.day_aqi is not none %}<span class="small">Day AQI about {{ plan.stage.day_aqi }}{% if plan.dominant %} · mostly {{ plan.dominant }}{% endif %}</span>{% endif %}
+    {% if plan.stage.day_aqi is not none %}<span class="small">Day AQI about {{ plan.stage.day_aqi }} ({{ plan.air.category }}){% if plan.dominant %} · mostly {{ plan.dominant }}{% endif %}</span>{% endif %}
     {% if plan.stage.source != 'estimate' and plan.stage.estimate and plan.stage.estimate != plan.stage.label %}<span class="small">The forecast alone suggests {{ 'no stage' if plan.stage.estimate == 'None' else 'Stage ' ~ plan.stage.estimate }}.</span>{% endif %}
     {% if plan.stage.source == 'official' %}<a class="small" href="{{ plan_link(stage='') }}">Back to the real stage</a>{% endif %}
   </div>
@@ -45,15 +59,26 @@
 <div class="two">
   <section class="panel rules">
     <h2>GRAP rules for you</h2>
-    <p class="small">Each answer names the rule behind it, from CAQM's GRAP schedule, Revision 29.09.2026. Anything it does not cover says "Check the official order", never "Allowed".</p>
+    <p class="lead">GRAP, the Graded Response Action Plan, is Delhi-NCR's step-by-step plan for bad air. As the AQI climbs, CAQM declares Stage I to IV, and each stage adds rules on top of the last. Here is what {{ 'today' if plan.day == 'today' else 'tomorrow' }}'s stage means for you.</p>
+    <ol class="ladder" aria-label="GRAP stages">
+      {% for n, st in stages.items() %}
+      <li class="{{ 'here' if plan.stage.stage == n }}{{ ' past' if plan.stage.stage and n < plan.stage.stage }}"><b>Stage {{ roman[n] }}</b> <span>{{ st.name }}</span> <small>{{ st.band }}</small>{% if plan.stage.stage == n %} <em>You are here</em>{% endif %}</li>
+      {% endfor %}
+    </ol>
     {% set no_stage = plan.stage.stage == 0 %}
     <ul class="rule-list">
-      {% for a in plan.activities|selectattr('rule')|sort(attribute='rank') %}{% set r = a.rule %}
+      {% for a in plan.activities|selectattr('rule')|sort(attribute='rank') %}{% set r = a.rule %}{% set x = a.explain %}
       {% if not (no_stage and r.decision == 'check_official_order') %}
       <li class="rule {{ r.decision }}">
         <div class="rule-head"><span>{{ a.label }}</span><b class="pill {{ r.decision }}">{{ r.label }}</b></div>
-        {% if r.policy_id %}<span class="clause">{{ r.clause }}</span> <code class="pid" title="Cedar policy">{{ r.policy_id }}</code>{% endif %}
-        {% if r.note %}<span class="note">{{ r.note }}</span>{% endif %}
+        {% if x.means %}<p><b>What it means for you:</b> {{ x.means }}</p>{% endif %}
+        {% if x.why %}<p class="why"><b>Why:</b> {{ x.why }}</p>{% endif %}
+        {% if x.do %}<p class="do"><b>What to do:</b> {{ x.do }}</p>{% endif %}
+        <details><summary>Official source</summary>
+          {% if r.clause %}<span class="clause">{{ r.clause }}</span> <code class="pid" title="Cedar policy" translate="no">{{ r.policy_id }}</code>{% endif %}
+          {% if r.note %}<span class="note">{{ r.note }}</span>{% endif %}
+          <span class="small">From CAQM's GRAP schedule, Revision 29.09.2026. Anything the schedule does not cover says "Check the official order", never "Allowed".</span>
+        </details>
       </li>
       {% endif %}
       {% endfor %}
@@ -65,13 +90,24 @@
   <section class="panel glance">
   <h2>At a glance</h2>
   <div class="verdict v-{{ plan.verdict or 'none' }}">{{ plan.verdict_label }}</div>
+  {% if plan.verdict_meaning %}<p class="vmeaning">{{ plan.verdict_meaning }}</p>{% endif %}
   {% if plan.verdict_note %}<p class="small vnote">{{ plan.verdict_note }}</p>{% endif %}
-  <dl class="facts cols">
-    {% if plan.best_window %}<div><dt>{{ 'No clean window today: least-bad time' if plan.best_window.clean == false else plan.best_window_title }}</dt><dd>{{ plan.best_window.start }}–{{ plan.best_window.end }} · AQI about {{ plan.best_window.avg_aqi }}</dd></div>{% endif %}
-    {% if plan.commute %}<div><dt>AQI at {{ plan.commute.time }}, when you set out</dt><dd>{{ plan.commute.aqi if plan.commute.aqi is not none else 'No data' }} · {{ plan.commute.category }}</dd></div>{% endif %}
-    <div><dt>Your Go / Limit thresholds</dt><dd>AQI up to {{ plan.thresholds.go_max }} / {{ plan.thresholds.limit_max }}</dd></div>
+  <dl class="facts">
+    {% if plan.air.day_aqi is not none %}<div><dt>Air {{ 'today' if plan.day == 'today' else 'tomorrow' }}</dt>
+      <dd><b>AQI about {{ plan.air.day_aqi }} · {{ plan.air.category }}</b><small>{{ plan.air.impact }} (CPCB)</small></dd></div>{% endif %}
+    {% if plan.air.pollutant %}<div><dt>Main pollutant</dt><dd>{{ plan.air.pollutant }}</dd></div>{% endif %}
+    {% if plan.best_window %}<div><dt>{{ 'No clean window: least-bad time' if plan.best_window.clean == false else plan.best_window_title }}</dt>
+      <dd><b>{{ plan.best_window.start }}–{{ plan.best_window.end }}</b> · AQI about {{ plan.best_window.avg_aqi }}</dd></div>{% endif %}
+    {% if plan.air.worst %}<div><dt>Worst time to be outside</dt><dd><b>{{ plan.air.worst.time }}</b> · AQI about {{ plan.air.worst.aqi }} ({{ plan.air.worst.category }})<small>Stay indoors or off busy roads around then.</small></dd></div>{% endif %}
+    {% if plan.commute %}<div><dt>When you set out ({{ plan.commute.time }})</dt><dd>AQI {{ plan.commute.aqi if plan.commute.aqi is not none else 'not known' }} · {{ plan.commute.category }}</dd></div>{% endif %}
+    {% if plan.day == 'today' and plan.air_tomorrow.aqi is not none and plan.air.day_aqi is not none %}
+    {% set diff = plan.air_tomorrow.aqi - plan.air.day_aqi %}
+    <div><dt>Tomorrow</dt><dd>AQI about {{ plan.air_tomorrow.aqi }} · {{ plan.air_tomorrow.category }}<small>{{ 'Cleaner than today.' if diff <= -20 else ('Worse than today: plan ahead.' if diff >= 20 else 'About the same as today.') }}</small></dd></div>{% endif %}
+    <div><dt>Your limits</dt><dd>Fine up to AQI {{ plan.thresholds.go_max }}, keep it short up to {{ plan.thresholds.limit_max }}, stay in above that.
+      <small>{% if plan.health.shift %}{{ plan.health.shift }} points lower than usual because of your health or age.{% else %}The usual levels for your kind of day.{% endif %} Our estimate, not an official limit.</small></dd></div>
     <div><dt>Rough breath dose (estimate)</dt>
-      <dd>{% if plan.dose.ratio is not none %}{{ plan.dose.ug }} µg PM2.5 over {{ plan.dose.minutes }} min, about <b>{{ plan.dose.ratio }}×</b> what you would breathe sitting still in clean air (WHO level){% else %}Not enough data{% endif %}</dd></div>
+      <dd>{% if plan.dose.ratio is not none %}<b>{{ plan.dose.ratio }}×</b> clean air<small>{{ plan.dose.ug }} µg of PM2.5 over {{ plan.dose.minutes }} min outdoors, against sitting still in air at the WHO limit.</small>{% else %}Not enough data{% endif %}</dd></div>
+    {% if plan.air.cigarettes %}<div><dt>Like smoking</dt><dd><b>about {{ plan.air.cigarettes }} cigarette{{ '' if plan.air.cigarettes == 1 else 's' }}</b> if you breathed this air all day<small>Average PM2.5 {{ plan.air.pm25_day }} µg/m³. Berkeley Earth's rule of thumb: a day at 22 µg/m³ is about one cigarette.</small></dd></div>{% endif %}
   </dl>
 </section>
 
@@ -85,14 +121,38 @@
 
   <section class="panel health">
     <h2>Your health</h2>
-    {% if plan.health.reasons %}
-    <p>You are more sensitive to polluted air because of: <b>{{ plan.health.reasons|join(', ') }}</b>. Your thresholds are set lower, and at Stage IV GRAP's citizen charter advises you to stay indoors as much as possible.</p>
-    <ul class="tips">{% for t in plan.health.tips %}<li>{{ t }}</li>{% endfor %}</ul>
+    {% set h = plan.health %}
+    <p class="level level-{{ h.level }}">Sensitivity to polluted air: <b>{{ {'usual': 'Usual sensitivity', 'higher': 'Higher', 'highest': 'Highest'}[h.level] }}</b></p>
+    {% if h.details %}
+    <p>{% if h.shift >= 100 %}Your lungs, heart or blood vessels react sooner to polluted air, so your limits are {{ h.shift }} AQI points lower than usual.{% elif h.shift %}You feel polluted air sooner than most, so your limits are {{ h.shift }} AQI points lower than usual.{% else %}Polluted air bothers you, but it does not change your limits.{% endif %}
+      {% if h.charter %}At Stage IV, GRAP's citizen charter names you among the people who should stay indoors as much as possible{% if plan.stage.stage == 4 %}, and Stage IV is in force{% endif %}.{% endif %}</p>
+    <div class="conds">
+      {% for it in h.details %}
+      <details class="cond" {% if loop.index <= 2 %}open{% endif %}><summary>{{ it.title }}</summary>
+        <p><b>Why air matters:</b> {{ it.why }}</p>
+        <p><b>Do this:</b> {{ it.tip }}</p>
+        <p><b>Watch for:</b> {{ it.watch }}</p>
+      </details>
+      {% endfor %}
+    </div>
     {% elif plan.profile %}
-    <p>Nothing in your details adds extra sensitivity. The plan uses the usual thresholds for your work.</p>
+    <p>Nothing in your details adds extra sensitivity, so the plan uses the usual limits for your kind of day. Polluted air still harms healthy people over time, especially at Poor and worse.</p>
+    {% elif plan.persona.id in ('school', 'older') %}
+    <p>Children and older adults are among the groups GRAP's citizen charter protects, so this plan already uses lower limits. Add age and health details on the <a href="{{ url_for('index') }}">first page</a> for advice that fits one person.</p>
     {% else %}
     <p>Add your age and any health conditions on the <a href="{{ url_for('index') }}">first page</a> for advice that fits you.</p>
     {% endif %}
+
+    <h3>Protect yourself every day</h3>
+    <ul class="tips">
+      <li>{% if plan.profile and plan.profile.has_n95_mask %}Wear your N95 outdoors on Poor or worse days. It only works if it seals: pinch the nose clip and check for gaps.{% else %}A well-fitted N95 or FFP2 mask filters most fine particles; cloth and surgical masks do little.{% endif %}</li>
+      <li>Keep windows shut at the worst hours and air rooms out at the cleanest one.</li>
+      <li>Indoors, avoid incense, mosquito coils, frying smoke and sweeping dry dust; wet-mop instead. A HEPA air purifier sized for the room helps most in the bedroom.</li>
+      <li>Drink water and keep your usual medicines with you.</li>
+    </ul>
+    <h3>Get help now if</h3>
+    <p class="small">You have severe breathlessness, chest pain or pressure, blue lips, confusion or fainting. Call <b>112</b>. This page is general advice, not a diagnosis.</p>
+
     <h3>Your activities</h3>
     <ul class="acts">
       {% for a in plan.activities if a.time %}
@@ -108,23 +168,24 @@
 <section class="panel ai" id="ai" data-query="{{ request.query_string.decode() }}">
   <div class="ai-head">
     <h2>Personal advice</h2>
-    <div class="ai-tools">
-      <button type="button" class="ghost" data-lang="en" aria-pressed="true">English</button>
-      <button type="button" class="ghost" data-lang="hi" aria-pressed="false">हिंदी</button>
-      <button type="button" id="ai-listen">Listen</button>
-    </div>
+    <div class="ai-tools"><button type="button" id="ai-listen">Listen</button></div>
   </div>
-  <div id="ai-text" class="ai-text" aria-live="polite">Writing your advice…</div>
+  <div id="ai-text" class="ai-text" aria-live="polite" translate="no"></div>
   <audio id="ai-audio" controls hidden></audio>
-  <p class="small">Written by Claude on Amazon Bedrock from your plan and details. It explains and personalises; it never changes a GRAP rule. General advice, not a diagnosis.</p>
+  <p class="small">Written by Claude on Amazon Bedrock from your plan and details, in the language you pick at the top of the page. It explains and personalises; it never changes a GRAP rule. General advice, not a diagnosis.</p>
 </section>
 <script>
 (function () {
   var box = document.getElementById("ai"), text = document.getElementById("ai-text");
   var audio = document.getElementById("ai-audio"), listen = document.getElementById("ai-listen");
-  var lang = "en", base = box.dataset.query;
-  function url(path) { return path + "?" + base + (base ? "&" : "") + "lang=" + lang; }
-  function say(msg) { text.textContent = msg; }
+  var base = box.dataset.query;
+  var MSG = {
+    en: {wait: "Writing your advice…", none: "Personal advice is not available right now. Your plan above is complete without it.", voice: "Voice is not available right now."},
+    hi: {wait: "आपकी सलाह लिखी जा रही है…", none: "निजी सलाह अभी उपलब्ध नहीं है। ऊपर दी गई योजना इसके बिना भी पूरी है।", voice: "आवाज़ अभी उपलब्ध नहीं है।"}
+  };
+  function lang() { return document.documentElement.lang === "hi" ? "hi" : "en"; }
+  function url(path) { return path + "?" + base + (base ? "&" : "") + "lang=" + lang(); }
+  function say(key) { text.textContent = MSG[lang()][key]; }
   function show(summary) {
     text.textContent = "";
     summary.split(/\n+/).forEach(function (line) {
@@ -138,26 +199,20 @@
     });
   }
   function load() {
-    say("Writing your advice…");
+    say("wait");
     audio.hidden = true;
     fetch(url("{{ url_for('api_summary') }}")).then(function (r) { return r.json(); }).then(function (d) {
-      if (d.summary) show(d.summary); else say("Personal advice is not available right now. Your plan above is complete without it.");
-    }).catch(function () { say("Personal advice is not available right now."); });
+      if (d.summary) show(d.summary); else say("none");
+    }).catch(function () { say("none"); });
   }
-  box.querySelectorAll("[data-lang]").forEach(function (b) {
-    b.addEventListener("click", function () {
-      lang = b.dataset.lang;
-      box.querySelectorAll("[data-lang]").forEach(function (x) { x.setAttribute("aria-pressed", x === b); });
-      load();
-    });
-  });
   listen.addEventListener("click", function () {
     listen.disabled = true;
     fetch(url("{{ url_for('api_speak') }}")).then(function (r) { return r.json(); }).then(function (d) {
       if (d.audio) { audio.src = d.audio; audio.hidden = false; audio.play(); }
-      else { say("Voice is not available right now."); }
-    }).catch(function () { say("Voice is not available right now."); }).finally(function () { listen.disabled = false; });
+      else { say("voice"); }
+    }).catch(function () { say("voice"); }).finally(function () { listen.disabled = false; });
   });
+  document.addEventListener("saans:lang", load);
   load();
 })();
 </script>

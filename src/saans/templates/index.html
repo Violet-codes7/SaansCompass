@@ -8,14 +8,13 @@
 <form class="picker profile" action="{{ url_for('plan_page') }}" method="get">
   <fieldset>
     <legend>What do you do most days?</legend>
-    <div class="grid-choices">
-    {% for id, label in work.items() %}
-    <label class="choice">
-      <input type="radio" name="persona" value="{{ id }}" {% if loop.first %}checked{% endif %}>
-      <span><b>{{ label }}</b><small>{{ personas[id].question }}</small></span>
-    </label>
-    {% endfor %}
-    </div>
+    <label class="job">Tell us in your own words
+      <textarea name="job" rows="2" maxlength="160" required placeholder="For example: I deliver food on a scooter in Noida, 11am to 10pm"></textarea></label>
+    <p class="examples small"><span>Try:</span>
+      {% for ex in ["Class 4 student, I walk to school", "Mason on a building site in Rohini", "Software engineer, I drive to Gurugram",
+                    "Retired teacher, I walk in the park every morning", "I run 10 km before work", "Swiggy delivery rider at night"] %}
+      <button type="button" class="chip" data-example="{{ ex }}">{{ ex }}</button>{% endfor %}</p>
+    <p class="small">{% if ai_enabled %}Claude on Amazon Bedrock reads this to work out how much outdoor air your day involves.{% else %}We match your words to the closest kind of day.{% endif %} You can correct it on the next page.</p>
   </fieldset>
 
   <fieldset>
@@ -30,9 +29,11 @@
       </label>
     </div>
     <p class="small">Health conditions (tick any that apply)</p>
-    <div class="checks">
-      {% for id, label in conditions.items() %}
-      <label class="check"><input type="checkbox" name="cond" value="{{ id }}"> {{ label }}</label>
+    <div class="cond-groups">
+      {% for group, ids in condition_groups.items() %}
+      <div class="cond-group"><p class="group">{{ group }}</p>
+        {% for id in ids %}<label class="check"><input type="checkbox" name="cond" value="{{ id }}"> {{ conditions[id] }}</label>{% endfor %}
+      </div>
       {% endfor %}
     </div>
   </fieldset>
@@ -53,4 +54,9 @@
   <a href="{{ url_for('plan_page', persona='school', area='anand-vihar', stage='IV', age=9, cond='asthma', commute='bus') }}">Child with asthma, Stage IV</a>
   <a href="{{ url_for('plan_page', persona='worker', area='anand-vihar', stage='III', age=38, commute='cycle') }}">Construction worker, Stage III</a>
   <a href="{{ url_for('plan_page', persona='commuter', area='ito', stage='III', age=29, commute='car') }}">Office commuter by car, Stage III</a></p>
+<script>
+document.querySelectorAll("[data-example]").forEach(function (b) {
+  b.addEventListener("click", function () { var t = document.querySelector("textarea[name=job]"); t.value = b.dataset.example; t.focus(); });
+});
+</script>
 {% endblock %}
