@@ -54,8 +54,10 @@ def test_bad_profile_input(bad):
         parse_profile(args(**bad), "rider")
 
 
-def test_auto_day_switches_to_tomorrow_in_the_evening():
+def test_auto_day_opens_on_today_unless_an_evening_switch_is_set(monkeypatch):
     assert parse_day(None, FIXED_NOW) == "today"
+    assert parse_day("", FIXED_NOW.replace(hour=23)) == "today"
+    monkeypatch.setenv("TOMORROW_FROM_HOUR", "20")
     assert parse_day("", FIXED_NOW.replace(hour=21)) == "tomorrow"
     assert parse_day("today", FIXED_NOW.replace(hour=21)) == "today"
 

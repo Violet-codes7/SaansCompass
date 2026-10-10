@@ -16,7 +16,7 @@
   "advice_cache_hours": 6,
   "declared_stage_cache_seconds": 300,
   "ai_key_cache_seconds": 300,
-  "tomorrow_from_hour": 20,
+  "tomorrow_from_hour": null,
   "default_area": "anand-vihar",
   "dashboard_area": "ito",
   "default_persona": "school",

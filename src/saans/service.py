@@ -16,8 +16,11 @@ DAYS = ("today", "tomorrow")
 
 
 def auto_day(now):
-    """Today, or tomorrow from tomorrow_from_hour (IST) onwards."""
-    return "tomorrow" if now.astimezone(data.IST).hour >= settings.get("tomorrow_from_hour") else "today"
+    """Today, or tomorrow from tomorrow_from_hour (IST) onwards when that is set."""
+    hour = settings.get("tomorrow_from_hour")
+    if hour is None:
+        return "today"
+    return "tomorrow" if now.astimezone(data.IST).hour >= int(hour) else "today"
 
 
 def parse_day(raw, now=None):
