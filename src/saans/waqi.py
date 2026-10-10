@@ -97,7 +97,10 @@ def nearest(area, store=None, session=None):
     try:
         resp = (session or requests).get(url, params={"token": token}, timeout=settings.get("cpcb_timeout_seconds"))
         resp.raise_for_status()
-        reading = reading_from_feed(resp.json())
+        body = resp.json()
+        reading = reading_from_feed(body)
+        if reading is None:
+            log.warning("aqicn gave no reading: %s", str(body.get("status"))[:20] if isinstance(body, dict) else "?")
     except Exception as exc:  # network, HTTP or JSON error; the URL carries the token, so log the type only
         log.warning("aqicn feed failed: %s", type(exc).__name__)
         return None
@@ -117,13 +120,16 @@ def fresh_and_near(reading, area, now):
         return None
     km = _km(area.lat, area.lon, reading["lat"], reading["lon"])
     if km > max_km(area, "waqi_max_km"):
+        log.warning("aqicn reading not used: nearest station %.1f km away", km)
         return None
     try:
         t = datetime.strptime(str(reading.get("updated")), "%Y-%m-%d %H:%M:%S")
     except ValueError:
+        log.warning("aqicn reading not used: unreadable time")
         return None
     age = (now.replace(tzinfo=None) - t).total_seconds()
     if not 0 <= age <= settings.get("cpcb_stale_hours") * 3600:
+        log.warning("aqicn reading not used: %.1f hours old", age / 3600)
         return None
     return {**reading, "short": short_name(reading["name"]), "time": t.strftime("%H:%M"), "km": round(km, 1),
             "via": "aqicn"}
