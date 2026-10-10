@@ -1,0 +1,45 @@
+{# The profile questions, shared by the home page form and the saved profile.
+   `p` holds current values (empty on the home page). #}
+{% set p = p or {} %}
+<fieldset>
+  <legend>What do you do most days?</legend>
+  <label class="job">Tell us in your own words
+    <textarea name="job" rows="2" maxlength="160" required placeholder="For example: I deliver food on a scooter in Noida, 11am to 10pm">{{ p.job or '' }}</textarea></label>
+  {% if show_examples %}
+  <p class="examples small"><span>Try:</span>
+    {% for ex in ["Class 4 student, I walk to school", "Mason on a building site in Rohini", "Software engineer, I drive to Gurugram",
+                  "Retired teacher, I walk in the park every morning", "I run 10 km before work", "Swiggy delivery rider at night"] %}
+    <button type="button" class="chip" data-example="{{ ex }}">{{ ex }}</button>{% endfor %}</p>
+  {% endif %}
+  <p class="small">{% if ai_enabled %}{{ ai_label }} reads this to work out how much outdoor air your day involves.{% else %}We match your words to the closest kind of day.{% endif %}{% if show_examples %} You can correct it on the next page.{% endif %}</p>
+</fieldset>
+
+<fieldset>
+  <legend>About you</legend>
+  <div class="row">
+    <label>Age <input type="number" name="age" min="1" max="110" inputmode="numeric" placeholder="e.g. 34" value="{{ p.age or '' }}"></label>
+    <label>Area
+      <select name="area">{% for a in areas.values() %}<option value="{{ a.id }}" {% if a.id == p.area %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select>
+    </label>
+    <label>How you travel
+      <select name="commute">{% for id, label in commute_modes.items() %}<option value="{{ id }}" {% if id == (p.commute or 'metro') %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </label>
+  </div>
+  <p class="small">Health conditions (tick any that apply)</p>
+  <div class="cond-groups">
+    {% for group, ids in condition_groups.items() %}
+    <div class="cond-group"><p class="group">{{ group }}</p>
+      {% for id in ids %}<label class="check"><input type="checkbox" name="cond" value="{{ id }}" {% if id in (p.cond or []) %}checked{% endif %}> {{ conditions[id] }}</label>{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Your outdoor hours <small class="small">(leave as "Usual" for the normal hours for your work)</small></legend>
+  <div class="row">
+    <label>From <select name="start"><option value="">Usual</option>{% for h in range(24) %}<option value="{{ h }}" {% if p.start is not none and p.start|string == h|string %}selected{% endif %}>{{ '%02d'|format(h) }}:00</option>{% endfor %}</select></label>
+    <label>To <select name="end"><option value="">Usual</option>{% for h in range(24) %}<option value="{{ h }}" {% if p.end is not none and p.end|string == h|string %}selected{% endif %}>{{ '%02d'|format(h) }}:00</option>{% endfor %}</select></label>
+    <label class="check"><input type="checkbox" name="mask" value="1" {% if p.mask %}checked{% endif %}> I have an N95 mask</label>
+  </div>
+</fieldset>

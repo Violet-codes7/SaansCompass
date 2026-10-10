@@ -5,6 +5,7 @@ One DynamoDB table with a generic pk/sk holds both item types:
     pk AREA#<area>  sk FCST#<date>         hours (JSON), fetched_at, ttl
     pk AREA#<area>  sk FCST#LAST           the last real forecast, kept longer
     pk AREA#<area>  sk LAST#today|tomorrow verdict_hash, summary, sent_at
+    pk USER#<sub>   sk PROFILE             a signed-in person's saved profile (JSON)
 
 When the TABLE environment variable is not set (local runs and tests without
 moto), an in-memory store with the same interface is used.
@@ -87,6 +88,19 @@ class MemoryStore:
             "sent_at": sent_at,
         })
 
+    # saved profiles of signed-in people (Cognito sub); kept until they delete them
+    def get_user_profile(self, sub):
+        item = self._get(f"USER#{sub}", "PROFILE")
+        return json.loads(item["profile"]) if item else None
+
+    def put_user_profile(self, sub, profile, now=None):
+        now = now if now is not None else time.time()
+        self._put({"pk": f"USER#{sub}", "sk": "PROFILE", "profile": json.dumps(profile, ensure_ascii=False),
+                   "updated_at": int(now)})
+
+    def delete_user_profile(self, sub):
+        self.items.pop((f"USER#{sub}", "PROFILE"), None)
+
 
 class DynamoStore(MemoryStore):
     def __init__(self, table_name, resource=None):
@@ -100,6 +114,9 @@ class DynamoStore(MemoryStore):
 
     def _put(self, item):
         self.table.put_item(Item=item)
+
+    def delete_user_profile(self, sub):
+        self.table.delete_item(Key={"pk": f"USER#{sub}", "sk": "PROFILE"})
 
 
 _store = None

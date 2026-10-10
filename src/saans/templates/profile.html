@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}My profile · Saans Compass{% endblock %}
+{% block main %}
+<section class="hero">
+  <h1>My profile</h1>
+  <p>Saved to your account, so your plan, poster and advice open with it every time. Change it whenever your day changes.</p>
+</section>
+{% if error %}<p class="note err" role="alert">{{ error }}</p>{% endif %}
+<form class="picker profile" method="post" action="{{ url_for('account_profile') }}">
+  <fieldset>
+    <legend>Your name</legend>
+    <label>Name <input name="name" maxlength="60" autocomplete="name" value="{{ p.name or user.name }}"></label>
+    <p class="small">Shown on your plan and your daily poster.</p>
+  </fieldset>
+
+  {% include "_profile_fields.html" %}
+
+  <fieldset>
+    <legend>Kind of day</legend>
+    <label>Closest match
+      <select name="persona">
+        <option value="" {% if p.read != 'picked' %}selected{% endif %}>Work it out from my words{% if p.persona and p.read != 'picked' %} (now: {{ work[p.persona] }}){% endif %}</option>
+        {% for id, label in work.items() %}<option value="{{ id }}" {% if p.read == 'picked' and id == p.persona %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>About me <small class="small">(optional)</small></legend>
+    <label class="about">Anything that shapes your day: routine, family, hobbies, what worries you about the air
+      <textarea name="about" rows="4" maxlength="600" placeholder="For example: I walk my 2 kids to school at 7:30 and play cricket on Sundays. My father lives with us and has COPD.">{{ p.about or '' }}</textarea></label>
+    <p class="small">{% if ai_enabled %}{{ ai_label }} reads this to make your advice fit your life.{% else %}Used to make your advice fit your life when AI advice is on.{% endif %} It is never shown on the poster or put in a link.</p>
+  </fieldset>
+
+  <button type="submit">Save my profile</button>
+  <p class="small">Your profile is stored in this site's AWS database under your account only, and is not logged or shared. Delete it any time below.</p>
+</form>
+
+<section class="panel danger">
+  <h2>Delete my account</h2>
+  <p class="small">Removes your saved profile and your sign-in. This cannot be undone.</p>
+  <form method="post" action="{{ url_for('account_delete') }}" onsubmit="return confirm('Delete your account and saved profile?');">
+    <button type="submit" class="danger">Delete my account</button>
+  </form>
+</section>
+{% endblock %}

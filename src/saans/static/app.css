@@ -123,7 +123,7 @@ header.site .lang-status{flex-basis:100%;text-align:right;margin:0}
 header.site .lang-status:empty{display:none}
 
 /* What do you do */
-.job textarea{font:inherit;width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);resize:vertical}
+.job textarea,.about textarea{font:inherit;width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);resize:vertical}
 .examples{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0}
 .chip{background:transparent;color:var(--accent);border:1px solid var(--line);border-radius:99px;padding:3px 10px;font-size:13px}
 .cond-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px 18px}
@@ -212,3 +212,17 @@ header.site .lang-status:empty{display:none}
 .note-list li span{color:var(--muted);font-size:13px}
 .note-list li.note-stale,.note-list li.note-stage_official{background:#fff1d6}
 @media (prefers-color-scheme:dark){.note-list li.note-stale,.note-list li.note-stage_official{background:#3a2d17}}
+/* accounts */
+header.site nav.account{display:flex;gap:10px;align-items:baseline;font-size:14px}
+header.site nav.account form{margin:0}
+button.linkish{background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;font:inherit;cursor:pointer}
+.account-box{max-width:460px;margin:24px auto}
+form.stack{display:grid;gap:12px;margin:12px 0}
+.note{padding:8px 12px;border-radius:8px;margin:8px 0;font-size:14px}
+.note.ok{background:var(--ok-bg);color:var(--ok)}
+.note.err{background:var(--no-bg);color:var(--no)}
+.welcome p{margin:4px 0}
+.welcome .button{margin:4px 6px 0 0}
+.panel.danger{border:1px solid var(--no-bg);margin-top:16px}
+button.danger{background:var(--no);border-color:var(--no)}
+.readas.saved-note{display:block;margin-top:10px}

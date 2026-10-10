@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 
-from . import ai, data, i18n, settings
+from . import ai, data, i18n, settings, web_accounts
 from .alerts import subscribe as sns_subscribe
 from .personas import PERSONAS
 from . import gauges, weather
@@ -55,27 +55,42 @@ def _read_work(job):
     return out
 
 
+def _saved():
+    """The signed-in person's saved profile when this link names no one else."""
+    if request.args.get("persona") or request.args.get("job"):
+        return None
+    return web_accounts.saved_profile()
+
+
 def _persona_id():
     if request.args.get("persona"):
         return request.args["persona"]
     job = clean_job(request.args.get("job"))
-    return _read_work(job)["persona"] if job else settings.get("default_persona")
+    if job:
+        return _read_work(job)["persona"]
+    saved = _saved()
+    return saved["persona"] if saved else settings.get("default_persona")
 
 
 def _plan_args():
+    saved = _saved()
     return {
         "persona_id": _persona_id(),
-        "area_id": request.args.get("area") or settings.get("default_area"),
+        "area_id": request.args.get("area") or (saved and saved.get("area")) or settings.get("default_area"),
         "stage": request.args.get("stage"),
         "day": request.args.get("day") or None,  # empty means pick today/tomorrow from the clock
     }
 
 
 def _build_plan():
-    """The plan for this request, personalised when profile fields are present.
-    The profile is used for this request only: never stored or logged."""
+    """The plan for this request, personalised from the link's profile fields
+    or, for a signed-in person, their saved profile. Never logged."""
     args = _plan_args()
-    profile = parse_profile(request.args, args["persona_id"])
+    saved = _saved()
+    if saved:
+        profile = web_accounts.profile_from_saved(saved, args["persona_id"])
+    else:
+        profile = parse_profile(request.args, args["persona_id"])
     return get_plan(**args, profile=profile)
 
 
@@ -104,6 +119,7 @@ def _plan_link(**changes):
 def create_app():
     app = Flask(__name__)
     app.json.sort_keys = False
+    web_accounts.register(app, _read_work)
 
     @app.context_processor
     def globals_():
@@ -130,8 +146,9 @@ def create_app():
 
     @app.get("/")
     def index():
-        # A live dashboard for one area (dashboard_area) above the form.
-        area = data.get_area(settings.get("dashboard_area"))
+        # A live dashboard above the form: the signed-in person's area, else dashboard_area.
+        saved = web_accounts.saved_profile()
+        area = data.get_area((saved and saved.get("area")) or settings.get("dashboard_area"))
         store = get_store()
         now = data.now_ist()
         try:
@@ -163,7 +180,7 @@ def create_app():
             return render_template("error.html", message=str(exc)), 400
         _log_plan(plan)
         wx = weather.get_weather(data.get_area(plan["area"]["id"]), get_store())
-        return render_template("plan.html", plan=plan, args=args, weather=wx)
+        return render_template("plan.html", plan=plan, args=args, weather=wx, using_saved=bool(_saved()))
 
     @app.get("/poster")
     def poster():
@@ -177,7 +194,9 @@ def create_app():
         public = request.url_root.rstrip("/") + url_for("plan_page") + "?" + urlencode(
             {"persona": plan["persona"]["id"], "area": plan["area"]["id"]})
         day = datetime.fromisoformat(plan["date"])
+        saved = _saved()
         return render_template("poster.html", plan=plan, args=args, public_url=public,
+                               name=saved.get("name") if saved else None,
                                qr=gauges.qr_code(public, "QR code for the live plan"),
                                date_label=day.strftime("%A %d %B %Y"))
 

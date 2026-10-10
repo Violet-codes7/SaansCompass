@@ -33,6 +33,11 @@ Parameters:
     Type: String
     Default: ap-south-1
     Description: Region to call Bedrock in.
+  Accounts:
+    Type: String
+    Default: "on"
+    AllowedValues: ["on", "off"]
+    Description: Sign-up and sign-in with Amazon Cognito, so people can save their profile.
   DefaultArea:
     Type: String
     Default: anand-vihar
@@ -59,6 +64,7 @@ Parameters:
     Description: Hour (India time) of the alert check for tomorrow.
 
 Conditions:
+  HasAccounts: !Equals [!Ref Accounts, "on"]
   HasBudgetEmail: !Not [!Equals [!Ref BudgetEmail, ""]]
   HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
   HasBedrock: !And
@@ -111,6 +117,8 @@ Resources:
           # The English/Hindi switch uses Amazon Translate, with a built-in
           # dictionary when Translate is unavailable.
           TRANSLATE: "on"
+          # Cognito app client for sign-in; empty turns accounts off.
+          USER_POOL_CLIENT_ID: !If [HasAccounts, !Ref UserPoolClient, ""]
       Events:
         Root:
           Type: HttpApi
@@ -149,6 +157,53 @@ Resources:
                 Action: bedrock-mantle:CreateInference
                 Resource: "*"
           - !Ref AWS::NoValue
+
+  # People sign up with their email; Cognito checks the address with a code
+  # and keeps the password. The web app calls it with its public app client,
+  # so the Lambda needs no extra permissions.
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Condition: HasAccounts
+    Properties:
+      UserPoolName: !Sub "${AWS::StackName}-users"
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      Schema:
+        - Name: name
+          AttributeDataType: String
+          Mutable: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireUppercase: false
+          RequireSymbols: false
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE
+        EmailSubject: Your Saans Compass code
+        EmailMessage: "Your Saans Compass code is {####}. Enter it on the site to confirm your email."
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Condition: HasAccounts
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: web
+      GenerateSecret: false
+      ExplicitAuthFlows: [ALLOW_USER_PASSWORD_AUTH, ALLOW_REFRESH_TOKEN_AUTH]
+      PreventUserExistenceErrors: ENABLED
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
 
   AlertFunction:
     Type: AWS::Serverless::Function
@@ -311,5 +366,9 @@ Outputs:
   OfficialStageParameter:
     Description: Set the declared GRAP stage with aws ssm put-parameter --overwrite --name <this> --value III
     Value: !Ref OfficialStageParam
+  UserPoolId:
+    Condition: HasAccounts
+    Description: Cognito user pool holding the sign-ins
+    Value: !Ref UserPool
   DashboardUrl:
     Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${Dashboard}"

@@ -1,0 +1,35 @@
+{
+  "_about": "Messages for sign-up and sign-in. Cognito error codes map to the text people see.",
+  "errors": {
+    "UsernameExistsException": "An account with this email already exists. Sign in instead.",
+    "InvalidPasswordException": "Use at least 8 characters, with a lowercase letter and a number.",
+    "InvalidParameterException": "Check the email and password and try again.",
+    "CodeMismatchException": "That code is not right. Check the latest email and try again.",
+    "ExpiredCodeException": "That code has expired. Send a new one.",
+    "NotAuthorizedException": "Wrong email or password.",
+    "UserNotFoundException": "Wrong email or password.",
+    "UserNotConfirmedException": "Confirm your email first: enter the code we sent you.",
+    "LimitExceededException": "Too many tries. Wait a few minutes and try again.",
+    "TooManyRequestsException": "Too many tries. Wait a few minutes and try again.",
+    "TooManyFailedAttemptsException": "Too many tries. Wait a few minutes and try again.",
+    "CodeDeliveryFailureException": "We could not send the email. Check the address and try again."
+  },
+  "error_default": "Something went wrong with your account. Please try again.",
+  "messages": {
+    "code_sent": "We sent a 6-digit code to {email}. Enter it below to confirm your email.",
+    "confirmed": "Your email is confirmed. Sign in to set up your profile.",
+    "reset_sent": "If an account exists for {email}, we sent a code to reset the password.",
+    "password_changed": "Your password is changed. Sign in with the new one.",
+    "saved": "Profile saved. Your plan now opens with your details.",
+    "signed_out": "You are signed out.",
+    "deleted": "Your account and saved profile are deleted.",
+    "disabled": "Accounts are not set up on this site."
+  },
+  "form_errors": {
+    "name": "Tell us your name.",
+    "job": "Tell us what you do most days.",
+    "area": "Pick an area from the list.",
+    "persona": "Pick a kind of day from the list.",
+    "commute": "Pick how you travel from the list."
+  }
+}

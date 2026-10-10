@@ -124,3 +124,4 @@ svg.gauge .g-val{fill:var(--ink);font-size:20px;font-weight:800}
   .strip li{flex:0 0 calc(12.5% - 3px)}
 }
 .tile .unit{font-size:16px;font-weight:700}
+.masthead .who small{font-size:13px;opacity:.9}

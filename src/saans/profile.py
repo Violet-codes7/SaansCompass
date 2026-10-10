@@ -54,6 +54,7 @@ class Profile:
     end_hour: int | None = None
     mask: bool = False
     job: str | None = None  # what they do, in their own words
+    about: str | None = None  # "About me" from a saved profile, for the AI only
 
     @property
     def child(self):
@@ -113,6 +114,7 @@ class Profile:
         return {
             "work": WORK[self.work],
             "own_words": self.job,
+            "about_me": self.about,
             "age": self.age,
             "conditions": [CONDITIONS[c] for c in self.conditions],
             "commute": COMMUTE_MODES.get(self.commute) if self.commute else None,
@@ -143,11 +145,16 @@ class Profile:
 JOB_MAX = _CONFIG["job_max_chars"]
 
 
-def clean_job(raw):
-    """The free-text "what do you do" answer, trimmed to one short line."""
+def clean_text(raw, max_chars):
+    """Free text trimmed to one line of at most max_chars printable characters."""
     text = "".join(ch if ch.isprintable() else " " for ch in str(raw or ""))
     text = " ".join(text.split())
-    return text[:JOB_MAX] or None
+    return text[:max_chars] or None
+
+
+def clean_job(raw):
+    """The free-text "what do you do" answer, trimmed to one short line."""
+    return clean_text(raw, JOB_MAX)
 
 
 # Keyword fallback for reading the "what do you do" box when the AI model is
@@ -188,9 +195,10 @@ def _hour(raw, name):
     return value
 
 
-def parse_profile(args, persona_id):
-    """Build a Profile from query arguments, or None when none were given.
-    Raises ValueError with a user-facing message for bad input."""
+def parse_profile(args, persona_id, about=None):
+    """Build a Profile from query arguments (or a saved profile in the same
+    shape), or None when none were given. `about` is the saved "About me"
+    text; it never comes from a link. Raises ValueError for bad input."""
     keys = ("age", "cond", "commute", "start", "end", "mask", "job")
     if not any(args.get(k) for k in keys):
         return None
@@ -234,4 +242,5 @@ def parse_profile(args, persona_id):
         end_hour=end,
         mask=str(args.get("mask", "")).lower() in ("1", "on", "yes", "true"),
         job=clean_job(args.get("job")),
+        about=clean_text(about, settings.get("about_me_max_chars")),
     )

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Your account · Saans Compass{% endblock %}
+{% block main %}
+<section class="panel account-box">
+  {% if mode == 'signup' %}
+  <h1>Create your account</h1>
+  <p class="small">Save your details once and your plan, poster and advice open with them every time.</p>
+  {% elif mode == 'confirm' %}<h1>Confirm your email</h1>
+  {% elif mode == 'forgot' %}<h1>Reset your password</h1>
+  {% elif mode == 'reset' %}<h1>Choose a new password</h1>
+  {% else %}<h1>Sign in</h1>{% endif %}
+
+  {% if note %}<p class="note ok" role="status">{{ note }}</p>{% endif %}
+  {% if error %}<p class="note err" role="alert">{{ error }}</p>{% endif %}
+
+  {% if mode == 'signup' %}
+  <form method="post" action="{{ url_for('account_signup') }}" class="stack">
+    <label>Your name <input name="name" required maxlength="60" autocomplete="name" value="{{ name or '' }}"></label>
+    <label>Email <input type="email" name="email" required maxlength="254" autocomplete="email" value="{{ email or '' }}"></label>
+    <label>Password <input type="password" name="password" required minlength="8" autocomplete="new-password">
+      <small class="small">At least 8 characters, with a lowercase letter and a number.</small></label>
+    <button type="submit">Create account</button>
+  </form>
+  <p class="small">Already have one? <a href="{{ url_for('account') }}">Sign in</a></p>
+
+  {% elif mode == 'confirm' %}
+  <form method="post" action="{{ url_for('account_confirm') }}" class="stack">
+    <label>Email <input type="email" name="email" required value="{{ email or '' }}"></label>
+    <label>Code from the email <input name="code" required inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>
+    <button type="submit">Confirm</button>
+  </form>
+  <form method="post" action="{{ url_for('account_resend') }}"><input type="hidden" name="email" value="{{ email or '' }}">
+    <button type="submit" class="linkish">Send a new code</button></form>
+
+  {% elif mode == 'forgot' %}
+  <form method="post" action="{{ url_for('account_forgot') }}" class="stack">
+    <label>Email <input type="email" name="email" required value="{{ email or '' }}"></label>
+    <button type="submit">Send me a code</button>
+  </form>
+
+  {% elif mode == 'reset' %}
+  <form method="post" action="{{ url_for('account_reset') }}" class="stack">
+    <label>Email <input type="email" name="email" required value="{{ email or '' }}"></label>
+    <label>Code from the email <input name="code" required inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>
+    <label>New password <input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+    <button type="submit">Change password</button>
+  </form>
+
+  {% else %}
+  <form method="post" action="{{ url_for('account_signin') }}" class="stack">
+    <label>Email <input type="email" name="email" required autocomplete="email" value="{{ email or '' }}"></label>
+    <label>Password <input type="password" name="password" required autocomplete="current-password"></label>
+    <button type="submit">Sign in</button>
+  </form>
+  <p class="small"><a href="{{ url_for('account', mode='forgot') }}">Forgot your password?</a> · New here? <a href="{{ url_for('account', mode='signup') }}">Create an account</a></p>
+  {% endif %}
+  <p class="small muted">Sign-in by Amazon Cognito. Your password never reaches Saans Compass's own storage.</p>
+</section>
+{% endblock %}

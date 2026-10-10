@@ -43,5 +43,11 @@
     }
   ],
   "alert_morning_hour": 6,
-  "alert_evening_hour": 19
+  "alert_evening_hour": 19,
+  "user_pool_client_id": "",
+  "cognito_region": "",
+  "user_cache_seconds": 300,
+  "sign_in_days": 30,
+  "name_max_chars": 60,
+  "about_me_max_chars": 600
 }

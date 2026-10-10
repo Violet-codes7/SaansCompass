@@ -17,6 +17,11 @@
   <header class="site">
     <a class="brand" href="{{ url_for('index') }}">Saans Compass</a>
     <span class="tag">Delhi's air rules and your day, in one plan</span>
+    {% if accounts_on %}<nav class="account" aria-label="Account">
+      {% if user %}<a href="{{ url_for('account_profile') }}">My profile</a>
+      <form method="post" action="{{ url_for('account_signout') }}"><button type="submit" class="linkish">Sign out</button></form>
+      {% else %}<a href="{{ url_for('account') }}">Sign in</a> <a href="{{ url_for('account', mode='signup') }}">Create account</a>{% endif %}
+    </nav>{% endif %}
     <div class="langs" role="group" aria-label="Language" translate="no">
       <button type="button" data-setlang="en" aria-pressed="true">English</button>
       <button type="button" data-setlang="hi" aria-pressed="false">हिंदी</button>

@@ -3,7 +3,8 @@
 Saans Compass tells a Delhi resident two things on a bad-air day: what the official GRAP rules say, and what makes sense for their own body and routine. It is our entry for the Air track of Environmental Hacks (Bharat Builds Tour, WeMakeDevs x AWS, 8–11 Oct 2026).
 
 - **Rules first.** The GRAP stage (the stage CAQM declared, the one you set, or an estimate from AQI) is checked against rules written as [Cedar](https://www.cedarpolicy.com/) policies. Every answer names the policy behind it. An activity no verified rule covers says **"Check the official order"**, never "Allowed".
-- **Your profile, in your own words.** Write what you do ("I deliver food on a scooter at night"). Google Gemini reads it into the closest kind of day (school, delivery rider, outdoor or construction worker, office commuter, retired, runner) and any hours it mentions; without an AI key a keyword match does the same. The plan says "We read you as: …" and lets you correct it. Then add age, 16 air-related health conditions (asthma, COPD, bronchitis, TB, COVID, allergies, sinusitis, sore eyes, heart, stroke, anaemia, diabetes, kidney disease, weak immunity, pregnancy, smoking), how you travel, your outdoor hours and whether you have an N95. Each condition sets how much stricter your thresholds are, whether GRAP's Stage IV charter for sensitive groups applies to you, and its own "why, what to do, watch for" advice. The profile lives in the page link only: nothing is stored.
+- **Your profile, in your own words.** Write what you do ("I deliver food on a scooter at night"). Google Gemini reads it into the closest kind of day (school, delivery rider, outdoor or construction worker, office commuter, retired, runner) and any hours it mentions; without an AI key a keyword match does the same. The plan says "We read you as: …" and lets you correct it. Then add age, 16 air-related health conditions (asthma, COPD, bronchitis, TB, COVID, allergies, sinusitis, sore eyes, heart, stroke, anaemia, diabetes, kidney disease, weak immunity, pregnancy, smoking), how you travel, your outdoor hours and whether you have an N95. Each condition sets how much stricter your thresholds are, whether GRAP's Stage IV charter for sensitive groups applies to you, and its own "why, what to do, watch for" advice. Without an account the profile lives in the page link only and nothing is stored.
+- **Accounts (optional).** Sign up with email and password (Amazon Cognito, with an email code), save your name, age, work, health conditions, area, travel and an "About me" note once, and the plan, poster and home page open with them every time. Gemini reads "About me" to fit the advice to your life. The saved profile is stored in DynamoDB under your account only, never put in a link, QR code or log, and is deleted with your account from the profile page.
 - **Automatic day and stage.** The plan opens on today, or on tomorrow after 8 PM IST, with both as tabs. The GRAP stage is the one CAQM declared (Parameter Store) or else an estimate from the PM2.5/PM10 forecast; "Try Stage III / IV" shows a bad-air day for demos.
 - **Rules in plain words.** Each GRAP answer says what it means for you, why the rule exists and what to do instead, with a ladder showing where today's stage sits. The official clause and Cedar policy id stay one click away.
 - **Health plan second.** The hourly Open-Meteo forecast becomes a plan: verdict and what it means, best and worst hours, commute AQI, tomorrow compared with today, your limits, a rough breath dose and a cigarette-equivalent. "Your day, hour by hour" draws a bar chart against your own limits and gives each hour a verdict in your persona's words ("Keep children indoors", "Short rides only"), tagged with your activities, the best or break window and the worst hour.
@@ -20,7 +21,8 @@ Advisory only. Not medical advice and not an official order; CAQM declares the G
 | Website and JSON API | Lambda (Flask via `apig-wsgi`) behind API Gateway HTTP API, throttled |
 | Scheduled checks | EventBridge Scheduler, `Asia/Kolkata` 06:00 (today) and 19:00 (tomorrow), invoking the Alert Lambda |
 | Email alerts | SNS topic; each subscription filters on `zone` = area |
-| Forecast cache, last alert sent | DynamoDB, one on-demand table, TTL |
+| Forecast cache, last alert sent, saved profiles | DynamoDB, one on-demand table, TTL |
+| Sign-up and sign-in | Amazon Cognito user pool (email code, password reset); tokens in HttpOnly cookies |
 | Declared GRAP stage | SSM Parameter Store, `/saans-compass/official-stage` |
 | Personal advice, reading your work | Google Gemini API (key in Parameter Store as a SecureString); Amazon Bedrock (Claude Opus 5.5) when `AiProvider=bedrock` |
 | Voice | Amazon Polly (Kajal, en-IN and hi-IN) |
@@ -46,12 +48,13 @@ src/saans/
   explain.py    plain-language text for every GRAP rule, stage and AQI category
   i18n.py       English to Hindi: built-in dictionary, then Amazon Translate
   web.py        routes; lambda_handler.py and alert_handler.py are the entry points
+  accounts.py   Amazon Cognito sign-up and sign-in; web_accounts.py has the account pages
   settings.py   reads config/; any setting can be overridden by an environment variable
   config/       settings.json plus the content: areas, AQI bands, personas, conditions,
                 rule explanations, plan sentences, AI prompts, Hindi words
 ```
 
-Routes: `/`, `/plan`, `/api/plan`, `/api/summary`, `/api/speak`, `POST /api/translate`, `/poster`, `POST /subscribe`, `/healthz`. Query: `job` (your own words) or `persona` (school, rider, worker, commuter, older, athlete), `area`, `stage` (0, I–IV, optional), `day` (today, tomorrow); `lang` (en, hi) for the summary routes.
+Routes: `/`, `/plan`, `/api/plan`, `/api/summary`, `/api/speak`, `POST /api/translate`, `/poster`, `POST /subscribe`, `/healthz`, and `/account` (sign up, confirm, sign in, reset) and `/account/profile`. Query: `job` (your own words) or `persona` (school, rider, worker, commuter, older, athlete), `area`, `stage` (0, I–IV, optional), `day` (today, tomorrow); `lang` (en, hi) for the summary routes.
 
 ## Which GRAP stage is used
 
@@ -64,7 +67,7 @@ Routes: `/`, `/plan`, `/api/plan`, `/api/summary`, `/api/speak`, `POST /api/tran
 
 ## Settings and content (no hardcoding)
 
-Nothing the app says or decides with is buried in code. `src/saans/config/settings.json` holds the runtime settings (URLs, timeouts, cache times, default and dashboard area, alert personas and hours, AI model, Polly voice, time zone). Each key can be overridden by an environment variable of the same name in capitals, for example `DASHBOARD_AREA=dwarka`; `template.yaml` sets the main ones from deploy parameters (`DefaultArea`, `DashboardArea`, `AlertPersonas`, `MorningAlertHour`, `EveningAlertHour`, `AiProvider`, `GeminiModel`). The other files in `config/` hold the content: the 9 areas, CPCB AQI breakpoints, the six personas and their hour-by-hour advice, health conditions, plain-language GRAP text, the plan's sentences and notes, the AI prompts and the Hindi dictionary. Edit a file and redeploy; no Python changes needed.
+Nothing the app says or decides with is buried in code. `src/saans/config/settings.json` holds the runtime settings (URLs, timeouts, cache times, default and dashboard area, alert personas and hours, AI model, Polly voice, time zone). Each key can be overridden by an environment variable of the same name in capitals, for example `DASHBOARD_AREA=dwarka`; `template.yaml` sets the main ones from deploy parameters (`DefaultArea`, `DashboardArea`, `AlertPersonas`, `MorningAlertHour`, `EveningAlertHour`, `AiProvider`, `GeminiModel`, `Accounts`). The other files in `config/` hold the content: the 9 areas, CPCB AQI breakpoints, the six personas and their hour-by-hour advice, health conditions, plain-language GRAP text, the plan's sentences and notes, the AI prompts and the Hindi dictionary. Edit a file and redeploy; no Python changes needed.
 
 ## AI summary
 

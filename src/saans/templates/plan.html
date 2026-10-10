@@ -6,7 +6,8 @@
 <nav class="days" aria-label="Day">
   <a href="{{ plan_link(day='today') }}" {% if plan.day == 'today' %}aria-current="page"{% endif %}>Today <small>{{ plan.dates.today }}</small></a>
   <a href="{{ plan_link(day='tomorrow') }}" {% if plan.day == 'tomorrow' %}aria-current="page"{% endif %}>Tomorrow <small>{{ plan.dates.tomorrow }}</small></a>
-  <a class="edit" href="{{ url_for('index') }}">Change my details</a>
+  {% if using_saved %}<a class="edit" href="{{ url_for('account_profile') }}">Edit my profile</a>
+  {% else %}<a class="edit" href="{{ url_for('index') }}">Change my details</a>{% endif %}
 </nav>
 
 <section class="summary">
@@ -24,7 +25,9 @@
       {%- if plan.profile.has_n95_mask %}{% set _ = bits.append('Has an N95') %}{% endif -%}
       {{ bits|join(' · ') }}</p>
     {% else %}<p class="question">{{ plan.persona.question }}</p>{% endif %}
-    {% if own or request.args.get('read') %}
+    {% if using_saved %}
+    <p class="readas saved-note">From your saved profile{% if saved.name %}, {{ saved.name }}{% endif %}: we read you as <b>{{ work[plan.persona.id] }}</b>. <a href="{{ url_for('account_profile') }}">Edit profile</a></p>
+    {% elif own or request.args.get('read') %}
     <form class="readas" method="get" action="{{ url_for('plan_page') }}">
       {% for k, vs in request.args.lists() if k not in ('persona', 'read') %}{% for v in vs %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endfor %}
       <input type="hidden" name="read" value="picked">
