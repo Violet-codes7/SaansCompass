@@ -17,6 +17,7 @@
   <form class="chat-form" id="chat-form">
     <label class="sr-only" for="chat-q">{{ ct.placeholder }}</label>
     <textarea id="chat-q" rows="1" maxlength="{{ chat_max_chars }}" placeholder="{{ ct.placeholder }}"></textarea>
+    {% if voice_chat %}<button type="button" id="chat-mic" class="chat-mic" aria-pressed="false" hidden>🎤 <span>{{ ct.voice.button }}</span></button>{% endif %}
     <button type="submit" id="chat-send">{{ ct.send }}</button>
   </form>
 </section>
@@ -27,6 +28,7 @@
   var openBtn = document.getElementById("chat-open"), send = document.getElementById("chat-send");
   var T = {{ {"you": ct.you, "bot": ct.bot, "thinking": ct.thinking, "network": ct.errors.network, "failed": ct.errors.failed}|tojson }};
   var history = [];
+  var V = {{ {"en": ct.voice, "hi": hindi_voice}|tojson }};
   function lang() { return document.documentElement.lang === "hi" ? "hi" : "en"; }
   function add(who, text, cls) {
     var m = document.createElement("div"), b = document.createElement("b");
@@ -59,7 +61,7 @@
     q.focus();
   }
   function close() { box.hidden = true; openBtn.hidden = false; openBtn.setAttribute("aria-expanded", "false"); openBtn.focus(); }
-  function ask(question) {
+  function ask(question, spoken) {
     question = question.trim();
     if (!question || send.disabled) return;
     log.querySelectorAll(".chat-next").forEach(function (r) { r.remove(); });
@@ -68,17 +70,62 @@
     q.value = ""; send.disabled = true;
     var wait = add("bot", T.thinking, "wait");
     fetch(box.dataset.api, {method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({question: question, history: history, lang: lang()})})
+      body: JSON.stringify({question: question, history: history, lang: spoken ? VOICE.answer : lang(), speak: !!spoken})})
       .then(function (r) { return r.json(); })
       .then(function (d) {
         wait.remove();
         if (d.answer) {
-          next(add("bot", d.answer), d.follow_ups);
+          var m = add("bot", d.answer);
+          if (d.audio) { play(m, d.audio); }
+          next(m, d.follow_ups);
           history.push({role: "user", text: question}, {role: "assistant", text: d.answer});
         } else { add("bot", d.error || T.failed, "err"); }
       })
       .catch(function () { wait.remove(); add("bot", T.network, "err"); })
       .finally(function () { send.disabled = false; q.focus(); });
+  }
+  // Ask out loud: the browser turns Hindi speech into text, and the answer
+  // comes back in Hindi with Amazon Polly's reading of it.
+  var VOICE = {listen: {{ voice_listen_lang|tojson }}, answer: {{ voice_answer_lang|tojson }}};
+  var mic = document.getElementById("chat-mic");
+  var Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  function vt(key) { return (lang() === "hi" && V.hi[key]) || V.en[key]; }
+  function play(m, src) {
+    var a = document.createElement("audio");
+    a.controls = true; a.src = src; a.setAttribute("aria-label", vt("play"));
+    a.style.cssText = "display:block;width:100%;margin-top:6px";
+    m.appendChild(a);
+    var p = a.play(); if (p && p.catch) p.catch(function () {});
+  }
+  if (mic && Rec) {
+    mic.hidden = false;
+    var label = mic.querySelector("span"), rec = null;
+    function idle() { rec = null; mic.setAttribute("aria-pressed", "false"); label.textContent = vt("button"); }
+    mic.addEventListener("click", function () {
+      if (rec) { rec.stop(); return; }
+      if (send.disabled) return;
+      open();
+      rec = new Rec();
+      rec.lang = VOICE.listen; rec.interimResults = true; rec.maxAlternatives = 1;
+      var heard = "", failed = false;
+      mic.setAttribute("aria-pressed", "true"); label.textContent = vt("stop");
+      q.value = ""; q.placeholder = vt("listening");
+      rec.onresult = function (e) {
+        heard = Array.prototype.map.call(e.results, function (r) { return r[0].transcript; }).join(" ");
+        q.value = heard;
+      };
+      rec.onerror = function (e) {
+        failed = true;
+        add("bot", e.error === "not-allowed" || e.error === "service-not-allowed" ? vt("blocked") : vt("heard_nothing"), "err");
+      };
+      rec.onend = function () {
+        q.placeholder = {{ ct.placeholder|tojson }};
+        idle();
+        if (heard.trim()) ask(heard, true);
+        else if (!failed) add("bot", vt("heard_nothing"), "err");
+      };
+      try { rec.start(); } catch (err) { idle(); }
+    });
   }
   openBtn.addEventListener("click", function () { open(); });
   document.getElementById("chat-close").addEventListener("click", close);

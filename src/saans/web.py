@@ -250,7 +250,7 @@ def create_app():
     @app.context_processor
     def globals_():
         grap_on = settings.get("grap_enabled")
-        return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN, "ai_enabled": ai.enabled(), "ai_label": ai.label(),
+        return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN, "ai_enabled": ai.enabled(), "voice_chat": ai.voice_enabled(), "voice_listen_lang": settings.get("voice_listen_lang"), "voice_answer_lang": settings.get("voice_answer_lang"), "hindi_voice": {k: i18n.HI.get(v, v) for k, v in CHAT_TEXT["voice"].items()}, "ai_label": ai.label(),
                 "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link,
                 "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge, "band_gauge": gauges.band_gauge,
                 "weather_dials": weather.DIALS, "weather_text": weather.TEXT["explain"], "weather_place": weather.city_place().name, "particles": PARTICLES,
@@ -465,7 +465,13 @@ def create_app():
         if not answer:
             return jsonify({"error": CHAT_TEXT["errors"]["failed"]}), 502
         answer, follow_ups = ai.split_follow_ups(answer)
-        return jsonify({"answer": answer, "follow_ups": follow_ups or CHAT_TEXT["follow_ups"], "by": ai.label()})
+        out = {"answer": answer, "follow_ups": follow_ups or CHAT_TEXT["follow_ups"], "by": ai.label()}
+        # A question asked out loud gets its answer read back by Amazon Polly.
+        if body.get("speak") is True and ai.voice_enabled():
+            audio = ai.speak(answer, lang)
+            if audio:
+                out["audio"] = audio
+        return jsonify(out)
 
     @app.get("/api/speak")
     def api_speak():

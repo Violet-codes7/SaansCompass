@@ -428,6 +428,9 @@ button.ask:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)}
 .chat-form{display:flex;gap:8px;padding:8px 14px;border-top:1px solid var(--line)}
 .chat-form textarea{flex:1;resize:none;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);max-height:120px}
 .chat-note{margin:0;padding:0 14px 10px;color:var(--muted)}
+.chat-mic{white-space:nowrap}.chat-mic[hidden]{display:none}
+.chat-mic[aria-pressed="true"]{background:var(--no);border-color:var(--no);color:#fff}
+.chat-form:has(.chat-mic:not([hidden])){flex-wrap:wrap}.chat-form:has(.chat-mic:not([hidden])) textarea{flex-basis:100%}.chat-mic{flex:1}
 @media (max-width:520px){.chat{right:8px;left:8px;bottom:8px;width:auto;max-height:calc(100vh - 16px)}.chat-fab{right:12px;bottom:12px}}
 @media print{.chat,.chat-fab,button.ask{display:none !important}}
 
