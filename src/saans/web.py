@@ -148,7 +148,7 @@ def _plan_args():
     }
 
 
-def _build_plan():
+def _build_plan(**extra):
     """The plan for this request, personalised from the link's profile fields
     or, for a signed-in person, their saved profile. Never logged."""
     args = _plan_args()
@@ -157,7 +157,7 @@ def _build_plan():
         profile = web_accounts.profile_from_saved(saved, args["persona_id"])
     else:
         profile = parse_profile(request.args, args["persona_id"])
-    return get_plan(**args, profile=profile)
+    return get_plan(**args, profile=profile, **extra)
 
 
 def _log_plan(plan):
@@ -364,7 +364,7 @@ def create_app():
                 raise ValueError("lang must be en or hi")
             if not isinstance(body.get("question"), str) or not body["question"].strip():
                 raise ValueError(CHAT_TEXT["errors"]["empty"])
-            plan = _build_plan()
+            plan = _build_plan(every_stage=True)
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
         answer = ai.chat(plan, body["question"], body.get("history"), lang)

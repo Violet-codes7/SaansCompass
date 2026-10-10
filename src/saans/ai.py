@@ -323,18 +323,24 @@ CHAT_SYSTEM = _PROMPTS["chat_system"]
 
 
 def chat_facts(plan):
-    """What the chat may use: the advice facts plus the day's hours and air."""
+    """What the chat may use: the advice facts, every hour of today and
+    tomorrow, and the rules at every GRAP stage."""
     facts = plan_facts(plan)
+    del facts["rules"]  # "rules_today" below carries them with times and reasons
     facts.update(
+        time_now=plan.get("time_now"),
+        day_shown=plan.get("day"),
         area_aqi=plan.get("air", {}).get("day_aqi"),
         air_this_hour={k: (plan.get("air_now") or {}).get(k) for k in ("time", "aqi", "category")},
         air_tomorrow=plan.get("air_tomorrow"),
         your_limits={"fine_up_to": plan["thresholds"]["go_max"], "keep_short_up_to": plan["thresholds"]["limit_max"]},
-        hours=[{"time": f"{r['hour']:02d}:00", "aqi": r["aqi"], "category": r.get("category")}
-               for r in plan.get("hours", [])],
-        rule_details=[{"activity": a["label"], "time": a["time"], "decision": a["rule"]["label"],
-                       "why": (a.get("explain") or {}).get("why")}
-                      for a in plan["activities"] if a["rule"]],
+        your_hours=[{"time": f"{r['hour']:02d}:00", "aqi": r["aqi"], "advice": r.get("verdict_label")}
+                    for r in plan.get("hours", [])],
+        hourly_aqi=plan.get("hourly_aqi"),
+        rules_today=[{"activity": a["label"], "time": a["time"], "decision": a["rule"]["label"],
+                      "why": (a.get("explain") or {}).get("why")}
+                     for a in plan["activities"] if a["rule"]],
+        rules_at_every_stage=plan.get("stage_table"),
     )
     return facts
 

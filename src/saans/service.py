@@ -7,9 +7,9 @@ from . import cpcb, data, guide, route, settings
 from .advisor import TEXT as ADVICE
 from .advisor import build_plan
 from .personas import get_persona
-from .profile import Profile
+from .profile import COMMUTE_MODES, VEHICLES, Profile
 from .rules import default_rulebook
-from .stage import declared_stage, parse_stage, resolve_stage
+from .stage import ROMAN, declared_stage, parse_stage, resolve_stage
 from .store import get_store
 
 DAYS = ("today", "tomorrow")
@@ -55,13 +55,34 @@ def air_now(forecast, now, official=None):
             "time": local.strftime("%Y-%m-%d %H:00"), "particles": particles}
 
 
+def stage_table(persona, area_id, sensitive, rulebook):
+    """The decision at every GRAP stage for this person's activities, every
+    kind of vehicle and every way of travelling, with the rules behind them,
+    so the chat can answer "can I drive today?" or "what changes at Stage III?"."""
+    def row(what, as_id, action):
+        by_stage, rules = {}, []
+        for n in ROMAN:
+            r = rulebook.evaluate(as_id, action, area_id, n, sensitive)
+            by_stage[ROMAN[n]] = r.label
+            if r.clause and r.clause not in rules:
+                rules.append(r.clause)
+        return {"what": what, "by_stage": by_stage, "rules": rules}
+
+    rows = [row(a.label, a.rules_as or persona.id, a.rules_action or a.id) for a in persona.activities if a.ruled]
+    rows += [row(v["label"], v["rules_as"], v["activity"]) for v in VEHICLES.values() if v["activity"]]
+    rows += [row(label, persona.id, f"travel_{mode}") for mode, label in COMMUTE_MODES.items()
+             if mode not in ("none", "car")]
+    return rows
+
+
 def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None, rulebook=None, fetcher=None,
-             profile: Profile | None = None, to_area_id=None, modes=()):
+             profile: Profile | None = None, to_area_id=None, modes=(), every_stage=False):
     """Raises ValueError with a user-facing message for bad input.
     `profile` personalises hours, thresholds and the sensitive-group rules.
     `area_id` is where the person starts; with `to_area_id` (where they spend
     the day) the hour-by-hour plan uses the destination's air and the trips
-    between the two are checked too."""
+    between the two are checked too. `every_stage` adds the rules at every
+    GRAP stage (for the chat; it takes a few dozen rule checks)."""
     persona = get_persona(persona_id)
     # The profile fits hours, limits, vehicle rules and travel; without one,
     # how the person travels (from the link) still fits the commute rules.
@@ -113,6 +134,13 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
         plan["day_actions"] = trip_actions + plan["day_actions"]
         plan["actions"] = [a for a in plan["actions"] if a not in plan["day_actions"]] + plan["day_actions"]
     plan["official"] = station
+    plan["stage_table"] = stage_table(persona, area.id, sensitive, rulebook) if every_stage else None
+    today = now.astimezone(data.IST).date()
+    plan["time_now"] = now.astimezone(data.IST).strftime("%H:%M")
+    # Every hour of today and tomorrow, so "when is best tomorrow?" has an answer.
+    plan["hourly_aqi"] = {
+        label: {f"{r['hour']:02d}:00": r["aqi"] for r in data.readings_for(forecast, d, range(24)) if r["aqi"] is not None}
+        for label, d in (("today", today), ("tomorrow", today + timedelta(days=1)))}
     plan["air_now"] = air_now(forecast, now, station)
     pt = plan["air_now"]["particles"]
     if day == "today" and pt["pm25"] is not None:
