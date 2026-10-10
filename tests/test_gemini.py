@@ -123,3 +123,41 @@ def test_failure_reason_is_reported_without_the_key(mem_store, monkeypatch, live
     assert resp.status_code == 502 and "reason" not in resp.get_json()  # shown in the logs only
     reason = ai.last_error()
     assert "429" in reason and "RESOURCE_EXHAUSTED" in reason and "test-key" not in reason
+
+
+class Quota(FakeSession):
+    """Out of quota (429) on the first `full` models, then an answer."""
+    def __init__(self, full=1, missing=()):
+        super().__init__()
+        self.full, self.missing = full, missing
+
+    def post(self, url, json=None, headers=None, timeout=None):
+        self.calls.append(url)
+        if any(m in url for m in self.missing):
+            return SimpleNamespace(status_code=404, json=lambda: {}, text="")
+        if len(self.calls) <= self.full:
+            return SimpleNamespace(status_code=429, json=lambda: {"error": {"status": "RESOURCE_EXHAUSTED"}}, text="")
+        return SimpleNamespace(status_code=200, json=lambda: answer("Today: fine."), text="")
+
+
+def test_out_of_quota_hands_over_to_the_lighter_model(plan, gemini_on):
+    s = Quota(full=1)
+    assert ai.summarize(plan, session=s) == "Today: fine."
+    assert "gemini-flash-latest" in s.calls[0] and "gemini-flash-lite-latest" in s.calls[1]
+    s2 = Quota(full=0)
+    ai.summarize(plan, session=s2)  # the full model rests; the light one is asked first
+    assert len(s2.calls) == 1 and "gemini-flash-lite-latest" in s2.calls[0]
+
+
+def test_resting_model_is_asked_again_later(gemini_on, monkeypatch):
+    ai._resting["gemini-flash-latest"] = 1000.0
+    assert ai.gemini_models(now=1010.0) == ["gemini-flash-lite-latest"]
+    assert ai.gemini_models(now=1061.0) == ["gemini-flash-latest", "gemini-flash-lite-latest"]
+    ai._resting["gemini-flash-lite-latest"] = 1000.0
+    assert ai.gemini_models(now=1010.0) == ["gemini-flash-latest", "gemini-flash-lite-latest"]  # all resting: try anyway
+
+
+def test_unknown_fallback_model_is_skipped(plan, gemini_on, monkeypatch):
+    monkeypatch.setenv("GEMINI_FALLBACK_MODELS", '["gone-model", "gemini-flash-lite-latest"]')
+    s = Quota(full=1, missing=("gone-model",))
+    assert ai.summarize(plan, session=s) == "Today: fine." and len(s.calls) == 3

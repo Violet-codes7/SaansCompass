@@ -115,9 +115,23 @@ def last_error():
     return _last_error["reason"]
 
 
+_resting = {}  # Gemini model -> when it last ran out of quota
+
+
+def gemini_models(now=None):
+    """The configured Gemini model, then the lighter ones that have their own
+    free-tier quota. A model that ran out of quota rests for gemini_rest_seconds."""
+    now = now if now is not None else time.time()
+    first = settings.get("gemini_model")
+    models = [first] + [m for m in settings.get("gemini_fallback_models") if m != first]
+    ready = [m for m in models if now - _resting.get(m, -1e18) >= settings.get("gemini_rest_seconds")]
+    return ready or models
+
+
 def gemini(system, user, max_tokens=4096, schema=None, session=None):
-    """Text from Gemini, or None on any failure or block. Busy or rate-limited
-    answers (429, 500, 503) are tried again once after a short pause."""
+    """Text from Gemini, or None on any failure or block. A busy answer (500,
+    503) is tried again once after a short pause; a model out of quota (429) or
+    not found (404) hands over to the next model in gemini_models()."""
     key = _gemini_key()
     if not key:
         return _fail("gemini key not available")
@@ -129,17 +143,23 @@ def gemini(system, user, max_tokens=4096, schema=None, session=None):
         "contents": [{"role": "user", "parts": [{"text": user}]}],
         "generationConfig": config,
     }
-    url = settings.get("gemini_url").format(model=settings.get("gemini_model"))
-    for attempt in range(2):
-        try:
-            resp = (session or requests).post(url, json=body, headers={"x-goog-api-key": key},
-                                              timeout=settings.get("ai_timeout_seconds"))
-        except requests.RequestException as exc:
-            return _fail(f"gemini unreachable: {type(exc).__name__}")
-        if resp.status_code in (429, 500, 503) and attempt == 0:
-            time.sleep(settings.get("ai_retry_seconds"))
-            continue
-        break
+    for name in gemini_models():
+        url = settings.get("gemini_url").format(model=name)
+        for attempt in range(2):
+            try:
+                resp = (session or requests).post(url, json=body, headers={"x-goog-api-key": key},
+                                                  timeout=settings.get("ai_timeout_seconds"))
+            except requests.RequestException as exc:
+                return _fail(f"gemini unreachable: {type(exc).__name__}")
+            if resp.status_code in (500, 503) and attempt == 0:
+                time.sleep(settings.get("ai_retry_seconds"))
+                continue
+            break
+        if resp.status_code == 429:
+            _resting[name] = time.time()
+        if resp.status_code not in (429, 404):
+            break
+        log.warning("gemini %s returned %s, trying the next model", name, resp.status_code)
     if resp.status_code != 200:
         return _fail(f"gemini returned {resp.status_code}: {_gemini_error(resp)}")
     candidates = resp.json().get("candidates") or []

@@ -77,7 +77,7 @@ Google Gemini powers the Personal advice panel and reads the "What do you do?" b
 - `gemini key not available`: step 3 did not run, or used a different name or region.
 - `gemini returned 400` with "API key not valid": copy the key again and repeat step 3.
 - `gemini returned 404`: the model name changed. Run `sam deploy --guided`, press Enter through everything, and set **Parameter GeminiModel** to a current model id from AI Studio.
-- `gemini returned 429`: the free tier's per-minute limit. Wait a minute; answers are cached after the first one.
+- `gemini returned 429`: every Gemini model in `gemini_model` and `gemini_fallback_models` is out of free quota. A model that hits its quota is skipped for a minute and the next one answers; answers are cached after the first one.
 
 Gemini's free tier lets Google use what is sent to improve its products. The app sends no names or emails, only the plan, the age and health conditions picked, and the "What do you do?" text.
 

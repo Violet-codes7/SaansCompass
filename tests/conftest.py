@@ -62,6 +62,7 @@ def no_real_network(monkeypatch):
     for name in ("AI_PROVIDER", "BEDROCK_MODEL", "GEMINI_API_KEY", "GEMINI_KEY_PARAM", "GEMINI_MODEL"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(ai, "_key_cache", {"at": -1e9, "value": None})
+    monkeypatch.setattr(ai, "_resting", {})
     # No CPCB feed unless a test turns one on.
     from saans import cpcb
     for name in ("DATAGOV_API_KEY", "DATAGOV_KEY_PARAM"):

@@ -24,6 +24,8 @@
   "alert_personas": "school,rider,older",
   "ai_provider": "",
   "gemini_model": "gemini-flash-latest",
+  "gemini_fallback_models": ["gemini-flash-lite-latest"],
+  "gemini_rest_seconds": 60,
   "bedrock_model": "anthropic.claude-opus-5-5",
   "bedrock_region": "",
   "bedrock_messages_marker": "anthropic.",
