@@ -766,3 +766,24 @@ svg.gauge .knob{transform-box:fill-box;transform-origin:center}
 @media print{svg.gauge .arc.fill{filter:none}}
 .scale .bands,.lbar{border-radius:999px}
 .dp-bar{border-radius:8px 8px 3px 3px}
+
+/* Dose saved, window planner and weekly diary in the glass style (main prefix beats their inline styles) */
+main .saved-tile div{border:1px solid var(--green-line);background:linear-gradient(135deg,var(--green-bg),var(--glass-soft));border-radius:14px;padding:12px 16px;box-shadow:var(--lift)}
+main .saved-tile b{font-size:26px;letter-spacing:-.03em;color:var(--green)}
+main .win-plan,main .diary{margin-top:16px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--glass-soft)}
+main .win-plan h3,main .diary h3{margin-top:0}
+main .win-strip{gap:3px}
+main .win-h{height:34px;border-radius:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35);transition:transform .15s,filter .15s}
+main .win-strip .win-h:hover{transform:scaleY(1.12);filter:brightness(1.08)}
+main .win-h small{font-family:var(--mono);font-size:10px}
+main .win-legend i.win-h{height:12px;width:12px;border-radius:50%}
+main .diary-ask button{border-radius:999px;padding:6px 14px}
+main .diary-ask button.ghost{background:var(--glass-soft)}
+main .dw-bars{border-bottom-color:var(--line-strong)}
+main .dw-bars span{border-radius:8px 8px 3px 3px;transition:height .4s cubic-bezier(.2,.8,.2,1)}
+main .dw-worst{background:color-mix(in srgb,var(--ink) 10%,transparent)}
+main .dw-key{border-radius:50%}main .dw-key.worst{background:color-mix(in srgb,var(--ink) 10%,transparent)}
+main .dw-day small{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em}
+.chat-mic{border-radius:999px}
+.chat-mic:not([aria-pressed="true"]){background:var(--glass-soft);color:var(--accent);border-color:var(--accent)}
+.chat audio{height:34px;border-radius:999px}
