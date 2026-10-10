@@ -3,7 +3,7 @@ forecast -> AQI -> stage -> Cedar rules -> plan and dose."""
 from datetime import timedelta
 
 from . import aqi as aqi_mod
-from . import data
+from . import data, settings
 from .advisor import build_plan
 from .personas import get_persona
 from .profile import Profile
@@ -14,12 +14,9 @@ from .store import get_store
 DAYS = ("today", "tomorrow")
 
 
-# After this hour (IST) the plan opens on tomorrow by default.
-TOMORROW_FROM_HOUR = 20
-
-
 def auto_day(now):
-    return "tomorrow" if now.astimezone(data.IST).hour >= TOMORROW_FROM_HOUR else "today"
+    """Today, or tomorrow from tomorrow_from_hour (IST) onwards."""
+    return "tomorrow" if now.astimezone(data.IST).hour >= settings.get("tomorrow_from_hour") else "today"
 
 
 def parse_day(raw, now=None):

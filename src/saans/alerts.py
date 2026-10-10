@@ -8,9 +8,8 @@ import json
 import logging
 import re
 
-from . import data
+from . import data, settings
 # Area alerts cover the three original personas; the email stays short.
-ALERT_PERSONAS = ("school", "rider", "older")
 from .service import get_plan
 
 log = logging.getLogger(__name__)
@@ -78,12 +77,17 @@ def run_alert_check(run, store, sns, topic_arn, now=None, site_url=None, fetcher
     errors = []
     for area in data.AREAS.values():
         try:
-            plans = [
-                get_plan(pid, area.id, day=run, now=now, store=store, fetcher=fetcher)
-                for pid in ALERT_PERSONAS
-            ]
-            if any(p["is_demo"] for p in plans):
-                results.append({"area": area.id, "status": "skipped_demo_data"})
+            try:
+                plans = [
+                    get_plan(pid, area.id, day=run, now=now, store=store, fetcher=fetcher)
+                    for pid in settings.get_list("alert_personas")
+                ]
+            except data.ForecastUnavailable:
+                results.append({"area": area.id, "status": "skipped_no_forecast"})
+                continue
+            if any(p["is_stale"] for p in plans):
+                # Only email from a fresh forecast.
+                results.append({"area": area.id, "status": "skipped_stale_forecast"})
                 continue
             fingerprint = verdict_fingerprint(plans)
             last = store.get_alert_state(area.id, run)

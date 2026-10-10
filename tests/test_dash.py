@@ -51,7 +51,7 @@ def client(mem_store, monkeypatch, live_fetcher):
 
 def test_dashboard_on_home_and_plan(client):
     home = client.get("/").get_data(as_text=True)
-    assert "Air quality at Delhi (ITO)" in home and "Weather now" in home and "Why it matters" in home
+    assert "Air quality at ITO" in home and "Weather now" in home and "Why it matters" in home
     plan = client.get("/plan?persona=rider&area=okhla").get_data(as_text=True)
     assert "Air quality at Okhla" in plan and plan.count('<svg class="gauge"') == 5
 

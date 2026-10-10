@@ -33,6 +33,30 @@ Parameters:
     Type: String
     Default: ap-south-1
     Description: Region to call Bedrock in.
+  DefaultArea:
+    Type: String
+    Default: anand-vihar
+    Description: Area picked on the form when none is chosen (an id from src/saans/config/areas.json).
+  DashboardArea:
+    Type: String
+    Default: ito
+    Description: Area shown in the live dashboard on the home page.
+  AlertPersonas:
+    Type: String
+    Default: school,rider,older
+    Description: Comma-separated personas whose plans the email alerts compare.
+  MorningAlertHour:
+    Type: Number
+    Default: 6
+    MinValue: 0
+    MaxValue: 23
+    Description: Hour (India time) of the alert check for today.
+  EveningAlertHour:
+    Type: Number
+    Default: 19
+    MinValue: 0
+    MaxValue: 23
+    Description: Hour (India time) of the alert check for tomorrow.
 
 Conditions:
   HasBudgetEmail: !Not [!Equals [!Ref BudgetEmail, ""]]
@@ -54,6 +78,13 @@ Globals:
         TABLE: !Ref Table
         TOPIC_ARN: !Ref AlertTopic
         OFFICIAL_STAGE_PARAM: !Ref OfficialStageParam
+        # Any key in src/saans/config/settings.json can be overridden by an
+        # environment variable of the same name in capitals.
+        DEFAULT_AREA: !Ref DefaultArea
+        DASHBOARD_AREA: !Ref DashboardArea
+        ALERT_PERSONAS: !Ref AlertPersonas
+        ALERT_MORNING_HOUR: !Ref MorningAlertHour
+        ALERT_EVENING_HOUR: !Ref EveningAlertHour
 
 Resources:
   HttpApi:
@@ -132,15 +163,15 @@ Resources:
         Morning:
           Type: ScheduleV2
           Properties:
-            Description: 06:00 IST check for today
-            ScheduleExpression: "cron(0 6 * * ? *)"
+            Description: Morning check for today (India time)
+            ScheduleExpression: !Sub "cron(0 ${MorningAlertHour} * * ? *)"
             ScheduleExpressionTimezone: Asia/Kolkata
             Input: '{"run": "today"}'
         Evening:
           Type: ScheduleV2
           Properties:
-            Description: 19:00 IST check for tomorrow
-            ScheduleExpression: "cron(0 19 * * ? *)"
+            Description: Evening check for tomorrow (India time)
+            ScheduleExpression: !Sub "cron(0 ${EveningAlertHour} * * ? *)"
             ScheduleExpressionTimezone: Asia/Kolkata
             Input: '{"run": "tomorrow"}'
       Policies:
@@ -237,8 +268,8 @@ Resources:
              "metrics": [["AWS/Lambda", "Duration", "FunctionName", "${WebFunction}"],
                          [".", ".", ".", "${AlertFunction}"]]}},
           {"type": "metric", "x": 0, "y": 6, "width": 12, "height": 6,
-           "properties": {"title": "Forecast fell back to demo data", "region": "${AWS::Region}", "stat": "Sum", "period": 3600,
-             "metrics": [["SaansCompass", "DemoDataFallback"]]}},
+           "properties": {"title": "Forecast outages (stale = last real forecast used)", "region": "${AWS::Region}", "stat": "Sum", "period": 3600,
+             "metrics": [["SaansCompass", "StaleForecast"], [".", "ForecastUnavailable"]]}},
           {"type": "metric", "x": 12, "y": 6, "width": 12, "height": 6,
            "properties": {"title": "API requests and 5xx", "region": "${AWS::Region}", "stat": "Sum", "period": 300,
              "metrics": [["AWS/ApiGateway", "Count", "ApiId", "${HttpApi}"],

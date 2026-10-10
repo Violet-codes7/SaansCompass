@@ -6,6 +6,9 @@ heuristics, labelled as such on the page: not medical advice.
 """
 from dataclasses import dataclass, replace
 
+from . import settings
+
+
 @dataclass(frozen=True)
 class Condition:
     label: str  # as shown on the form
@@ -18,91 +21,12 @@ class Condition:
     watch: str  # signs that mean go indoors or get help
 
 
+_CONFIG = settings.load("profile")
+
 # GRAP's Stage IV charter names children, pregnant women, the elderly, and
 # people with respiratory, cardiovascular, cerebrovascular or other chronic
-# diseases. Conditions outside that list still lower the thresholds.
-CONDITION_INFO = {
-    "asthma": Condition(
-        "Asthma", "asthma", "Lungs and breathing", 100, True,
-        "Fine particles inflame airways that are already sensitive, so attacks come sooner and harder.",
-        "Keep your reliever inhaler with you and use your preventer as prescribed.",
-        "Cough, wheeze, a tight chest, or needing your reliever more than usual."),
-    "copd": Condition(
-        "COPD or emphysema", "COPD", "Lungs and breathing", 100, True,
-        "Damaged lungs have less reserve, so a bad-air day can tip you into a flare-up.",
-        "Keep outdoor time short and follow your COPD action plan.",
-        "Breathlessness worse than usual, more or darker phlegm."),
-    "bronchitis": Condition(
-        "Chronic bronchitis or frequent chest infections", "chronic bronchitis", "Lungs and breathing", 100, True,
-        "Pollution irritates the airways and makes chest infections more likely.",
-        "Steam inhalation and warm fluids help clear mucus; avoid smoke of any kind.",
-        "A cough that keeps getting worse, fever, or green or bloody phlegm."),
-    "tb": Condition(
-        "TB, now or in the past", "TB", "Lungs and breathing", 100, True,
-        "TB can leave scarring that makes the lungs react more to polluted air.",
-        "Finish any TB treatment fully and keep follow-up visits, even on bad-air days.",
-        "Cough for more than two weeks, coughing blood, night sweats or weight loss."),
-    "covid": Condition(
-        "Recent COVID or long COVID", "recent or long COVID", "Lungs and breathing", 100, True,
-        "Lungs that are still recovering are easily irritated, and breathlessness can return.",
-        "Build activity up slowly and do it indoors on poor-air days.",
-        "Breathlessness at rest, chest pain, or a racing heart."),
-    "allergic_rhinitis": Condition(
-        "Allergic rhinitis (hay fever) or dust allergy", "allergies", "Nose, sinus and eyes", 50, True,
-        "Dust and smoke set off sneezing, a blocked nose and itching, and can trigger asthma in some people.",
-        "Rinse your nose with saline after being out, and take your allergy medicine as prescribed.",
-        "Wheeze or a tight chest along with your usual allergy symptoms."),
-    "sinusitis": Condition(
-        "Sinusitis", "sinusitis", "Nose, sinus and eyes", 50, True,
-        "Polluted air dries and inflames the sinuses, so blocked, painful sinuses last longer.",
-        "Saline nose rinses and steam help; drink plenty of water.",
-        "Facial pain with fever, or symptoms lasting more than ten days."),
-    "eyes": Condition(
-        "Eye irritation, dry eyes or conjunctivitis", "sore eyes", "Nose, sinus and eyes", 0, False,
-        "Smoke and dust make eyes red, watery and itchy.",
-        "Wear glasses or sunglasses outdoors, wash your eyes with clean water after, and do not rub them.",
-        "Eye pain, blurred vision or a lot of discharge."),
-    "heart": Condition(
-        "Heart disease or high blood pressure", "heart disease", "Heart, blood and brain", 100, True,
-        "Fine particles get into the blood, raise blood pressure and make the heart work harder.",
-        "Avoid hard effort outdoors and keep taking your heart and BP medicines.",
-        "Chest pain or pressure, palpitations, or unusual breathlessness."),
-    "stroke": Condition(
-        "Had a stroke or mini-stroke", "past stroke", "Heart, blood and brain", 100, True,
-        "Polluted air thickens the blood and raises the risk of another stroke.",
-        "Keep taking your blood thinners and BP medicines, and avoid outdoor effort on bad days.",
-        "Sudden weakness on one side, a drooping face, slurred speech: call 112 at once."),
-    "anaemia": Condition(
-        "Anaemia", "anaemia", "Heart, blood and brain", 50, True,
-        "With less oxygen in the blood, the heart and lungs already work harder, and polluted air adds to that.",
-        "Take iron or other supplements as prescribed and keep outdoor effort light.",
-        "Dizziness, a pounding heart or breathlessness on light effort."),
-    "diabetes": Condition(
-        "Diabetes", "diabetes", "Other long-term illness", 50, True,
-        "Polluted air raises inflammation and can make blood sugar harder to control.",
-        "Keep exercise going but move it indoors on poor-air days, and check your sugar as usual.",
-        "Feeling unwell with high or unusually low sugar readings."),
-    "kidney": Condition(
-        "Kidney disease", "kidney disease", "Other long-term illness", 50, True,
-        "Kidney disease often comes with heart strain, which polluted air makes worse.",
-        "Keep outdoor effort light and follow your fluid advice.",
-        "Swelling, breathlessness or much less urine."),
-    "immune": Condition(
-        "Weak immunity (cancer treatment, transplant, HIV, steroids)", "weak immunity", "Other long-term illness", 50, True,
-        "A weaker immune system means polluted air is more likely to lead to chest infections.",
-        "Wear an N95 in crowded or smoky places and avoid people with colds.",
-        "Fever, a new cough or breathlessness: call your doctor early."),
-    "pregnant": Condition(
-        "Pregnant", "pregnancy", "Life stage and habits", 50, True,
-        "Polluted air is linked to low birth weight and early birth, and you breathe more air while pregnant.",
-        "Prefer indoor exercise on poor-air days and keep windows shut at the worst hours.",
-        "Breathlessness, a bad headache, or less movement from the baby: see your doctor."),
-    "smoker": Condition(
-        "I smoke or vape", "smoking", "Life stage and habits", 50, False,
-        "Smoke already irritates your lungs, and outdoor pollution adds to the same damage.",
-        "Bad-air days are a good time to cut down; do not smoke indoors, where it adds to the air everyone breathes.",
-        "A cough that will not go away, or getting breathless sooner than before."),
-}
+# diseases ("charter": true). Other conditions still lower the thresholds.
+CONDITION_INFO = {k: Condition(**c) for k, c in _CONFIG["conditions"].items()}
 CONDITIONS = {k: c.label for k, c in CONDITION_INFO.items()}
 CONDITION_GROUPS = {}
 for _id, _c in CONDITION_INFO.items():
@@ -110,44 +34,14 @@ for _id, _c in CONDITION_INFO.items():
 # Conditions that make the lungs or heart react sooner to polluted air.
 HEART_LUNG = {k for k, c in CONDITION_INFO.items() if c.shift == 100}
 
-COMMUTE_MODES = {
-    "walk": "On foot",
-    "cycle": "Bicycle",
-    "two_wheeler": "Two-wheeler",
-    "auto": "Auto-rickshaw",
-    "bus": "Bus",
-    "metro": "Metro",
-    "car": "Car or cab",
-    "none": "I mostly stay home",
-}
+COMMUTE_MODES = _CONFIG["commute_modes"]
 
 # What the person does, mapped to the persona whose activities and rules fit.
-WORK = {
-    "school": "Student, parent or school staff",
-    "rider": "Delivery or gig rider",
-    "worker": "Outdoor or construction worker",
-    "commuter": "Office worker who commutes",
-    "older": "Retired or mostly at home",
-    "athlete": "Runner or athlete",
-}
+WORK = _CONFIG["work"]
 
-AGE_INFO = {
-    "child": ("Children breathe faster for their size and their lungs are still growing, so they take in more pollution.",
-              "Move play and sport indoors when the air is poor, and keep the school run off main roads."),
-    "older": ("After 60 the lungs and heart react sooner to polluted air.",
-              "Walk at the cleanest hour, keep it gentle, and keep your usual medicines close."),
-}
+AGE_INFO = _CONFIG["age_info"]
 
-COMMUTE_TIPS = {
-    "walk": "Walk on side streets away from heavy traffic where you can.",
-    "cycle": "Cycle on quieter roads, and a well-fitted N95 helps on busy ones.",
-    "two_wheeler": "A well-fitted N95 under the helmet cuts what you breathe in traffic.",
-    "auto": "Autos are open to traffic fumes; an N95 helps on long rides.",
-    "bus": "Wait for the bus away from the kerb when you can.",
-    "metro": "The metro is one of the cleaner ways to travel; keep the walk to the station short.",
-    "car": "Keep windows up and the air on recirculate in heavy traffic.",
-    "none": None,
-}
+COMMUTE_TIPS = _CONFIG["commute_tips"]
 
 
 @dataclass(frozen=True)
@@ -163,11 +57,11 @@ class Profile:
 
     @property
     def child(self):
-        return self.age is not None and self.age < 14
+        return self.age is not None and self.age < AGE_INFO["child"]["under"]
 
     @property
     def older(self):
-        return self.age is not None and self.age >= 60
+        return self.age is not None and self.age >= AGE_INFO["older"]["from"]
 
     @property
     def sensitive(self):
@@ -178,7 +72,7 @@ class Profile:
         """How much lower the Go and Limit AQI thresholds sit for this person."""
         shift = max((CONDITION_INFO[c].shift for c in self.conditions), default=0)
         if self.child or self.older:
-            shift = max(shift, 50)
+            shift = max(shift, AGE_INFO["shift"])
         return shift
 
     def reasons(self):
@@ -186,33 +80,33 @@ class Profile:
         if self.child:
             out.append("child")
         if self.older:
-            out.append("over 60")
+            out.append(f"over {AGE_INFO['older']['from']}")
         out += [CONDITION_INFO[c].short for c in self.conditions]
         return out
 
     def tips(self):
         out = [CONDITION_INFO[c].tip for c in self.conditions]
         if self.child:
-            out.append(AGE_INFO["child"][1])
+            out.append(AGE_INFO["child"]["tip"])
         if self.older:
-            out.append(AGE_INFO["older"][1])
+            out.append(AGE_INFO["older"]["tip"])
         return out
 
     def health(self):
         """What the page's "Your health" panel says, condition by condition."""
         items = []
         if self.child:
-            items.append({"title": f"Age {self.age}: a child", "why": AGE_INFO["child"][0], "tip": AGE_INFO["child"][1],
-                          "watch": "Coughing at night, wheeze, or getting breathless at play."})
+            items.append({"title": f"Age {self.age}: a child", **{k: AGE_INFO["child"][k] for k in ("why", "tip", "watch")}})
         if self.older:
-            items.append({"title": f"Age {self.age}: over 60", "why": AGE_INFO["older"][0], "tip": AGE_INFO["older"][1],
-                          "watch": "Breathlessness, chest discomfort, dizziness or unusual tiredness."})
+            items.append({"title": f"Age {self.age}: over {AGE_INFO['older']['from']}",
+                          **{k: AGE_INFO["older"][k] for k in ("why", "tip", "watch")}})
         for c in self.conditions:
             info = CONDITION_INFO[c]
             items.append({"title": info.label, "why": info.why, "tip": info.tip, "watch": info.watch})
         shift = self.threshold_shift()
         level = "highest" if shift >= 100 else "higher" if shift or items else "usual"
-        return {"level": level, "shift": shift, "charter": self.sensitive, "details": items}
+        return {"level": level, "shift": shift, "charter": self.sensitive, "details": items,
+                "condition_names": [CONDITION_INFO[c].short for c in self.conditions]}
 
     def summary(self):
         """Profile facts for the page and the AI, without anything identifying."""
@@ -246,7 +140,7 @@ class Profile:
         return replace(persona, **changes) if changes else persona
 
 
-JOB_MAX = 160
+JOB_MAX = _CONFIG["job_max_chars"]
 
 
 def clean_job(raw):
@@ -256,24 +150,9 @@ def clean_job(raw):
     return text[:JOB_MAX] or None
 
 
-# Keyword fallback for reading the "what do you do" box when the AI model is off.
-# Earlier entries win ties: the most exposed kind of work first.
-WORK_KEYWORDS = (
-    ("rider", ("deliver", "delivery", "rider", "zomato", "swiggy", "blinkit", "zepto", "dunzo", "courier", "gig",
-               "rapido", "uber", "ola", "cab", "taxi", "driver", "auto", "rickshaw", "scooter", "bike", "डिलीवरी", "ड्राइवर")),
-    ("worker", ("construction", "labour", "labor", "labourer", "mason", "builder", "site", "painter", "plumber",
-                "electrician", "carpenter", "welder", "farmer", "vendor", "hawker", "guard", "security", "police",
-                "sweeper", "sanitation", "safai", "gardener", "mali", "porter", "outdoor", "field", "मजदूर", "किसान")),
-    ("athlete", ("runner", "running", "athlete", "cricket", "football", "hockey", "cyclist", "cycling",
-                 "marathon", "sports", "sport", "coach", "trainer", "training", "train", "gym", "jogging", "jog", "खिलाड़ी")),
-    ("older", ("retired", "retiree", "pensioner", "homemaker", "housewife", "grandmother", "grandfather",
-               "grandma", "grandpa", "senior", "elderly", "old", "रिटायर", "गृहिणी")),
-    ("school", ("student", "school", "class", "teacher", "principal", "parent", "kid", "kids", "child", "children",
-                "son", "daughter", "छात्र", "स्कूल", "शिक्षक")),
-    ("commuter", ("office", "software", "engineer", "developer", "bank", "banker", "manager", "accountant",
-                  "consultant", "corporate", "desk", "clerk", "government", "sales", "doctor", "nurse", "lawyer",
-                  "shop", "shopkeeper", "college", "university", "intern", "ऑफिस", "दफ्तर", "नौकरी")),
-)
+# Keyword fallback for reading the "what do you do" box when the AI model is
+# off. Earlier entries win ties: the most exposed kind of work first.
+WORK_KEYWORDS = tuple((pid, tuple(words)) for pid, words in _CONFIG["work_keywords"].items())
 
 
 def guess_work(text):

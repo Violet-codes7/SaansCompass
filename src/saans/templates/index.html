@@ -4,7 +4,11 @@
   <h1>Your air plan for today</h1>
   <p>Tell us a little about you. We check today's and tomorrow's forecast for your area, work out the GRAP stage, show the rules that apply to you, and plan your day around the cleanest air.</p>
 </section>
-{% with area_name='Delhi (ITO)', air_now=dash.air_now, air_tomorrow=dash.air_tomorrow, is_demo=dash.is_demo %}{% include "_dash.html" %}{% endwith %}
+{% if dash %}
+{% with area_name=dash.area, air_now=dash.air_now, air_tomorrow=dash.air_tomorrow, is_stale=dash.is_stale, fetched_at=dash.fetched_at %}{% include "_dash.html" %}{% endwith %}
+{% else %}
+<section class="panel"><p>The live forecast for {{ dash_area }} cannot be reached right now, so there is nothing to show here. Your plan below will work once it is back.</p></section>
+{% endif %}
 <form class="picker profile" action="{{ url_for('plan_page') }}" method="get">
   <fieldset>
     <legend>What do you do most days?</legend>

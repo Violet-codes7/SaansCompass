@@ -86,12 +86,23 @@ def test_failed_publish_is_retried_next_run(aws, live_fetcher):
     assert errors == [] and [p["MessageAttributes"]["zone"]["StringValue"] for p in rec.published] == ["ito"]
 
 
-def test_demo_data_never_emails(aws, failing_fetcher):
+def test_no_forecast_never_emails(aws, failing_fetcher):
     ddb_store, sns, topic = aws
     rec = Recorder(sns)
     results, errors = run_alert_check("tomorrow", ddb_store, rec, topic, now=FIXED_NOW, fetcher=failing_fetcher)
     assert rec.published == [] and errors == []
-    assert {r["status"] for r in results} == {"skipped_demo_data"}
+    assert {r["status"] for r in results} == {"skipped_no_forecast"}
+
+
+def test_stale_forecast_never_emails(aws, live_fetcher, failing_fetcher):
+    from datetime import timedelta
+    ddb_store, sns, topic = aws
+    rec = Recorder(sns)
+    run_alert_check("today", ddb_store, rec, topic, now=FIXED_NOW, fetcher=live_fetcher)
+    rec.published.clear()
+    later = FIXED_NOW + timedelta(hours=2)
+    results, _ = run_alert_check("today", ddb_store, rec, topic, now=later, fetcher=failing_fetcher)
+    assert rec.published == [] and {r["status"] for r in results} == {"skipped_stale_forecast"}
 
 
 def test_bad_run_rejected(aws):

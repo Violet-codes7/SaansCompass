@@ -1,3 +1,4 @@
+import re
 import json
 
 import boto3
@@ -53,6 +54,24 @@ def test_bad_input_page_is_400_and_escaped(client):
 def test_poster(client):
     html = client.get("/poster?persona=older&area=rohini").get_data(as_text=True)
     assert "Rohini" in html and "not an official order" in html
+    for part in ("Today for you", "Your day, hour by hour", 'class="strip"', "Rules", "Do this today",
+                 "Scan for the live plan", "<svg", "i18n.js"):
+        assert part in html
+    assert re.search(r"(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day \d\d \w+ 20\d\d", html)
+
+
+def test_poster_qr_leaves_out_health_and_what_if(client):
+    html = client.get("/poster?persona=rider&area=ito&stage=IV&age=70&cond=asthma").get_data(as_text=True)
+    assert "Your health" in html  # the person asked for their own poster
+    assert "/plan?persona=rider&amp;area=ito<" in html
+    url = html.split('class="url"', 1)[1].split("</p>", 1)[0]
+    assert "asthma" not in url and "age" not in url and "stage" not in url
+
+
+def test_poster_lists_day_actions_not_rule_repeats(client):
+    html = client.get("/poster?persona=rider&area=ito&stage=IV").get_data(as_text=True)
+    todo = html.split('class="todo"', 1)[1].split("</section>", 1)[0]
+    assert "Not allowed at this GRAP stage" not in todo and "<li>" in todo
 
 
 def test_healthz(client):
@@ -116,8 +135,10 @@ def test_stage_links_poster_order_and_favicon(client):
     hard = client.get("/plan?persona=school&area=ito&stage=IV").get_data(as_text=True)
     assert "Try Stage IV" not in hard and "Set by the GRAP rules at Stage IV" in hard
     poster = client.get("/poster?persona=rider&area=ito&stage=IV").get_data(as_text=True)
-    assert poster.index("Not allowed") < poster.index("</ul>")
-    assert "No GRAP restrictions today" in client.get("/poster?persona=school&area=ito&stage=0").get_data(as_text=True)
+    rules = poster[poster.index('class="rules"'):]
+    assert rules.index("Not allowed") < rules.index("</ul>")
+    calm = client.get("/poster?persona=school&area=ito&stage=0").get_data(as_text=True)
+    assert "No restrictions today" in calm and "Check the official order" not in calm
     assert client.get("/favicon.ico").status_code == 301
     assert client.get("/static/favicon.svg").status_code == 200
 

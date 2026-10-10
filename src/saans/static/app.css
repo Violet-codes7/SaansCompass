@@ -23,7 +23,7 @@ h3{font-size:16px;margin:14px 0 6px}
 .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .two .panel{margin:0}
 @media (max-width:760px){.two{grid-template-columns:minmax(0,1fr)}}
-.banner.demo{background:#7a4b00;color:#fff;padding:10px 14px;border-radius:8px;font-weight:600}
+.banner.stale{background:#7a4b00;color:#fff;padding:10px 14px;border-radius:8px;font-weight:600}
 .hero p{max-width:60ch;color:var(--muted)}
 .picker fieldset{border:0;padding:0;margin:0 0 12px;display:grid;gap:8px}
 .picker legend{font-weight:600;margin-bottom:6px}
@@ -173,3 +173,42 @@ header.site .lang-status:empty{display:none}
 .cond summary{font-weight:600;cursor:pointer}
 .cond p{margin:4px 0;font-size:14px}
 .summary > div:first-child{flex:1 1 420px;min-width:0}
+
+/* Your day, hour by hour */
+.dp-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:10px}
+.dp-head h2{margin:0}
+.dp-legend{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.dp-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.dp-legend i.v-go{background:var(--ok)}.dp-legend i.v-limit{background:#d08a00}.dp-legend i.v-stay_in{background:var(--no)}
+.dp-chart{position:relative;height:190px;display:flex;align-items:flex-end;gap:4px;padding:0 0 22px;margin:4px 0 14px;border-bottom:1px solid var(--line);overflow-x:auto}
+.dp-col{flex:1 1 0;min-width:30px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;position:relative;border-radius:6px}
+.dp-col.is-best{background:color-mix(in srgb,var(--ok) 12%,transparent)}
+.dp-col.is-now{outline:2px solid var(--accent);outline-offset:1px}
+.dp-bar{border-radius:5px 5px 2px 2px;min-height:18px;display:flex;justify-content:center;align-items:flex-start;color:#fff;font-size:11px;padding-top:2px;transition:height .3s}
+.dp-bar.satisfactory,.dp-bar.moderate,.dp-bar.poor{color:#1a1a1a}
+.dp-col .t{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.dp-line{position:absolute;left:0;right:0;border-top:2px dashed;z-index:1;pointer-events:none}
+.dp-line span{position:absolute;right:2px;top:-18px;font-size:11px;background:var(--panel);padding:0 4px;border-radius:4px}
+.dp-line.go{border-color:var(--ok);color:var(--ok)}.dp-line.limit{border-color:#d08a00;color:#b07200}
+.dp-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.dp-hour{display:flex;gap:10px;border:1px solid var(--line);border-left:5px solid var(--chk);border-radius:8px;padding:8px 10px}
+.dp-hour.v-go{border-left-color:var(--ok)}.dp-hour.v-limit{border-left-color:#d08a00}.dp-hour.v-stay_in{border-left-color:var(--no)}
+.dp-hour.is-now{box-shadow:0 0 0 2px var(--accent)}
+.dp-hour .t{font-weight:700;font-variant-numeric:tabular-nums;min-width:44px}
+.dp-body{display:grid;gap:3px;min-width:0}
+.dp-top{display:flex;flex-direction:column;align-items:flex-start;gap:3px;font-size:14px}
+.dp-body p{margin:0;font-size:13px;color:var(--muted)}
+.tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--chk-bg);color:var(--chk)}
+.tag.best{background:var(--ok-bg);color:var(--ok);font-weight:600}
+.tag.break{background:#e3eefc;color:#1d4f91;font-weight:600}
+.tag.worst{background:var(--no-bg);color:var(--no);font-weight:600}
+.tag.now{background:var(--accent);color:#fff;font-weight:600}
+@media (prefers-color-scheme:dark){.tag.break{background:#1b2c44;color:#9cc3f5}}
+
+/* Please read */
+.note-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.note-list li{display:grid;gap:2px;align-content:start;padding:8px 10px;border-radius:8px;background:var(--bg);font-size:14px}
+.note-list li span{color:var(--muted);font-size:13px}
+.note-list li.note-stale,.note-list li.note-stage_official{background:#fff1d6}
+@media (prefers-color-scheme:dark){.note-list li.note-stale,.note-list li.note-stage_official{background:#3a2d17}}

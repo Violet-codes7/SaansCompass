@@ -1,5 +1,5 @@
-"""Alert Lambda: invoked by EventBridge Scheduler with {"run": "today"} at
-06:00 IST and {"run": "tomorrow"} at 19:00 IST."""
+"""Alert Lambda: invoked by EventBridge Scheduler with {"run": "today"} in the
+morning and {"run": "tomorrow"} in the evening (hours set in template.yaml)."""
 import json
 import logging
 import os

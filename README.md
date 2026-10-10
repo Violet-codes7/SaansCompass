@@ -6,7 +6,8 @@ Saans Compass tells a Delhi resident two things on a bad-air day: what the offic
 - **Your profile, in your own words.** Write what you do ("I deliver food on a scooter at night"). Google Gemini reads it into the closest kind of day (school, delivery rider, outdoor or construction worker, office commuter, retired, runner) and any hours it mentions; without an AI key a keyword match does the same. The plan says "We read you as: …" and lets you correct it. Then add age, 16 air-related health conditions (asthma, COPD, bronchitis, TB, COVID, allergies, sinusitis, sore eyes, heart, stroke, anaemia, diabetes, kidney disease, weak immunity, pregnancy, smoking), how you travel, your outdoor hours and whether you have an N95. Each condition sets how much stricter your thresholds are, whether GRAP's Stage IV charter for sensitive groups applies to you, and its own "why, what to do, watch for" advice. The profile lives in the page link only: nothing is stored.
 - **Automatic day and stage.** The plan opens on today, or on tomorrow after 8 PM IST, with both as tabs. The GRAP stage is the one CAQM declared (Parameter Store) or else an estimate from the PM2.5/PM10 forecast; "Try Stage III / IV" shows a bad-air day for demos.
 - **Rules in plain words.** Each GRAP answer says what it means for you, why the rule exists and what to do instead, with a ladder showing where today's stage sits. The official clause and Cedar policy id stay one click away.
-- **Health plan second.** The hourly Open-Meteo forecast becomes a plan: verdict and what it means, best and worst hours, commute AQI, tomorrow compared with today, your limits, a rough breath dose and a cigarette-equivalent.
+- **Health plan second.** The hourly Open-Meteo forecast becomes a plan: verdict and what it means, best and worst hours, commute AQI, tomorrow compared with today, your limits, a rough breath dose and a cigarette-equivalent. "Your day, hour by hour" draws a bar chart against your own limits and gives each hour a verdict in your persona's words ("Keep children indoors", "Short rides only"), tagged with your activities, the best or break window and the worst hour.
+- **Daily poster.** One printable A4 page (or PDF) per area and persona: verdict, AQI dial, GRAP stage, best and worst time, hour strip, today's rules and actions, your health tips, in English or Hindi, with a QR code to the live plan. The QR link carries only the persona and area, never health details.
 - **Personal advice and Hindi.** Google Gemini writes four short lines of personal advice (Claude on Amazon Bedrock is a one-parameter switch), and Amazon Polly reads them aloud. The model only rephrases: every rule decision stays on the page, unchanged. The English / हिंदी switch at the top converts the whole page with Amazon Translate, falling back to a built-in dictionary for headings and labels.
 - **Alerts.** Subscribe by email for an area. At 06:00 and 19:00 IST a scheduled Lambda checks every area and emails only where the plan changed.
 
@@ -25,7 +26,7 @@ Advisory only. Not medical advice and not an official order; CAQM declares the G
 | Voice | Amazon Polly (Kajal, en-IN and hi-IN) |
 | Hindi page | Amazon Translate (`translate:TranslateText`), cached in Lambda memory only |
 | Packaging | SAM / CloudFormation, code in the SAM-managed S3 bucket |
-| Ops | X-Ray tracing, a CloudWatch dashboard, CloudWatch logs (14 days), alarm on Alert Lambda errors, `DemoDataFallback` metric, optional $1 budget |
+| Ops | X-Ray tracing, a CloudWatch dashboard, CloudWatch logs (14 days), alarm on Alert Lambda errors, `StaleForecast` and `ForecastUnavailable` metrics, optional $1 budget |
 
 ```
 src/saans/
@@ -36,7 +37,7 @@ src/saans/
   personas.py   school, rider, older adult: hours, activities, effort
   dose.py       PM2.5 x breathing rate x minutes
   advisor.py    hour-by-hour plan, best window, verdict
-  data.py       9 Delhi areas, Open-Meteo fetch (3 s timeout), demo fallback
+  data.py       Open-Meteo fetch, last-real-forecast fallback, honest "unavailable"
   store.py      DynamoDB (or in-memory locally)
   service.py    the pipeline shared by web and alerts
   alerts.py     per-area change detection, SNS publish and subscribe
@@ -45,18 +46,25 @@ src/saans/
   explain.py    plain-language text for every GRAP rule, stage and AQI category
   i18n.py       English to Hindi: built-in dictionary, then Amazon Translate
   web.py        routes; lambda_handler.py and alert_handler.py are the entry points
+  settings.py   reads config/; any setting can be overridden by an environment variable
+  config/       settings.json plus the content: areas, AQI bands, personas, conditions,
+                rule explanations, plan sentences, AI prompts, Hindi words
 ```
 
 Routes: `/`, `/plan`, `/api/plan`, `/api/summary`, `/api/speak`, `POST /api/translate`, `/poster`, `POST /subscribe`, `/healthz`. Query: `job` (your own words) or `persona` (school, rider, worker, commuter, older, athlete), `area`, `stage` (0, I–IV, optional), `day` (today, tomorrow); `lang` (en, hi) for the summary routes.
 
 ## Which GRAP stage is used
 
-1. The stage you pick on the page (`stage=`), shown as "Official (you set it)".
+1. The stage you pick on the page (`stage=`), shown as "What-if: set by you".
 2. For today, the stage stored in Parameter Store, shown as "Declared by CAQM". When CAQM announces a stage, one command updates every page and the next alert run:
    ```bash
    aws ssm put-parameter --overwrite --name /saans-compass/official-stage --value III   # or unset
    ```
-3. Otherwise an estimate from the day's AQI, shown as "Estimate from AQI".
+3. Otherwise an estimate from the day's AQI, shown as "Estimated from the PM2.5/PM10 forecast".
+
+## Settings and content (no hardcoding)
+
+Nothing the app says or decides with is buried in code. `src/saans/config/settings.json` holds the runtime settings (URLs, timeouts, cache times, default and dashboard area, alert personas and hours, AI model, Polly voice, time zone). Each key can be overridden by an environment variable of the same name in capitals, for example `DASHBOARD_AREA=dwarka`; `template.yaml` sets the main ones from deploy parameters (`DefaultArea`, `DashboardArea`, `AlertPersonas`, `MorningAlertHour`, `EveningAlertHour`, `AiProvider`, `GeminiModel`). The other files in `config/` hold the content: the 9 areas, CPCB AQI breakpoints, the six personas and their hour-by-hour advice, health conditions, plain-language GRAP text, the plan's sentences and notes, the AI prompts and the Hindi dictionary. Edit a file and redeploy; no Python changes needed.
 
 ## AI summary
 
@@ -82,7 +90,7 @@ pytest -q                                   # unit tests, AWS mocked with moto
 cd src && flask --app "saans.web:create_app()" run   # http://127.0.0.1:5000
 ```
 
-Without AWS variables the app uses an in-memory cache, the subscribe form says alerts are not set up, and the AI panel is hidden. To try the summary locally with your own AWS sign-in, set `BEDROCK_MODEL=anthropic.claude-opus-5-5` and `BEDROCK_REGION=ap-south-1` before `flask run`. If the forecast cannot be reached, pages show a **Demo data** banner, and the alert run never emails demo data.
+Without AWS variables the app uses an in-memory cache, the subscribe form says alerts are not set up, and the AI panel is hidden. To try the summary locally with your own AWS sign-in, set `BEDROCK_MODEL=anthropic.claude-opus-5-5` and `BEDROCK_REGION=ap-south-1` before `flask run`. If the forecast cannot be reached, the app uses the last real forecast it fetched (up to 48 hours old) with an **Older forecast** banner; with none, it says the forecast is unavailable instead of showing made-up numbers. Alerts are never sent from an old or missing forecast.
 
 ## Deploy (region ap-south-1)
 

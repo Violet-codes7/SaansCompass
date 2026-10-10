@@ -63,3 +63,11 @@ def simple_gauge(value, lo, hi, unit, label):
     parts.append(_needle(a))
     shown = f"{value:.0f}{unit}" if abs(value) >= 10 or unit == "%" else f"{value:.1f}{unit}"
     return _svg(parts, f"{label}: {shown}", shown)
+
+
+def qr_code(url, label):
+    """A QR code for `url` as inline SVG, so a printed poster links back to the live plan."""
+    import segno
+
+    svg = segno.make(url, error="m").svg_inline(scale=3, border=2, dark="#000", light="#fff", omitsize=True)
+    return Markup(svg.replace("<svg ", f'<svg role="img" aria-label="{escape(label)}" ', 1))

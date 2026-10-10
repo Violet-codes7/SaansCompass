@@ -6,35 +6,14 @@ Each segment starts where the previous one ends so there are no gaps between
 CPCB's integer breakpoints (for example 30 and 31 µg/m³).
 """
 
+from . import settings
+
+_AQI = settings.load("aqi")
 # (concentration low, concentration high, index low, index high), µg/m³
-PM25_BREAKPOINTS = (
-    (0, 30, 0, 50),
-    (30, 60, 51, 100),
-    (60, 90, 101, 200),
-    (90, 120, 201, 300),
-    (120, 250, 301, 400),
-    (250, 380, 401, 500),
-)
-
-PM10_BREAKPOINTS = (
-    (0, 50, 0, 50),
-    (50, 100, 51, 100),
-    (100, 250, 101, 200),
-    (250, 350, 201, 300),
-    (350, 430, 301, 400),
-    (430, 510, 401, 500),
-)
-
-CATEGORIES = (
-    (50, "Good"),
-    (100, "Satisfactory"),
-    (200, "Moderate"),
-    (300, "Poor"),
-    (400, "Very Poor"),
-    (500, "Severe"),
-)
-
-MAX_AQI = 500
+PM25_BREAKPOINTS = tuple(tuple(b) for b in _AQI["pm25_breakpoints"])
+PM10_BREAKPOINTS = tuple(tuple(b) for b in _AQI["pm10_breakpoints"])
+CATEGORIES = tuple((c["max"], c["name"]) for c in _AQI["categories"])
+MAX_AQI = _AQI["max_aqi"]
 
 
 def sub_index(concentration, breakpoints):
@@ -72,7 +51,7 @@ def category(value):
     for upper, name in CATEGORIES:
         if value <= upper:
             return name
-    return "Severe"
+    return CATEGORIES[-1][1]
 
 
 def category_slug(value):

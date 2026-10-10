@@ -1,0 +1,85 @@
+{
+  "_about": "Sentences the plan is built from. {placeholders} are filled in by advisor.py.",
+  "hour_advice_default": {
+    "go": "Fine for outdoor activity.",
+    "limit": "Keep outdoor time short and easy.",
+    "stay_in": "Keep activity indoors."
+  },
+  "no_forecast_hour": "No forecast for this hour.",
+  "rule_floor_hour": "GRAP advises against outdoor activity at this stage.",
+  "verdict_note": "Set by the GRAP rules at Stage {stage}, not by the AQI alone.",
+  "no_data_verdict": "Not enough data",
+  "window_title": {
+    "cleanest": "Cleanest time for: {activity}",
+    "worst": "Best time for: {activity} (worst air, get off the road)"
+  },
+  "actions": {
+    "not_allowed": "Not allowed at this GRAP stage: {label}. Plan around it.",
+    "advised_against": "Skip or move indoors: {label} (GRAP citizen charter).",
+    "no_clean_window": "No clean window today. The least-bad time is {start} (AQI about {aqi}).",
+    "best_time": "Best time for {activity}: {start}–{end} (AQI about {aqi}).",
+    "break": "Take your break {start}–{end}, when the air is worst, indoors if you can.",
+    "mask_have": "Wear your N95 outdoors; it only works if it fits tightly with no gaps.",
+    "mask_advice": "A well-fitted N95 cuts what you breathe in outdoors; cloth and surgical masks do little.",
+    "windows": "Keep windows shut at the worst hours and air rooms out at the cleanest one.",
+    "watch_symptoms": "Watch for cough, wheeze, chest tightness or breathlessness, and go indoors if they start."
+  },
+  "suggestions": {
+    "not_allowed": "Restricted at the GRAP stage in force. The rule says what applies instead.",
+    "advised_against": "GRAP's citizen charter advises against this at this stage. Keep it indoors or skip it.",
+    "too_poor": "Even the cleanest time ({start}, AQI about {aqi}) is too poor. Keep it indoors.",
+    "cleaner_at": "Cleaner from {start} (AQI about {aqi}) than at {hour}.",
+    "take_break_at": "Take it from {start} instead, when the air is worst (AQI about {aqi}), and stay off the road.",
+    "very_poor_movable": "Air is very poor at this time. Move it indoors.",
+    "very_poor_fixed": "Air is very poor at this time. Keep it short and avoid busy roads."
+  },
+  "notes": {
+    "stale": {
+      "title": "Older forecast",
+      "text": "The live forecast could not be reached, so this plan uses the last one, fetched {fetched} IST."
+    },
+    "forecast": {
+      "title": "Forecast, not a sensor",
+      "text": "Numbers come from the Open-Meteo air-quality model, not a ground station. Hourly AQI is an estimate, since CPCB defines AQI on 24-hour averages."
+    },
+    "stage_estimate": {
+      "title": "The GRAP stage is our estimate",
+      "text": "It is worked out from the forecast. CAQM declares the official stage, so check its latest order before acting on a rule."
+    },
+    "stage_declared": {
+      "title": "GRAP stage from CAQM",
+      "text": "This is the stage CAQM declared, as entered by the Saans Compass team."
+    },
+    "stage_official": {
+      "title": "What-if stage",
+      "text": "You picked Stage {stage} to see what changes. It may not be the real stage today."
+    },
+    "limits": {
+      "title": "Your limits are our estimate",
+      "text": "The Go and Limit levels, breath dose and cigarette comparison are our own estimates, not official limits."
+    },
+    "limits_profile": {
+      "title": "Your limits are our estimate",
+      "text": "Your Go and Limit levels are {shift} AQI points lower because of: {reasons}. These, the breath dose and the cigarette comparison are our own estimates, not official limits."
+    },
+    "uncovered": {
+      "title": "Not covered by GRAP",
+      "text": "Answers marked \"Check the official order\" are things the GRAP schedule does not cover."
+    },
+    "medical": {
+      "title": "Not medical advice",
+      "text": "If you feel unwell, see a doctor. In an emergency, call 112."
+    }
+  },
+  "hour_verdict_labels": {
+    "go": "Fine for you",
+    "limit": "Keep it short",
+    "stay_in": "Stay in"
+  },
+  "hour_tags": {
+    "best": "Best time",
+    "break": "Break here",
+    "worst": "Worst air",
+    "now": "Now"
+  }
+}

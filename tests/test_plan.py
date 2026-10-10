@@ -67,12 +67,23 @@ def test_rules_come_before_advice_in_the_plan(mem_store, live_fetcher):
     assert by_id["outdoor_pe"]["rule"]["decision"] == "advised_against"
 
 
-def test_demo_fallback_is_labelled_and_not_cached(mem_store, failing_fetcher, capsys):
-    plan = get_plan("older", "dwarka", now=FIXED_NOW, fetcher=failing_fetcher)
-    assert plan["is_demo"] is True
-    assert plan["warnings"][0].startswith("Demo data")
-    assert "DemoDataFallback" in capsys.readouterr().out
+def test_no_forecast_means_no_plan_never_made_up_numbers(mem_store, failing_fetcher, capsys):
+    with pytest.raises(data.ForecastUnavailable):
+        get_plan("older", "dwarka", now=FIXED_NOW, fetcher=failing_fetcher)
+    assert "ForecastUnavailable" in capsys.readouterr().out
     assert mem_store.items == {}
+
+
+def test_outage_falls_back_to_the_last_real_forecast(mem_store, live_fetcher, failing_fetcher, capsys):
+    from datetime import timedelta
+    fresh = get_plan("older", "dwarka", now=FIXED_NOW, fetcher=live_fetcher)
+    later = FIXED_NOW + timedelta(hours=3)
+    plan = get_plan("older", "dwarka", now=later, fetcher=failing_fetcher)
+    assert plan["is_stale"] is True and plan["fetched_at"] == fresh["fetched_at"]
+    assert plan["warnings"][0].startswith("The live forecast could not be reached")
+    assert "StaleForecast" in capsys.readouterr().out
+    with pytest.raises(data.ForecastUnavailable):  # too old to use
+        get_plan("older", "dwarka", now=FIXED_NOW + timedelta(hours=49), fetcher=failing_fetcher)
 
 
 def test_forecast_is_cached(mem_store, live_fetcher):
@@ -91,13 +102,6 @@ def test_expired_cache_is_refetched(mem_store, live_fetcher):
 def test_tomorrow_uses_the_next_date(mem_store, live_fetcher):
     plan = get_plan("older", "ito", day="tomorrow", now=FIXED_NOW, fetcher=live_fetcher)
     assert plan["date"] == "2026-10-11" and plan["day"] == "tomorrow"
-
-
-def test_demo_data_covers_all_areas_and_days():
-    for area in data.AREAS.values():
-        hours = data.demo_hours(area, FIXED_NOW)
-        assert len(hours) == 24 * data.FORECAST_DAYS
-        assert hours[0]["time"] == "2026-10-10T00:00"
 
 
 def test_open_meteo_parser_handles_nulls_and_bad_shapes():

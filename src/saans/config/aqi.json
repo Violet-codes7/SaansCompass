@@ -1,0 +1,106 @@
+{
+  "_about": "CPCB AQI breakpoints (concentration low, high, index low, high) in µg/m³, for 24-hour averages.",
+  "pm25_breakpoints": [
+    [
+      0,
+      30,
+      0,
+      50
+    ],
+    [
+      30,
+      60,
+      51,
+      100
+    ],
+    [
+      60,
+      90,
+      101,
+      200
+    ],
+    [
+      90,
+      120,
+      201,
+      300
+    ],
+    [
+      120,
+      250,
+      301,
+      400
+    ],
+    [
+      250,
+      380,
+      401,
+      500
+    ]
+  ],
+  "pm10_breakpoints": [
+    [
+      0,
+      50,
+      0,
+      50
+    ],
+    [
+      50,
+      100,
+      51,
+      100
+    ],
+    [
+      100,
+      250,
+      101,
+      200
+    ],
+    [
+      250,
+      350,
+      201,
+      300
+    ],
+    [
+      350,
+      430,
+      301,
+      400
+    ],
+    [
+      430,
+      510,
+      401,
+      500
+    ]
+  ],
+  "categories": [
+    {
+      "max": 50,
+      "name": "Good"
+    },
+    {
+      "max": 100,
+      "name": "Satisfactory"
+    },
+    {
+      "max": 200,
+      "name": "Moderate"
+    },
+    {
+      "max": 300,
+      "name": "Poor"
+    },
+    {
+      "max": 400,
+      "name": "Very Poor"
+    },
+    {
+      "max": 500,
+      "name": "Severe"
+    }
+  ],
+  "max_aqi": 500
+}

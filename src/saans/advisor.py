@@ -8,12 +8,14 @@ import math
 
 from collections import Counter
 
-from . import data
+from . import data, settings
 from .aqi import category as aqi_category
 from .dose import total_dose
-from .explain import CATEGORY_IMPACT, POLLUTANTS, rule_text, stage_headline
+from .explain import CATEGORY_IMPACT, POLLUTANTS, VERDICT_MEANING, rule_text, stage_headline
 from .profile import COMMUTE_TIPS
 from .rules import ADVISED_AGAINST, NOT_ALLOWED, CHECK
+
+TEXT = settings.load("advice")
 
 
 def best_window(readings, minutes, prefer="cleanest"):
@@ -50,12 +52,6 @@ def verdict_for(persona, value):
     return "stay_in"
 
 
-VERDICT_MEANING = {
-    "go": "The air stays within your safe range for normal outdoor activity.",
-    "limit": "Go out if you need to, but keep it short and easy, and mask up.",
-    "stay_in": "The air is above your limit for outdoor activity: keep it indoors where you can.",
-}
-
 SEVERITY = {"go": 0, "limit": 1, "stay_in": 2}
 RULE_ORDER = {NOT_ALLOWED: 0, ADVISED_AGAINST: 1, CHECK: 2}
 
@@ -81,19 +77,9 @@ def rule_floor(persona, rules_by_activity, stage):
 
 def hour_advice(persona, value):
     if value is None:
-        return "No forecast for this hour."
+        return TEXT["no_forecast_hour"]
     v = verdict_for(persona, value)
-    if persona.id == "rider":
-        return {
-            "go": "Normal riding.",
-            "limit": "Wear a well-fitted N95 if you have one; take breaks off the road.",
-            "stay_in": "Worst hours: a good time for your break indoors.",
-        }[v]
-    return {
-        "go": "Fine for outdoor activity.",
-        "limit": "Keep outdoor time short and easy.",
-        "stay_in": "Keep activity indoors.",
-    }[v]
+    return (persona.hour_advice or TEXT["hour_advice_default"])[v]
 
 
 def _reading_at(readings, hour):
@@ -113,31 +99,88 @@ def _dominant(readings):
     return counts.most_common(1)[0][0] if counts else None
 
 
-def _actions(persona, profile, verdict, window, activities, commute, flex):
-    """Short, concrete things to do today, most important first."""
+def _rule_actions(activities):
+    """What the GRAP rules rule out today, as actions."""
     out = []
-    for a in activities:
-        if a["rule"] and a["rule"]["decision"] == NOT_ALLOWED:
-            out.append(f"Not allowed at this GRAP stage: {a['label']}. Plan around it.")
-    for a in activities:
-        if a["rule"] and a["rule"]["decision"] == ADVISED_AGAINST:
-            out.append(f"Skip or move indoors: {a['label']} (GRAP citizen charter).")
+    for decision, key in ((NOT_ALLOWED, "not_allowed"), (ADVISED_AGAINST, "advised_against")):
+        for a in activities:
+            if a["rule"] and a["rule"]["decision"] == decision:
+                out.append(TEXT["actions"][key].format(label=a["label"]))
+    return out
+
+
+def _day_actions(persona, profile, verdict, window, commute, flex):
+    """Short, concrete things to do today beyond the rules, most important first."""
+    out = []
     if window and window.get("clean") is False:
-        out.append(f"No clean window today. The least-bad time is {window['start']} (AQI about {window['avg_aqi']}).")
+        out.append(TEXT["actions"]["no_clean_window"].format(start=window["start"], aqi=window["avg_aqi"]))
     elif window and persona.flex_prefers == "cleanest" and verdict != "stay_in":
-        out.append(f"Best time for {flex.label}: {window['start']}–{window['end']} (AQI about {window['avg_aqi']}).")
+        out.append(TEXT["actions"]["best_time"].format(activity=flex.label, start=window["start"], end=window["end"],
+                                                       aqi=window["avg_aqi"]))
     elif window and persona.flex_prefers == "worst":
-        out.append(f"Take your break {window['start']}–{window['end']}, when the air is worst, indoors if you can.")
+        out.append(TEXT["actions"]["break"].format(start=window["start"], end=window["end"]))
     if verdict in ("limit", "stay_in"):
         if profile and profile.mask:
-            out.append("Wear your N95 outdoors; it only works if it fits tightly with no gaps.")
+            out.append(TEXT["actions"]["mask_have"])
         else:
-            out.append("A well-fitted N95 cuts what you breathe in outdoors; cloth and surgical masks do little.")
-        out.append("Keep windows shut at the worst hours and air rooms out at the cleanest one.")
+            out.append(TEXT["actions"]["mask_advice"])
+        out.append(TEXT["actions"]["windows"])
     if profile and profile.commute and COMMUTE_TIPS.get(profile.commute) and commute is not None:
         out.append(COMMUTE_TIPS[profile.commute])
     if profile and profile.sensitive and verdict != "go":
-        out.append("Watch for cough, wheeze, chest tightness or breathlessness, and go indoors if they start.")
+        out.append(TEXT["actions"]["watch_symptoms"])
+    return out
+
+
+def _tag_hours(readings, persona, window):
+    """Label each hour with what happens in it: the person's activities, the
+    best (or break) window and the worst hour."""
+    labels = TEXT["hour_tags"]
+    by_hour = {r["hour"]: r for r in readings}
+    for r in readings:
+        r["tags"] = []
+        r["verdict_label"] = TEXT["hour_verdict_labels"].get(r["verdict"], "")
+    for a in persona.activities:
+        if a.hour is None:
+            continue
+        for k in range(max(1, math.ceil((a.minutes or 60) / 60))):
+            r = by_hour.get((a.hour + k) % 24)
+            if r and a.label not in [t["text"] for t in r["tags"]]:
+                r["tags"].append({"kind": "activity", "text": a.label})
+    if window:
+        kind = "best" if persona.flex_prefers == "cleanest" else "break"
+        start, end = window["start_hour"], int(window["end"][:2])
+        h = start
+        while h != end:
+            if h in by_hour:
+                by_hour[h]["tags"].insert(0, {"kind": kind, "text": labels[kind]})
+            h = (h + 1) % 24
+    known = [r for r in readings if r["aqi"] is not None]
+    if known:
+        worst = max(known, key=lambda r: r["aqi"])
+        worst["tags"].insert(0, {"kind": "worst", "text": labels["worst"]})
+
+
+def _notes(forecast, stage_info, profile, rule_results):
+    """The "Please read" notes, most important first."""
+    n = TEXT["notes"]
+
+    def note(key, **kw):
+        return {"key": key, "title": n[key]["title"], "text": n[key]["text"].format(**kw)}
+
+    out = []
+    if forecast.get("is_stale"):
+        out.append(note("stale", fetched=forecast["fetched_at"][:16].replace("T", " ")))
+    out.append(note({"estimate": "stage_estimate", "declared": "stage_declared"}.get(stage_info["source"], "stage_official"),
+                    stage=stage_info["label"]))
+    out.append(note("forecast"))
+    if profile and profile.threshold_shift():
+        out.append(note("limits_profile", shift=profile.threshold_shift(), reasons=", ".join(profile.reasons())))
+    else:
+        out.append(note("limits"))
+    if any(r.decision == CHECK for r in rule_results):
+        out.append(note("uncovered"))
+    out.append(note("medical"))
     return out
 
 
@@ -145,6 +188,7 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
     readings = data.readings_for(forecast, date, persona.hours())
     for r in readings:
         r["advice"] = hour_advice(persona, r["aqi"])
+        r["verdict"] = verdict_for(persona, r["aqi"])
 
     rules_by_activity = {r.activity_id: r for r in rule_results}
     flex = persona.activity(persona.flex_activity)
@@ -163,10 +207,11 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
     verdict_note = None
     if floor and (verdict is None or SEVERITY[floor] > SEVERITY[verdict]):
         verdict = floor
-        verdict_note = f"Set by the GRAP rules at Stage {stage_info['label']}, not by the AQI alone."
+        verdict_note = TEXT["verdict_note"].format(stage=stage_info["label"])
     if floor == "stay_in" and persona.flex_prefers == "cleanest":
         for r in readings:
-            r["advice"] = "GRAP advises against outdoor activity at this stage."
+            r["advice"] = TEXT["rule_floor_hour"]
+            r["verdict"] = "stay_in"
     if window and persona.flex_prefers == "cleanest":
         window["clean"] = window["avg_aqi"] <= persona.limit_max
     flex_rule = rules_by_activity.get(flex.id)
@@ -183,21 +228,19 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
         at_aqi = at["aqi"] if at else None
         suggestion = None
         if rule and rule.decision == NOT_ALLOWED:
-            suggestion = "Restricted at the GRAP stage in force. The rule says what applies instead."
+            suggestion = TEXT["suggestions"]["not_allowed"]
         elif rule and rule.decision == ADVISED_AGAINST:
-            suggestion = "GRAP's citizen charter advises against this at this stage. Keep it indoors or skip it."
+            suggestion = TEXT["suggestions"]["advised_against"]
         elif a.id == flex.id and window and persona.flex_prefers == "cleanest" and verdict == "stay_in":
-            suggestion = (f"Even the cleanest time ({window['start']}, AQI about {window['avg_aqi']}) "
-                          "is too poor. Keep it indoors.")
+            suggestion = TEXT["suggestions"]["too_poor"].format(start=window["start"], aqi=window["avg_aqi"])
         elif a.id == flex.id and window and at_aqi is not None and window["start_hour"] != a.hour:
             if persona.flex_prefers == "cleanest" and window["avg_aqi"] < at_aqi:
-                suggestion = f"Cleaner from {window['start']} (AQI about {window['avg_aqi']}) than at {a.hour:02d}:00."
+                suggestion = TEXT["suggestions"]["cleaner_at"].format(start=window["start"], aqi=window["avg_aqi"],
+                                                                      hour=f"{a.hour:02d}:00")
             elif persona.flex_prefers == "worst" and window["avg_aqi"] > at_aqi:
-                suggestion = (f"Take it from {window['start']} instead, when the air is worst "
-                              f"(AQI about {window['avg_aqi']}), and stay off the road.")
+                suggestion = TEXT["suggestions"]["take_break_at"].format(start=window["start"], aqi=window["avg_aqi"])
         elif a.outdoor and at_aqi is not None and verdict_for(persona, at_aqi) == "stay_in":
-            suggestion = ("Air is very poor at this time. Move it indoors." if a.movable
-                          else "Air is very poor at this time. Keep it short and avoid busy roads.")
+            suggestion = TEXT["suggestions"]["very_poor_movable" if a.movable else "very_poor_fixed"]
         activities.append({
             "id": a.id,
             "label": a.label,
@@ -214,6 +257,8 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
         if a.hour is not None and a.outdoor and allowed and not persona.whole_window_exposure:
             segments.append(((at or {}).get("pm25"), a.effort, a.minutes))
 
+    _tag_hours(readings, persona, window)
+
     if persona.whole_window_exposure:
         # Every hour of the shift at the persona's effort, except the default
         # break hour, which is counted at the break's effort.
@@ -222,25 +267,11 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
             for r in readings
         ]
 
-    warnings = [
-        "Hourly AQI is an estimate: CPCB defines AQI on 24-hour averages.",
-        "The forecast is a model (Open-Meteo), not a ground station reading.",
-        "Activity thresholds and breath dose are our own estimates, not an official order. Not medical advice.",
-    ]
-    if stage_info["source"] == "estimate":
-        warnings.insert(0, "The GRAP stage is estimated from AQI. CAQM declares the official stage; set it if you know it.")
-    if profile and profile.threshold_shift():
-        warnings.append(f"Your Go and Limit thresholds are {profile.threshold_shift()} AQI points lower "
-                        f"because of: {', '.join(profile.reasons())}. Our heuristic, not medical advice.")
-    if forecast["is_demo"]:
-        warnings.insert(0, "Demo data: the live forecast could not be reached.")
-    if any(r.decision == CHECK for r in rule_results):
-        warnings.append('Some answers say "Check the official order": the GRAP schedule does not cover them.')
+    notes = _notes(forecast, stage_info, profile, rule_results)
+    day_actions = _day_actions(persona, profile, verdict, window, commute, flex)
 
-    if persona.flex_prefers == "cleanest":
-        window_title = f"Cleanest time for: {flex.label}"
-    else:
-        window_title = f"Best time for: {flex.label} (worst air, get off the road)"
+    window_title = TEXT["window_title"]["cleanest" if persona.flex_prefers == "cleanest" else "worst"].format(
+        activity=flex.label)
 
     day_aqi = stage_info.get("day_aqi")
     day_category = aqi_category(day_aqi) if day_aqi is not None else None
@@ -256,10 +287,10 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
         "area": {"id": area.id, "name": area.name},
         "date": date.isoformat(),
         "stage": stage_info,
-        "is_demo": forecast["is_demo"],
+        "is_stale": forecast.get("is_stale", False),
         "fetched_at": forecast["fetched_at"],
         "verdict": verdict,
-        "verdict_label": persona.verdict_labels[verdict] if verdict else "Not enough data",
+        "verdict_label": persona.verdict_labels[verdict] if verdict else TEXT["no_data_verdict"],
         "verdict_note": verdict_note,
         "verdict_meaning": VERDICT_MEANING.get(verdict),
         "best_window": window,
@@ -270,7 +301,8 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
         "activities": activities,
         "hours": readings,
         "dose": total_dose(segments),
-        "warnings": warnings,
+        "notes": notes,
+        "warnings": [n["text"] for n in notes],
         "dominant": dominant,
         "air": {
             "day_aqi": day_aqi,
@@ -292,5 +324,6 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
             **(profile.health() if profile else {"level": "higher" if persona.sensitive else "usual",
                                                  "shift": 0, "charter": persona.sensitive, "details": []}),
         },
-        "actions": _actions(persona, profile, verdict, window, activities, commute, flex),
+        "actions": _rule_actions(activities) + day_actions,
+        "day_actions": day_actions,
     }

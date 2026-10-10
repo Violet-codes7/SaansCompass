@@ -1,0 +1,59 @@
+{
+  "_about": "Approximate locations of well-known CPCB/DPCC monitoring sites.",
+  "areas": [
+    {
+      "id": "anand-vihar",
+      "name": "Anand Vihar",
+      "lat": 28.6469,
+      "lon": 77.3159
+    },
+    {
+      "id": "ito",
+      "name": "ITO",
+      "lat": 28.6286,
+      "lon": 77.241
+    },
+    {
+      "id": "punjabi-bagh",
+      "name": "Punjabi Bagh",
+      "lat": 28.674,
+      "lon": 77.131
+    },
+    {
+      "id": "rk-puram",
+      "name": "R K Puram",
+      "lat": 28.5633,
+      "lon": 77.1869
+    },
+    {
+      "id": "dwarka",
+      "name": "Dwarka",
+      "lat": 28.5921,
+      "lon": 77.046
+    },
+    {
+      "id": "rohini",
+      "name": "Rohini",
+      "lat": 28.7325,
+      "lon": 77.1199
+    },
+    {
+      "id": "okhla",
+      "name": "Okhla",
+      "lat": 28.5308,
+      "lon": 77.2713
+    },
+    {
+      "id": "lodhi-road",
+      "name": "Lodhi Road",
+      "lat": 28.5918,
+      "lon": 77.2273
+    },
+    {
+      "id": "jahangirpuri",
+      "name": "Jahangirpuri",
+      "lat": 28.7328,
+      "lon": 77.1706
+    }
+  ]
+}

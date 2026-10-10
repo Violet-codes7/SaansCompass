@@ -8,7 +8,7 @@
       <figure>{{ aqi_gauge(air_tomorrow.aqi, 'AQI tomorrow') }}
         <figcaption><b>Tomorrow</b> · {{ air_tomorrow.category if air_tomorrow.category else '' }}<br><small>Day average, forecast</small></figcaption></figure>
     </div>
-    <p class="small">Estimated from the Open-Meteo PM2.5/PM10 forecast with CPCB breakpoints{% if is_demo %}. <b>Demo data</b>{% endif %}.</p>
+    <p class="small">Estimated from the Open-Meteo PM2.5/PM10 forecast with CPCB breakpoints{% if is_stale %}. <b>The live forecast is unreachable: this is the last one, fetched {{ fetched_at[:16]|replace('T', ' ') }} IST</b>{% endif %}.</p>
   </div>
   <div class="dash-group">
     <h2>Weather now</h2>

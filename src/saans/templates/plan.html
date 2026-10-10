@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ plan.area.name }}: {{ plan.persona.label }} · Saans Compass{% endblock %}
 {% block main %}
-{% if plan.is_demo %}<div class="banner demo">Demo data: the live forecast could not be reached. Numbers below are not real.</div>{% endif %}
+{% if plan.is_stale %}<div class="banner stale">The live forecast cannot be reached right now. This plan uses the last forecast, fetched {{ plan.fetched_at[:16]|replace('T', ' ') }} IST.</div>{% endif %}
 
 <nav class="days" aria-label="Day">
   <a href="{{ plan_link(day='today') }}" {% if plan.day == 'today' %}aria-current="page"{% endif %}>Today <small>{{ plan.dates.today }}</small></a>
@@ -18,7 +18,7 @@
     <p class="question">
       {%- set bits = [] -%}
       {%- if plan.profile.age %}{% set _ = bits.append('Age ' ~ plan.profile.age) %}{% endif -%}
-      {%- for c in plan.health.reasons if c not in ('child', 'over 60') %}{% set _ = bits.append(c) %}{% endfor -%}
+      {%- for c in plan.health.condition_names %}{% set _ = bits.append(c) %}{% endfor -%}
       {%- if plan.profile.commute %}{% set _ = bits.append(plan.profile.commute) %}{% endif -%}
       {%- if plan.profile.hours %}{% set _ = bits.append('Outdoors ' ~ plan.profile.hours) %}{% endif -%}
       {%- if plan.profile.has_n95_mask %}{% set _ = bits.append('Has an N95') %}{% endif -%}
@@ -41,14 +41,14 @@
     <span class="eyebrow">GRAP stage</span>
     <strong>{{ plan.stage.headline.title }}</strong>
     <span class="small">{{ plan.stage.headline.sub }}</span>
-    <span class="src {{ plan.stage.source }}">{{ {'official': 'Demo: set by you', 'declared': 'Declared by CAQM'}.get(plan.stage.source, 'Estimated from the PM2.5/PM10 forecast') }}</span>
+    <span class="src {{ plan.stage.source }}">{{ stage_sources[plan.stage.source].label }}</span>
     {% if plan.stage.day_aqi is not none %}<span class="small">Day AQI about {{ plan.stage.day_aqi }} ({{ plan.air.category }}){% if plan.dominant %} · mostly {{ plan.dominant }}{% endif %}</span>{% endif %}
     {% if plan.stage.source != 'estimate' and plan.stage.estimate and plan.stage.estimate != plan.stage.label %}<span class="small">The forecast alone suggests {{ 'no stage' if plan.stage.estimate == 'None' else 'Stage ' ~ plan.stage.estimate }}.</span>{% endif %}
     {% if plan.stage.source == 'official' %}<a class="small" href="{{ plan_link(stage='') }}">Back to the real stage</a>{% endif %}
   </div>
 </section>
 
-{% with area_name=plan.area.name, air_now=plan.air_now, air_tomorrow=plan.air_tomorrow, is_demo=plan.is_demo %}{% include "_dash.html" %}{% endwith %}
+{% with area_name=plan.area.name, air_now=plan.air_now, air_tomorrow=plan.air_tomorrow, is_stale=plan.is_stale, fetched_at=plan.fetched_at %}{% include "_dash.html" %}{% endwith %}
 
 {% if plan.stage.stage is not none and plan.stage.stage < 3 %}
 <p class="try">Air is not bad enough for most GRAP rules today. See what changes on a bad-air day:
@@ -77,7 +77,7 @@
         <details><summary>Official source</summary>
           {% if r.clause %}<span class="clause">{{ r.clause }}</span> <code class="pid" title="Cedar policy" translate="no">{{ r.policy_id }}</code>{% endif %}
           {% if r.note %}<span class="note">{{ r.note }}</span>{% endif %}
-          <span class="small">From CAQM's GRAP schedule, Revision 29.09.2026. Anything the schedule does not cover says "Check the official order", never "Allowed".</span>
+          <span class="small">From CAQM's GRAP schedule, Revision {{ grap_revision }}. Anything the schedule does not cover says "Check the official order", never "Allowed".</span>
         </details>
       </li>
       {% endif %}
@@ -218,31 +218,56 @@
 </script>
 {% endif %}
 
-<section class="panel">
-  <h2>Your day, hour by hour</h2>
-  <div class="hours" tabindex="0" aria-label="Hourly AQI; scroll sideways for more hours">
+<section class="panel dayplan">
+  <div class="dp-head">
+    <div>
+      <h2>Your day, hour by hour</h2>
+      <p class="small">{{ plan.hours[0].time[11:16] if plan.hours }}–{{ plan.hours[-1].time[11:13] if plan.hours }}:59 · {{ plan.persona.question }}</p>
+    </div>
+    <ul class="dp-legend" aria-label="What the colours mean for you">
+      <li><i class="v-go"></i><span>{{ hour_labels.go }}</span> (AQI up to {{ plan.thresholds.go_max }})</li>
+      <li><i class="v-limit"></i><span>{{ hour_labels.limit }}</span> (up to {{ plan.thresholds.limit_max }})</li>
+      <li><i class="v-stay_in"></i><span>{{ hour_labels.stay_in }}</span> (above {{ plan.thresholds.limit_max }})</li>
+    </ul>
+  </div>
+  {% set now_hour = plan.air_now.time[11:13] if plan.day == 'today' else None %}
+  <div class="dp-chart" role="img" aria-label="Hourly AQI chart with your limits">
+    {% set top = 500 %}
+    <div class="dp-line go" style="bottom: {{ (plan.thresholds.go_max / top * 100)|round(1) }}%"><span>Fine ≤ {{ plan.thresholds.go_max }}</span></div>
+    <div class="dp-line limit" style="bottom: {{ (plan.thresholds.limit_max / top * 100)|round(1) }}%"><span>Short ≤ {{ plan.thresholds.limit_max }}</span></div>
     {% for h in plan.hours %}
-    <div class="hour {{ h.slug }}">
-      <span class="t">{{ '%02d'|format(h.hour) }}:00</span>
-      <b>{{ h.aqi if h.aqi is not none else '–' }}</b>
-      <span class="c">{{ h.category }}</span>
-      <span class="adv">{{ h.advice }}</span>
+    <div class="dp-col{% if h.tags|selectattr('kind', 'in', ['best', 'break'])|list %} is-best{% endif %}{% if now_hour and h.time[11:13] == now_hour %} is-now{% endif %}">
+      <div class="dp-bar {{ h.slug }}" style="height: {{ ([h.aqi or 0, top]|min / top * 100)|round(1) }}%"><b>{{ h.aqi if h.aqi is not none else '–' }}</b></div>
+      <span class="t">{{ h.time[11:13] }}</span>
     </div>
     {% endfor %}
   </div>
+  <ol class="dp-list">
+    {% for h in plan.hours %}
+    <li class="dp-hour v-{{ h.verdict or 'none' }}{% if now_hour and h.time[11:13] == now_hour %} is-now{% endif %}">
+      <span class="t">{{ h.time[11:16] }}</span>
+      <div class="dp-body">
+        <div class="dp-top"><b>{{ h.verdict_label }}</b> <span class="aqi {{ h.slug }}">AQI {{ h.aqi if h.aqi is not none else '–' }} · {{ h.category }}</span></div>
+        <p>{{ h.advice }}</p>
+        {% if h.tags or (now_hour and h.time[11:13] == now_hour) %}<p class="tags">{% if now_hour and h.time[11:13] == now_hour %}<span class="tag now">{{ hour_tags.now }}</span>{% endif %}{% for t in h.tags %}<span class="tag {{ t.kind }}">{{ t.text }}</span>{% endfor %}</p>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
 </section>
 
 <section class="panel notes">
   <h2>Please read</h2>
-  <ul>{% for w in plan.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+  <ul class="note-list">
+    {% for n in plan.notes %}<li class="note-{{ n.key }}"><b>{{ n.title }}</b><span>{{ n.text }}</span></li>{% endfor %}
+  </ul>
 </section>
 
 <section class="panel actions">
   <a class="button" href="{{ url_for('poster') }}?{{ request.query_string.decode() }}">Daily poster</a>
-  <a class="button ghost" href="{{ url_for('api_plan') }}?{{ request.query_string.decode() }}">JSON</a>
   <form method="post" action="{{ url_for('subscribe') }}" class="sub">
     <input type="hidden" name="area" value="{{ plan.area.id }}">
-    <label>Email alerts for {{ plan.area.name }} at 06:00 and 19:00 when the plan changes
+    <label>Email alerts for {{ plan.area.name }} at {{ '%02d:00'|format(alert_hours[0]) }} and {{ '%02d:00'|format(alert_hours[1]) }} when the plan changes
       <input type="email" name="email" required maxlength="254" placeholder="you@example.com"></label>
     <button type="submit">Subscribe</button>
   </form>

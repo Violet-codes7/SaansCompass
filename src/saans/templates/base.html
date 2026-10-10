@@ -27,7 +27,7 @@
   <footer class="site">
     Advisory only. Not medical advice and not an official order; CAQM declares the GRAP stage.
     Forecast: Open-Meteo air-quality model. AQI: CPCB breakpoints applied hourly (estimate).
-    More: <a href="https://ews.tropmet.res.in/">IITM air quality early warning and decision support system</a> · <a href="https://caqm.nic.in/">CAQM (official GRAP orders)</a>
+    More: {% for l in source_links %}<a href="{{ l.url }}">{{ l.label }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
   </footer>
   <script src="{{ url_for('static', filename='i18n.js') }}" data-api="{{ url_for('api_translate') }}"></script>
 </body>

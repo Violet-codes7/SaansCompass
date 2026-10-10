@@ -1,17 +1,18 @@
 """Flask routes: picker, plan page, JSON API, poster, subscribe, health check."""
 import logging
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 
-from . import ai, data, i18n
+from . import ai, data, i18n, settings
 from .alerts import subscribe as sns_subscribe
 from .personas import PERSONAS
 from . import gauges, weather
 from .aqi import category as aqi_category
-from .explain import STAGES
+from .advisor import TEXT as ADVICE_TEXT
+from .explain import STAGE_SOURCES, STAGES
 from .profile import COMMUTE_MODES, CONDITION_GROUPS, CONDITIONS, WORK, clean_job, guess_work, parse_profile
 from .service import air_now
 from .service import get_plan
@@ -46,9 +47,9 @@ def _read_work(job):
         out = {**out, "how": "ai"}
     else:
         guess = guess_work(job)
-        out = {"persona": guess or "commuter", "start_hour": None, "end_hour": None,
+        out = {"persona": guess or settings.get("fallback_persona"), "start_hour": None, "end_hour": None,
                "how": "keywords" if guess else "default"}
-    if len(_work_cache) >= 256:
+    if len(_work_cache) >= settings.get("work_cache_size"):
         _work_cache.pop(next(iter(_work_cache)))
     _work_cache[job] = out
     return out
@@ -58,13 +59,13 @@ def _persona_id():
     if request.args.get("persona"):
         return request.args["persona"]
     job = clean_job(request.args.get("job"))
-    return _read_work(job)["persona"] if job else "school"
+    return _read_work(job)["persona"] if job else settings.get("default_persona")
 
 
 def _plan_args():
     return {
         "persona_id": _persona_id(),
-        "area_id": request.args.get("area", "anand-vihar"),
+        "area_id": request.args.get("area") or settings.get("default_area"),
         "stage": request.args.get("stage"),
         "day": request.args.get("day") or None,  # empty means pick today/tomorrow from the clock
     }
@@ -80,9 +81,9 @@ def _build_plan():
 
 def _log_plan(plan):
     log.info(
-        "plan persona=%s area=%s stage=%s source=%s demo=%s",
+        "plan persona=%s area=%s stage=%s source=%s stale=%s",
         plan["persona"]["id"], plan["area"]["id"], plan["stage"]["label"],
-        plan["stage"]["source"], plan["is_demo"],
+        plan["stage"]["source"], plan["is_stale"],
     )
 
 
@@ -109,7 +110,16 @@ def create_app():
         return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN, "ai_enabled": ai.enabled(), "ai_label": ai.label(),
                 "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link,
                 "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge,
-                "condition_groups": CONDITION_GROUPS, "stages": STAGES}
+                "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES,
+                "hour_labels": ADVICE_TEXT["hour_verdict_labels"], "hour_tags": ADVICE_TEXT["hour_tags"],
+                "source_links": settings.get("source_links"),
+                "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision")}
+
+    @app.errorhandler(data.ForecastUnavailable)
+    def no_forecast(exc):
+        if request.path.startswith("/api/"):
+            return jsonify({"error": str(exc)}), 503
+        return render_template("error.html", message=str(exc)), 503
 
     @app.after_request
     def security_headers(resp):
@@ -120,15 +130,20 @@ def create_app():
 
     @app.get("/")
     def index():
-        # A live dashboard for central Delhi (ITO) above the form.
-        area = data.AREAS["ito"]
+        # A live dashboard for one area (dashboard_area) above the form.
+        area = data.get_area(settings.get("dashboard_area"))
         store = get_store()
         now = data.now_ist()
-        forecast = data.get_forecast(area, store, now=now)
-        tomorrow = data.day_aqi(forecast, now.date() + timedelta(days=1))
-        dash = {"area": area.name, "air_now": air_now(forecast, now), "is_demo": forecast["is_demo"],
-                "air_tomorrow": {"aqi": tomorrow, "category": aqi_category(tomorrow)}}
-        return render_template("index.html", dash=dash, weather=weather.get_weather(area, store))
+        try:
+            forecast = data.get_forecast(area, store, now=now)
+        except data.ForecastUnavailable:
+            dash = None
+        else:
+            tomorrow = data.day_aqi(forecast, now.date() + timedelta(days=1))
+            dash = {"area": area.name, "air_now": air_now(forecast, now), "is_stale": forecast["is_stale"],
+                    "fetched_at": forecast["fetched_at"],
+                    "air_tomorrow": {"aqi": tomorrow, "category": aqi_category(tomorrow)}}
+        return render_template("index.html", dash=dash, dash_area=area.name, weather=weather.get_weather(area, store))
 
     @app.get("/plan")
     def plan_page():
@@ -157,7 +172,14 @@ def create_app():
             plan = _build_plan()
         except ValueError as exc:
             return render_template("error.html", message=str(exc)), 400
-        return render_template("poster.html", plan=plan, args=args)
+        # The QR code opens the live plan for this persona and area only: no
+        # health details or what-if stage on a poster pinned to a wall.
+        public = request.url_root.rstrip("/") + url_for("plan_page") + "?" + urlencode(
+            {"persona": plan["persona"]["id"], "area": plan["area"]["id"]})
+        day = datetime.fromisoformat(plan["date"])
+        return render_template("poster.html", plan=plan, args=args, public_url=public,
+                               qr=gauges.qr_code(public, "QR code for the live plan"),
+                               date_label=day.strftime("%A %d %B %Y"))
 
     @app.get("/api/plan")
     def api_plan():
@@ -185,7 +207,7 @@ def create_app():
             if text is None:
                 text = ai.summarize(plan, lang)
                 if text:
-                    if len(_personal_cache) >= 128:
+                    if len(_personal_cache) >= settings.get("personal_cache_size"):
                         _personal_cache.pop(next(iter(_personal_cache)))
                     _personal_cache[key] = text
             return text

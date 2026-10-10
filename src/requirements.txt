@@ -5,3 +5,4 @@ apig-wsgi==2.20.0
 cedarpy==4.12.1
 requests==2.34.2
 anthropic[bedrock]==1.12.1
+segno==1.6.1

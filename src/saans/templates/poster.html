@@ -6,23 +6,130 @@
   <title>Poster: {{ plan.area.name }} {{ plan.date }}</title>
   <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='poster.css') }}">
+  <script>try { if (/[?&]lang=hi\b/.test(location.search) || localStorage.getItem("saans-lang") === "hi") document.documentElement.lang = "hi"; } catch (e) {}</script>
 </head>
 <body>
+  <nav class="toolbar noprint">
+    <a href="{{ url_for('plan_page') }}?{{ request.query_string.decode() }}">Back to the full plan</a>
+    <div class="langs" role="group" aria-label="Language" translate="no">
+      <button type="button" data-setlang="en" aria-pressed="true">English</button>
+      <button type="button" data-setlang="hi" aria-pressed="false">हिंदी</button>
+    </div>
+    <span id="lang-status" aria-live="polite" translate="no"></span>
+    <button type="button" class="print" onclick="window.print()">Print or save as PDF</button>
+  </nav>
+
+  {% set no_stage = plan.stage.stage == 0 %}
+  {% set win = (plan.hours|map(attribute='tags')|sum(start=[])|selectattr('kind', 'in', ['best', 'break'])|first) or {'text': hour_tags.best} %}
+  {% set stale = plan.notes|selectattr('key', 'equalto', 'stale')|first %}
   <article class="poster v-{{ plan.verdict or 'none' }}">
-    {% if plan.is_demo %}<p class="demo">DEMO DATA: NOT A REAL FORECAST</p>{% endif %}
-    <p class="date">{{ plan.date }}</p>
-    <h1>{{ plan.area.name }}</h1>
-    <p class="stage">{% if plan.stage.stage == 0 %}No GRAP restrictions today{% else %}GRAP {{ plan.stage.headline.title }}{% endif %} <small>({{ {'official': 'set by user', 'declared': 'declared by CAQM'}.get(plan.stage.source, 'estimate from AQI') }})</small></p>
-    <p class="who">{{ plan.persona.label }}</p>
-    <p class="verdict">{{ plan.verdict_label }}</p>
-    {% if plan.verdict_note %}<p class="window">{{ plan.verdict_note }}</p>{% endif %}
-    {% if plan.best_window %}<p class="window">{{ plan.best_window_title }}<br><b>{{ plan.best_window.start }}–{{ plan.best_window.end }}</b></p>{% endif %}
-    <h2>Rules</h2>
-    <ul>
-      {% for a in (plan.activities|selectattr('rule')|sort(attribute='rank')|list)[:3] %}<li><b>{{ a.rule.label }}</b>: {{ a.label }}{% if a.explain and a.explain.means %}<br><small>{{ a.explain.means }}</small>{% endif %}{% if a.rule.policy_id %} <code>{{ a.rule.policy_id }}</code>{% endif %}</li>{% endfor %}
-    </ul>
-    <p class="fine">Saans Compass · estimate from a forecast model · not medical advice · not an official order · CAQM declares the GRAP stage.</p>
-    <button class="noprint" onclick="window.print()">Print</button>
+    <header class="masthead">
+      <div>
+        <p class="brand">Saans Compass <span>· Daily air plan</span></p>
+        <h1>{{ plan.area.name }}</h1>
+        <p class="when">{{ date_label }}</p>
+      </div>
+      <p class="who"><span>Plan for</span><b>{{ plan.persona.label }}</b></p>
+    </header>
+
+    {% if stale %}<p class="flag stale">{{ stale.title }}: {{ stale.text }}</p>{% endif %}
+
+    <section class="hero">
+      <div class="dial">
+        {{ aqi_gauge(plan.air.day_aqi, "Air today") }}
+        <p class="cat {{ (plan.air.category or 'no data')|lower|replace(' ', '-') }}">{{ plan.air.category or 'No data' }}</p>
+        <p class="small">Air today (AQI)</p>
+      </div>
+      <div class="verdict-box">
+        <p class="eyebrow">Today for you</p>
+        <p class="verdict">{{ plan.verdict_label }}</p>
+        {% if plan.verdict_meaning %}<p class="meaning">{{ plan.verdict_meaning }}</p>{% endif %}
+        {% if plan.verdict_note %}<p class="small">{{ plan.verdict_note }}</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="stage-band s{{ plan.stage.stage if plan.stage.stage is not none else 'x' }}">
+      <p class="stage-title">{% if no_stage %}{{ plan.stage.headline.title }}{% else %}GRAP {{ plan.stage.headline.title }}{% endif %}</p>
+      <p class="stage-sub">{{ plan.stage.headline.sub }}</p>
+      <p class="stage-src">{{ stage_sources[plan.stage.source].short }}</p>
+    </section>
+
+    <section class="tiles">
+      {% if plan.best_window %}
+      <div class="tile best"><p class="k">{{ win.text }}</p>
+        <p class="v">{{ plan.best_window.start }}–{{ plan.best_window.end }}</p>
+        <p class="small">{{ plan.best_window_title }}</p></div>
+      {% endif %}
+      {% if plan.air.worst %}
+      <div class="tile worst"><p class="k">{{ hour_tags.worst }}</p>
+        <p class="v">{{ plan.air.worst.time }}</p>
+        <p class="small">AQI about {{ plan.air.worst.aqi }} ({{ plan.air.worst.category }}). Stay in or off busy roads.</p></div>
+      {% endif %}
+      {% if plan.air.cigarettes %}
+      <div class="tile smoke"><p class="k">Like smoking</p>
+        <p class="v">{{ plan.air.cigarettes }} <span class="unit">cigarette{{ '' if plan.air.cigarettes == 1 else 's' }}</span></p>
+        <p class="small">if you breathed this air all day (PM2.5 {{ plan.air.pm25_day }} µg/m³)</p></div>
+      {% elif plan.dose.ratio is not none %}
+      <div class="tile smoke"><p class="k">Breath dose</p>
+        <p class="v">{{ plan.dose.ratio }}×</p>
+        <p class="small">clean air, over {{ plan.dose.minutes }} min outdoors</p></div>
+      {% endif %}
+    </section>
+
+    {% if plan.hours %}
+    <section class="day">
+      <h2>Your day, hour by hour</h2>
+      <ol class="strip">
+        {% for h in plan.hours %}
+        {% set kinds = h.tags|map(attribute='kind')|list %}
+        <li class="{{ h.slug or 'no-data' }} v-{{ h.verdict or 'none' }}{% if 'best' in kinds or 'break' in kinds %} is-best{% endif %}{% if 'worst' in kinds %} is-worst{% endif %}">
+          <span class="h">{{ h.time[11:13] }}</span>
+          <b>{{ h.aqi if h.aqi is not none else '–' }}</b>
+          <i class="mark" aria-hidden="true">{% if 'best' in kinds or 'break' in kinds %}★{% elif 'worst' in kinds %}!{% endif %}</i>
+        </li>
+        {% endfor %}
+      </ol>
+      <ul class="legend">
+        <li><i class="v-go"></i><span>{{ hour_labels.go }}</span> (AQI ≤ {{ plan.thresholds.go_max }})</li>
+        <li><i class="v-limit"></i><span>{{ hour_labels.limit }}</span> (≤ {{ plan.thresholds.limit_max }})</li>
+        <li><i class="v-stay_in"></i><span>{{ hour_labels.stay_in }}</span> (&gt; {{ plan.thresholds.limit_max }})</li>
+        <li>★ <span>{{ win.text }}</span> · ! <span>{{ hour_tags.worst }}</span></li>
+      </ul>
+    </section>
+    {% endif %}
+
+    <div class="cols">
+      <section class="rules">
+        <h2>{{ 'Rules today' if not no_stage else 'Rules' }}</h2>
+        <ul>
+          {% for a in (plan.activities|selectattr('rule')|rejectattr('rule.decision', 'equalto', 'check_official_order' if no_stage else '')|sort(attribute='rank')|list)[:4] %}
+          <li class="{{ a.rule.decision }}"><span class="pill">{{ a.rule.label }}</span> <b>{{ a.label }}</b>{% if a.explain and a.explain.means %}<small>{{ a.explain.means }}</small>{% endif %}</li>
+          {% else %}<li class="allowed"><b>{{ plan.stage.headline.sub }}</b></li>
+          {% endfor %}
+        </ul>
+      </section>
+      <section class="todo">
+        <h2>Do this today</h2>
+        <ol>{% for a in plan.day_actions[:4] %}<li>{{ a }}</li>{% else %}<li>{{ plan.verdict_meaning }}</li>{% endfor %}</ol>
+      </section>
+    </div>
+
+    {% if plan.health and plan.health.tips %}
+    <section class="health">
+      <h2>Your health</h2>
+      <ul>{% for t in plan.health.tips[:3] %}<li>{{ t }}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+
+    <footer class="foot">
+      <div class="qr">{{ qr }}</div>
+      <div>
+        <p class="scan">Scan for the live plan</p>
+        <p class="url" translate="no">{{ public_url }}</p>
+        <p class="fine">Estimate from the Open-Meteo forecast model. Not medical advice and not an official order; CAQM declares the GRAP stage (rules: GRAP Rev. {{ grap_revision }}).</p>
+      </div>
+    </footer>
   </article>
+  <script src="{{ url_for('static', filename='i18n.js') }}" data-api="{{ url_for('api_translate') }}"></script>
 </body>
 </html>

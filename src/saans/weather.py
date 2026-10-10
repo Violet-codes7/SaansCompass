@@ -1,20 +1,18 @@
 """Current weather for an area, from the Open-Meteo forecast API (no key).
 
 Weather explains the air: still, humid air holds pollution near the ground,
-and wind clears it. Cached for 30 minutes. On any failure the page simply
-shows no weather; there is no demo fallback for it.
+and wind clears it. Cached for weather_cache_minutes. On any failure the page simply
+shows no weather; nothing is made up in its place.
 """
 import json
 import logging
 
 import requests
 
-from . import data
+from . import settings
 
 log = logging.getLogger(__name__)
 
-WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
-CACHE_SECONDS = 30 * 60
 
 
 def fetch_weather(area, session=None):
@@ -23,9 +21,10 @@ def fetch_weather(area, session=None):
         "longitude": area.lon,
         "current": "temperature_2m,relative_humidity_2m,wind_speed_10m",
         "wind_speed_unit": "kmh",
-        "timezone": "Asia/Kolkata",
+        "timezone": settings.get("timezone"),
     }
-    resp = (session or requests).get(WEATHER_URL, params=params, timeout=data.TIMEOUT_SECONDS)
+    resp = (session or requests).get(settings.get("weather_url"), params=params,
+                                     timeout=settings.get("http_timeout_seconds"))
     resp.raise_for_status()
     cur = resp.json()["current"]
     return {
@@ -69,7 +68,7 @@ def get_weather(area, store, fetcher=None):
         log.warning("weather for %s failed: %s", area.id, exc)
         return None
     try:
-        store.put_text(key, json.dumps(w), ttl_seconds=CACHE_SECONDS)
+        store.put_text(key, json.dumps(w), ttl_seconds=settings.get("weather_cache_minutes") * 60)
     except Exception as exc:
         log.warning("could not cache weather for %s: %s", area.id, exc)
     w["note"] = explain(w)

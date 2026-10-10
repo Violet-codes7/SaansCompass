@@ -1,0 +1,317 @@
+{
+  "_about": "Who the user is: activities, day window, effort and thresholds. Thresholds and schedules are our own heuristics, not an official order.",
+  "ventilation_m3_per_hour": {
+    "rest": 0.5,
+    "light": 1.0,
+    "moderate": 1.6,
+    "heavy": 3.0
+  },
+  "personas": [
+    {
+      "id": "school",
+      "label": "School coordinator or parent",
+      "question": "Should outdoor assembly, PE and recess happen today?",
+      "start_hour": 7,
+      "end_hour": 15,
+      "effort": "light",
+      "sensitive": true,
+      "go_max": 100,
+      "limit_max": 200,
+      "flex_activity": "outdoor_pe",
+      "flex_prefers": "cleanest",
+      "commute_hour": 7,
+      "activities": [
+        {
+          "id": "school_commute",
+          "label": "Morning commute",
+          "hour": 7,
+          "minutes": 30,
+          "movable": false
+        },
+        {
+          "id": "outdoor_assembly",
+          "label": "Outdoor assembly",
+          "hour": 8,
+          "minutes": 20
+        },
+        {
+          "id": "outdoor_recess",
+          "label": "Outdoor recess",
+          "hour": 11,
+          "minutes": 30,
+          "effort": "moderate"
+        },
+        {
+          "id": "outdoor_pe",
+          "label": "Outdoor PE / sports",
+          "hour": 12,
+          "minutes": 40,
+          "effort": "heavy"
+        },
+        {
+          "id": "physical_classes_primary",
+          "label": "Fully in-person classes, up to Class V",
+          "outdoor": false
+        },
+        {
+          "id": "physical_classes_senior",
+          "label": "Fully in-person classes, Class VI to IX and XI",
+          "outdoor": false
+        }
+      ],
+      "verdict_labels": {
+        "go": "Go outdoors",
+        "limit": "Limit outdoor time",
+        "stay_in": "Keep activities indoors"
+      },
+      "whole_window_exposure": false,
+      "hour_advice": {
+        "go": "Fine for outdoor play and PE.",
+        "limit": "Short, easy outdoor time only; no hard sport.",
+        "stay_in": "Keep children indoors."
+      }
+    },
+    {
+      "id": "rider",
+      "label": "Delivery or gig rider",
+      "question": "How exposed will I be on today's shift, and which hours are worst?",
+      "start_hour": 11,
+      "end_hour": 21,
+      "effort": "moderate",
+      "sensitive": false,
+      "go_max": 200,
+      "limit_max": 300,
+      "flex_activity": "rest_break",
+      "flex_prefers": "worst",
+      "commute_hour": 11,
+      "activities": [
+        {
+          "id": "outdoor_shift",
+          "label": "Riding shift on a two-wheeler"
+        },
+        {
+          "id": "rest_break",
+          "label": "Main rest break",
+          "hour": 15,
+          "minutes": 60,
+          "effort": "rest",
+          "ruled": false
+        },
+        {
+          "id": "drive_bs3_petrol_bs4_diesel_car",
+          "label": "Deliveries in a BS-III petrol or BS-IV (or older) diesel car",
+          "outdoor": false
+        },
+        {
+          "id": "drive_bs4_diesel_lgv_outside",
+          "label": "Light goods vehicle, BS-IV or older diesel, registered outside Delhi",
+          "outdoor": false
+        },
+        {
+          "id": "drive_bs4_diesel_mgv",
+          "label": "Medium goods vehicle, BS-IV or older diesel",
+          "outdoor": false
+        }
+      ],
+      "verdict_labels": {
+        "go": "Normal shift",
+        "limit": "Take breaks indoors",
+        "stay_in": "Cut outdoor hours"
+      },
+      "whole_window_exposure": true,
+      "hour_advice": {
+        "go": "Normal riding.",
+        "limit": "Wear a well-fitted N95 if you have one; take breaks off the road.",
+        "stay_in": "Worst hours: a good time for your break indoors."
+      }
+    },
+    {
+      "id": "older",
+      "label": "Older adult or person with breathing trouble",
+      "question": "Is it safe to walk or go out today?",
+      "start_hour": 6,
+      "end_hour": 21,
+      "effort": "light",
+      "sensitive": true,
+      "go_max": 100,
+      "limit_max": 200,
+      "flex_activity": "outdoor_walk",
+      "flex_prefers": "cleanest",
+      "commute_hour": null,
+      "activities": [
+        {
+          "id": "outdoor_walk",
+          "label": "Walk outside",
+          "hour": 7,
+          "minutes": 30
+        },
+        {
+          "id": "outdoor_errands",
+          "label": "Errands on foot",
+          "hour": 17,
+          "minutes": 45
+        }
+      ],
+      "verdict_labels": {
+        "go": "Fine to go out",
+        "limit": "Go out briefly",
+        "stay_in": "Stay in"
+      },
+      "whole_window_exposure": false,
+      "hour_advice": {
+        "go": "Good time for a gentle walk.",
+        "limit": "A short, slow walk at most.",
+        "stay_in": "Stay indoors."
+      }
+    },
+    {
+      "id": "worker",
+      "label": "Outdoor or construction worker",
+      "question": "How much will I breathe in on today's shift, and when should I rest?",
+      "start_hour": 8,
+      "end_hour": 18,
+      "effort": "moderate",
+      "sensitive": false,
+      "go_max": 150,
+      "limit_max": 250,
+      "flex_activity": "work_break",
+      "flex_prefers": "worst",
+      "commute_hour": 8,
+      "activities": [
+        {
+          "id": "outdoor_work_shift",
+          "label": "Outdoor work shift"
+        },
+        {
+          "id": "work_break",
+          "label": "Main rest break",
+          "hour": 13,
+          "minutes": 60,
+          "effort": "rest",
+          "ruled": false
+        },
+        {
+          "id": "dusty_construction_work",
+          "label": "Dusty construction work (digging, demolition, masonry, tile cutting, road work)"
+        },
+        {
+          "id": "other_construction_work",
+          "label": "Less dusty construction work (finishing, electrical, plumbing)"
+        }
+      ],
+      "verdict_labels": {
+        "go": "Normal shift",
+        "limit": "Mask up and rest indoors",
+        "stay_in": "Cut outdoor hours"
+      },
+      "whole_window_exposure": true,
+      "hour_advice": {
+        "go": "Normal work.",
+        "limit": "Mask up; rest in the shade or indoors.",
+        "stay_in": "Worst air: rest indoors if you can."
+      }
+    },
+    {
+      "id": "commuter",
+      "label": "Office commuter",
+      "question": "How should I get to work today, and is a walk at lunch a good idea?",
+      "start_hour": 8,
+      "end_hour": 20,
+      "effort": "light",
+      "sensitive": false,
+      "go_max": 150,
+      "limit_max": 250,
+      "flex_activity": "lunch_walk",
+      "flex_prefers": "cleanest",
+      "commute_hour": 9,
+      "activities": [
+        {
+          "id": "morning_commute",
+          "label": "Morning commute",
+          "hour": 9,
+          "minutes": 45,
+          "movable": false
+        },
+        {
+          "id": "lunch_walk",
+          "label": "Walk at lunch",
+          "hour": 13,
+          "minutes": 20
+        },
+        {
+          "id": "evening_commute",
+          "label": "Evening commute",
+          "hour": 18,
+          "minutes": 45,
+          "movable": false
+        },
+        {
+          "id": "office_attendance",
+          "label": "Going in to the office (not working from home)",
+          "outdoor": false
+        },
+        {
+          "id": "drive_private_car",
+          "label": "Driving your own car (BS-VI petrol or newer)",
+          "outdoor": false
+        },
+        {
+          "id": "drive_bs3_petrol_bs4_diesel_car",
+          "label": "Driving a BS-III petrol or BS-IV (or older) diesel car",
+          "outdoor": false
+        }
+      ],
+      "verdict_labels": {
+        "go": "Normal day",
+        "limit": "Keep outdoor time short",
+        "stay_in": "Stay inside where you can"
+      },
+      "whole_window_exposure": false,
+      "hour_advice": {
+        "go": "Fine to walk or travel.",
+        "limit": "Keep walks short; mask up in traffic.",
+        "stay_in": "Stay inside; travel by metro or a closed car."
+      }
+    },
+    {
+      "id": "athlete",
+      "label": "Runner or athlete",
+      "question": "When is the safest time to train outdoors today?",
+      "start_hour": 5,
+      "end_hour": 21,
+      "effort": "heavy",
+      "sensitive": false,
+      "go_max": 100,
+      "limit_max": 150,
+      "flex_activity": "outdoor_training",
+      "flex_prefers": "cleanest",
+      "commute_hour": null,
+      "activities": [
+        {
+          "id": "warm_up_walk",
+          "label": "Warm-up walk",
+          "hour": 6,
+          "minutes": 15
+        },
+        {
+          "id": "outdoor_training",
+          "label": "Outdoor run or training",
+          "hour": 6,
+          "minutes": 60,
+          "effort": "heavy"
+        }
+      ],
+      "verdict_labels": {
+        "go": "Train outdoors",
+        "limit": "Go easy or train indoors",
+        "stay_in": "Train indoors today"
+      },
+      "whole_window_exposure": false,
+      "hour_advice": {
+        "go": "Good for training.",
+        "limit": "Easy session only.",
+        "stay_in": "Train indoors."
+      }
+    }
+  ]
+}

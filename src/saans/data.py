@@ -1,26 +1,28 @@
 """Delhi areas and the hourly PM2.5 / PM10 forecast for them.
 
 The live source is the Open-Meteo air-quality API (a model forecast, not a
-sensor reading). Results are cached for 30 minutes. If the API fails or takes
-longer than 3 seconds, clearly labelled demo data is used instead.
+sensor reading). Results are cached (forecast_cache_minutes). If the API
+fails, the last real forecast for the area is used and labelled with when it
+was fetched (up to last_forecast_hours old). With no real forecast at all,
+ForecastUnavailable is raised: the app never makes numbers up.
 """
 import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 import requests
 
 from . import aqi as aqi_mod
+from . import settings
 
 log = logging.getLogger(__name__)
 
-IST = timezone(timedelta(hours=5, minutes=30), "IST")  # India has no daylight saving
-OPEN_METEO_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
-TIMEOUT_SECONDS = 3
-FORECAST_DAYS = 3  # today, tomorrow, and the day after for shifts that cross midnight
-DEMO_PROFILE = Path(__file__).parent / "data" / "demo_profile.json"
+IST = settings.tz()
+
+
+class ForecastUnavailable(Exception):
+    """No live or recent real forecast for an area."""
 
 
 @dataclass(frozen=True)
@@ -31,21 +33,7 @@ class Area:
     lon: float
 
 
-# Approximate locations of well-known CPCB/DPCC monitoring sites.
-AREAS = {
-    a.id: a
-    for a in (
-        Area("anand-vihar", "Anand Vihar", 28.6469, 77.3159),
-        Area("ito", "ITO", 28.6286, 77.2410),
-        Area("punjabi-bagh", "Punjabi Bagh", 28.6740, 77.1310),
-        Area("rk-puram", "R K Puram", 28.5633, 77.1869),
-        Area("dwarka", "Dwarka", 28.5921, 77.0460),
-        Area("rohini", "Rohini", 28.7325, 77.1199),
-        Area("okhla", "Okhla", 28.5308, 77.2713),
-        Area("lodhi-road", "Lodhi Road", 28.5918, 77.2273),
-        Area("jahangirpuri", "Jahangirpuri", 28.7328, 77.1706),
-    )
-}
+AREAS = {a["id"]: Area(**a) for a in settings.load("areas")["areas"]}
 
 
 def get_area(area_id):
@@ -60,16 +48,16 @@ def now_ist():
 
 
 def fetch_open_meteo(area, session=None):
-    """Return a list of {time, pm25, pm10} for FORECAST_DAYS days, in IST."""
+    """Return a list of {time, pm25, pm10} for forecast_days days, in IST."""
     params = {
         "latitude": area.lat,
         "longitude": area.lon,
         "hourly": "pm2_5,pm10",
-        "timezone": "Asia/Kolkata",
-        "forecast_days": FORECAST_DAYS,
+        "timezone": settings.get("timezone"),
+        "forecast_days": settings.get("forecast_days"),
     }
     get = (session or requests).get
-    resp = get(OPEN_METEO_URL, params=params, timeout=TIMEOUT_SECONDS)
+    resp = get(settings.get("open_meteo_url"), params=params, timeout=settings.get("http_timeout_seconds"))
     resp.raise_for_status()
     hourly = resp.json()["hourly"]
     times, pm25, pm10 = hourly["time"], hourly["pm2_5"], hourly["pm10"]
@@ -88,25 +76,7 @@ def _clean(value):
     return value if value >= 0 else None
 
 
-def demo_hours(area, now):
-    profile = json.loads(DEMO_PROFILE.read_text(encoding="utf-8"))
-    mult = profile["area_multiplier"][area.id]
-    start = now.astimezone(IST).replace(hour=0, minute=0, second=0, microsecond=0)
-    out = []
-    for day in range(FORECAST_DAYS):
-        day_mult = mult * (1 + profile["daily_increase"] * day)
-        for hour, base in enumerate(profile["pm25_by_hour"]):
-            t = start + timedelta(days=day, hours=hour)
-            pm25 = round(base * day_mult, 1)
-            out.append({
-                "time": t.strftime("%Y-%m-%dT%H:%M"),
-                "pm25": pm25,
-                "pm10": round(pm25 * profile["pm10_ratio"], 1),
-            })
-    return out
-
-
-def emit_demo_metric(area_id):
+def emit_fallback_metric(area_id, name):
     """CloudWatch custom metric via Embedded Metric Format (a structured log line)."""
     print(json.dumps({
         "_aws": {
@@ -114,16 +84,17 @@ def emit_demo_metric(area_id):
             "CloudWatchMetrics": [{
                 "Namespace": "SaansCompass",
                 "Dimensions": [[]],
-                "Metrics": [{"Name": "DemoDataFallback", "Unit": "Count"}],
+                "Metrics": [{"Name": name, "Unit": "Count"}],
             }],
         },
-        "DemoDataFallback": 1,
+        name: 1,
         "area": area_id,
     }))
 
 
 def get_forecast(area, store, now=None, fetcher=None):
-    """Forecast for an area: cache, then Open-Meteo, then demo data."""
+    """Forecast for an area: cache, then Open-Meteo, then the last real
+    forecast (marked stale). Raises ForecastUnavailable if there is none."""
     now = now or now_ist()
     fetcher = fetcher or fetch_open_meteo  # looked up at call time so tests can replace it
     date_key = now.astimezone(IST).strftime("%Y-%m-%d")
@@ -132,14 +103,20 @@ def get_forecast(area, store, now=None, fetcher=None):
     if cached:
         return cached
     try:
-        forecast = {"hours": fetcher(area), "is_demo": False, "fetched_at": now.isoformat()}
-    except Exception as exc:  # network, HTTP, JSON or shape errors all fall back
-        log.warning("forecast for %s failed, using demo data: %s", area.id, exc)
-        emit_demo_metric(area.id)
-        # Demo data is not cached, so the next request retries the live source.
-        return {"hours": demo_hours(area, now), "is_demo": True, "fetched_at": now.isoformat()}
+        forecast = {"hours": fetcher(area), "is_stale": False, "fetched_at": now.isoformat()}
+    except Exception as exc:  # network, HTTP, JSON or shape errors
+        log.warning("forecast for %s failed: %s", area.id, exc)
+        last = store.get_last_forecast(area.id, now=epoch)
+        if last:
+            emit_fallback_metric(area.id, "StaleForecast")
+            return {**last, "is_stale": True}
+        emit_fallback_metric(area.id, "ForecastUnavailable")
+        raise ForecastUnavailable(
+            f"The live forecast for {area.name} cannot be reached right now. Please try again in a few minutes."
+        ) from exc
     try:
         store.put_forecast(area.id, date_key, forecast, now=epoch)
+        store.put_last_forecast(area.id, forecast, now=epoch)
     except Exception as exc:
         log.warning("could not cache forecast for %s: %s", area.id, exc)
     return forecast

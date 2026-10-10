@@ -5,6 +5,8 @@ uses the AQI bands GRAP is defined on: Stage I 201-300, Stage II 301-400,
 Stage III 401-450, Stage IV above 450.
 """
 
+from . import settings
+
 ROMAN = {0: "None", 1: "I", 2: "II", 3: "III", 4: "IV"}
 _PARSE = {
     "0": 0, "none": 0,
@@ -15,18 +17,17 @@ _PARSE = {
 }
 
 
+# The lowest day AQI of each stage, from config/explain.json.
+_STAGE_MIN_AQI = sorted(((int(k), v["min_aqi"]) for k, v in settings.load("explain")["stages"].items()), reverse=True)
+
+
 def stage_from_aqi(value):
     if value is None:
         return None
-    if value <= 200:
-        return 0
-    if value <= 300:
-        return 1
-    if value <= 400:
-        return 2
-    if value <= 450:
-        return 3
-    return 4
+    for stage, min_aqi in _STAGE_MIN_AQI:
+        if value >= min_aqi:
+            return stage
+    return 0
 
 
 def parse_stage(raw):
@@ -60,7 +61,6 @@ def resolve_stage(day_aqi, official=None, declared=None):
 
 
 _declared_cache = {"at": 0.0, "value": None}
-DECLARED_CACHE_SECONDS = 300
 
 
 def declared_stage(ssm=None, now=None):
@@ -76,7 +76,7 @@ def declared_stage(ssm=None, now=None):
     if not name:
         return None
     now = now if now is not None else time.time()
-    if ssm is None and now - _declared_cache["at"] < DECLARED_CACHE_SECONDS:
+    if ssm is None and now - _declared_cache["at"] < settings.get("declared_stage_cache_seconds"):
         return _declared_cache["value"]
     try:
         if ssm is None:
