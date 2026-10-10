@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block main %}
 <section class="hero">
+  <p class="hero-tags"><span class="mono-tag">{{ brand.tag }}</span></p>
   <h1>Your air plan for today</h1>
   {% if not saved %}<p>{{ brand.home_intro }}</p>{% endif %}
 </section>

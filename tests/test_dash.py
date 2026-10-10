@@ -136,8 +136,9 @@ def test_particles_use_24_hours_when_known():
 
 def test_hours_are_clickable_with_full_details(mem_store, monkeypatch, live_fetcher):
     monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
-    wx = dict(FULL_WX, hours=[{"time": f"2026-10-10T{h:02d}:00", "temp_c": 20.0 + h, "humidity": 60.0,
-                               "wind_kmh": 3.0, "wind_dir": 300.0, "mixing_m": 250.0} for h in range(24)])
+    days = ("2026-10-10", "2026-10-11", "2026-10-12")  # the fake forecast's days, so the test runs on any of them
+    wx = dict(FULL_WX, hours=[{"time": f"{d}T{h:02d}:00", "temp_c": 20.0 + h, "humidity": 60.0,
+                               "wind_kmh": 3.0, "wind_dir": 300.0, "mixing_m": 250.0} for d in days for h in range(24)])
     monkeypatch.setattr(weather, "fetch_weather", lambda area: wx)
     html = create_app().test_client().get("/plan?persona=commuter&area=ito&day=today").get_data(as_text=True)
     panels = html.split('class="dp-detail')[1:]
