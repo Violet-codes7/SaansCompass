@@ -249,3 +249,10 @@ def test_air_section_can_be_changed_for_the_day(client, monkeypatch):
     assert "<h1" in html and "ITO · " in html  # the plan itself stays on ITO
     monkeypatch.setattr(data, "geocode", lambda text, session=None: None)
     assert "Atlantis" in client.get(client.get(base + "&air_place=Atlantis").headers["Location"]).get_data(as_text=True)
+
+
+def test_grap_section_shows_start_and_destination_air(client):
+    html = client.get("/plan?persona=commuter&area=rohini&to_area=okhla&commute=bus&route_read=picked&day=today"
+                      ).get_data(as_text=True)
+    part = html.split("AQI at your start and destination")[1].split("</details>")[0]
+    assert "Rohini" in part and "Okhla" in part and "Anand Vihar" not in part

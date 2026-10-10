@@ -369,7 +369,6 @@
     "measures_title": "What Stage {label} brings",
     "measures_next": "What Stage {label} would bring",
     "actions_count": "{count} actions in the schedule. The main ones:",
-    "sites_title": "Delhi's AQI, area by area",
     "sources": [
       {
         "label": "CAQM (Commission for Air Quality Management)",
@@ -388,6 +387,7 @@
     "fitted_none": "Add your work, travel, car and health in your profile to fit these rules to you.",
     "charter_you": "Because of {reasons}, GRAP's Stage IV advice to stay indoors as much as possible is meant for you.",
     "city_line_cpcb": "Delhi's AQI is {aqi} ({category}): the average of {count} CPCB stations right now.",
-    "box_area_cpcb": "{area}: AQI {aqi} ({category}) at CPCB's {station} station, {time} IST."
+    "box_area_cpcb": "{area}: AQI {aqi} ({category}) at CPCB's {station} station, {time} IST.",
+    "places_title": "AQI at your start and destination"
   }
 }

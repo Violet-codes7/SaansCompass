@@ -68,6 +68,26 @@ def air_now(forecast, now, official=None):
             "time": local.strftime("%Y-%m-%d %H:00"), "particles": particles}
 
 
+def places_air(start, dest, area, forecast, station, day, date, store, now, fetcher=None):
+    """The AQI at the person's start and destination, each from its own
+    station reading (today) or its own forecast: the same figure as the dials."""
+    out = []
+    for place in dict.fromkeys(p for p in (start, dest) if p is not None):
+        if place.id == area.id:
+            f, st = forecast, station
+        else:
+            try:
+                f = data.get_forecast(place, store, now=now, **({"fetcher": fetcher} if fetcher else {}))
+            except data.ForecastUnavailable:
+                continue
+            st = official_air(place, store, now)[0] if day == "today" else None
+        value = (st["aqi"] if st else data.particles_now(f, now)["aqi"]) if day == "today" else data.day_aqi(f, date)
+        out.append({"id": place.id, "name": place.name, "aqi": value,
+                    "slug": aqi_mod.category_slug(value) if value is not None else "no-data",
+                    "station": st["short"] if st and day == "today" else None})
+    return out
+
+
 def stage_table(persona, area_id, sensitive, rulebook):
     """The decision at every GRAP stage for this person's activities, every
     kind of vehicle and every way of travelling, with the rules behind them,
@@ -152,6 +172,7 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
         plan["day_actions"] = trip_actions + plan["day_actions"]
         plan["actions"] = [a for a in plan["actions"] if a not in plan["day_actions"]] + plan["day_actions"]
     plan["official"] = station
+    plan["places_air"] = places_air(start, dest, area, forecast, station, day, date, store, now, fetcher)
     plan["grap_applies"] = grap_here
     plan["stage_table"] = stage_table(persona, area.id, sensitive, rulebook) if every_stage and grap_here else None
     today = now.astimezone(data.IST).date()

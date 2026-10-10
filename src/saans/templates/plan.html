@@ -172,8 +172,8 @@
     </ul>
     {% if no_stage %}{% set uncovered = plan.activities|selectattr('rule')|selectattr('rule.decision', 'equalto', 'check_official_order')|map(attribute='label')|list %}
     {% if uncovered %}<p class="small">Not covered by GRAP at any stage: {{ uncovered|join(', ') }}.</p>{% endif %}{% endif %}
-    {% if sg.city %}<details class="grap-more"><summary>{{ grap.sites_title }}</summary>
-      <ol class="stops sites">{% for st in sg.city.sites %}<li class="{{ st.slug }}"><span>{{ st.name }}</span><b>{{ st.aqi }}</b></li>{% endfor %}</ol>
+    {% if plan.places_air %}<details class="grap-more" open><summary>{{ grap.places_title }}</summary>
+      <ol class="stops sites">{% for st in plan.places_air %}<li class="{{ st.slug }}"><span>{{ st.name }}</span><b>{{ st.aqi if st.aqi is not none else '–' }}</b></li>{% endfor %}</ol>
     </details>{% endif %}
     <p class="small">{{ grap.sources_label }}: {% for src in grap.sources %}<a href="{{ src.url }}" rel="noopener" target="_blank">{{ src.label }}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>
   </section>
