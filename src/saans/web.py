@@ -192,7 +192,7 @@ def create_app():
         return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN, "ai_enabled": ai.enabled(), "ai_label": ai.label(),
                 "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link,
                 "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge, "band_gauge": gauges.band_gauge,
-                "weather_dials": weather.DIALS, "weather_text": weather.TEXT["explain"], "particles": PARTICLES,
+                "weather_dials": weather.DIALS, "weather_text": weather.TEXT["explain"], "weather_place": weather.city_place().name, "particles": PARTICLES,
                 "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "glance_text": guide.TEXT, "chat_text": CHAT_TEXT, "layout": LAYOUT, "chat_max_chars": settings.get("chat_max_chars"), "aqi_category": aqi_category, "vehicles": VEHICLES, "vehicle_labels": VEHICLE_LABELS,
                 "hour_labels": ADVICE_TEXT["hour_verdict_labels"], "hour_tags": ADVICE_TEXT["hour_tags"],
                 "source_links": settings.get("source_links"), "route_messages": route.TEXT["messages"],
@@ -228,7 +228,7 @@ def create_app():
             dash = {"area": area.name, "air_now": air_now(forecast, now, official), "is_stale": forecast["is_stale"],
                     "fetched_at": forecast["fetched_at"],
                     "air_tomorrow": {"aqi": tomorrow, "category": aqi_category(tomorrow)}}
-        return render_template("index.html", dash=dash, dash_area=area.name, weather=weather.get_weather(area, store))
+        return render_template("index.html", dash=dash, dash_area=area.name, weather=weather.get_weather(weather.city_place(), store))
 
     @app.get("/plan")
     def plan_page():
@@ -253,7 +253,7 @@ def create_app():
         except ValueError as exc:
             return render_template("error.html", message=str(exc)), 400
         _log_plan(plan)
-        wx = weather.get_weather(data.get_area(plan["area"]["id"]), get_store())
+        wx = weather.get_weather(weather.city_place(), get_store())
         plan["hour_details"] = guide.hour_details(plan, wx)
         saved = _saved()
         texts = route_texts(saved or request.args)

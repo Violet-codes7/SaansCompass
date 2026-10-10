@@ -52,7 +52,7 @@ def client(mem_store, monkeypatch, live_fetcher):
 
 def test_dashboard_on_home_and_plan(client):
     home = client.get("/").get_data(as_text=True)
-    assert "Air quality at ITO" in home and "Weather now" in home and "Why it matters" in home
+    assert "Air quality at ITO" in home and "Weather in Delhi" in home and "Why it matters" in home
     plan = client.get("/plan?persona=rider&area=okhla").get_data(as_text=True)
     assert "Air quality at Okhla" in plan and plan.count('<svg class="gauge"') == 6  # 3 air, 3 weather
 
@@ -60,7 +60,7 @@ def test_dashboard_on_home_and_plan(client):
 def test_plan_without_weather_still_renders(mem_store, monkeypatch, live_fetcher):
     monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
     html = create_app().test_client().get("/plan?persona=older&area=ito").get_data(as_text=True)
-    assert "Weather is not available right now" in html
+    assert "Weather is not available right now" in html and "Weather in Delhi" in html
 
 
 FULL_WX = {**WX, "time": "2026-10-10T09:00", "feels_c": 29.4, "dew_c": 22.1, "gust_kmh": 14.0, "wind_dir": 315.0,
@@ -146,3 +146,11 @@ def test_hours_are_clickable_with_full_details(mem_store, monkeypatch, live_fetc
     assert "Your plans this hour" in html and "Do this now" in html and "× WHO" in html
     nine = next(p for p in panels if "09:00–10:00" in p)
     assert "Morning commute" in nine and "29°C" in nine and "Very low lid" in nine  # that hour's own weather
+
+
+def test_weather_is_read_for_delhi_not_the_plan_area(mem_store, monkeypatch, live_fetcher):
+    asked = []
+    monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
+    monkeypatch.setattr(weather, "fetch_weather", lambda area: asked.append(area.id) or dict(WX))
+    create_app().test_client().get("/plan?persona=rider&area=okhla")
+    assert asked == ["delhi"]

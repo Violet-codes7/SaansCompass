@@ -123,7 +123,20 @@ def decorate(w):
     return w
 
 
+def city_place():
+    """Where the weather dials read from: one point for all of Delhi (config)."""
+    from .data import Area
+
+    return Area(**settings.get("weather_place"))
+
+
 def get_weather(area, store, fetcher=None):
+    """Weather for a place, decorated with bands and its name, or None."""
+    w = _get_weather(area, store, fetcher)
+    return {**w, "place": area.name} if w else None
+
+
+def _get_weather(area, store, fetcher=None):
     fetcher = fetcher or fetch_weather  # looked up at call time so tests can replace it
     key = f"WX#{area.id}"
     try:

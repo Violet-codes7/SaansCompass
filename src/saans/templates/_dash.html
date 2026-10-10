@@ -30,7 +30,7 @@
     {% if is_stale %}<p class="small"><b>The live forecast is unreachable: this is the last one, fetched {{ fetched_at[:16]|replace('T', ' ') }} IST.</b></p>{% endif %}
   </div>
   <div class="dash-group">
-    <h2>Weather now</h2>
+    <h2>{{ weather_text.title.format(name=weather_place) }}</h2>
     {% if weather %}
     {% set b = weather.bands %}
     <div class="gauges weather">

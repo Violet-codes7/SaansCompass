@@ -155,7 +155,8 @@
     "from": "From the {name}",
     "mixing": "How high the air can mix",
     "mixing_help": "The height the air near the ground can rise and mix to. Below a few hundred metres, smoke is trapped like under a lid.",
-    "updated": "Updated {time} IST"
+    "updated": "Updated {time} IST",
+    "title": "Weather in {name}"
   },
   "compass": [
     "north",
