@@ -19,7 +19,6 @@
     {% set hd = layout.header %}{% set pf = plan.profile %}
     <p class="eyebrow">{{ plan.area.name }} · {{ plan.date }}</p>
     <h1 translate="no">{{ display_name or hd.title_anon }}</h1>
-    {% if role %}<p class="role" translate="no">{{ role }}</p>{% endif %}
     {% if pf %}
     <ul class="chips">
       {%- if pf.age %}<li>{{ hd.age.format(age=pf.age) }}</li>{% endif -%}
@@ -34,7 +33,7 @@
     {% set r = plan.route %}
     <div class="fixes">
       {% if using_saved %}
-      <p class="fix"><span>{{ work[plan.persona.id] }}</span>{% if r %} <span>{{ r.from.name }} → {{ r.to.name }}{% if r.mode_labels %} · {{ r.mode_labels|join(' + ') }}{% endif %}</span>{% endif %} <a href="{{ url_for('account_profile') }}">{{ hd.edit_profile }}</a></p>
+      <p class="fix">{% if r %}<span>{{ r.from.name }} → {{ r.to.name }}{% if r.mode_labels %} · {{ r.mode_labels|join(' + ') }}{% endif %}</span> {% endif %}<a href="{{ url_for('account_profile') }}">{{ hd.edit_profile }}</a></p>
       {% else %}
       <details class="fix"{% if request.args.get('read') == 'default' %} open{% endif %}>
         <summary><span>{{ work[plan.persona.id] }}</span> <b>{{ hd.change }}</b></summary>

@@ -152,7 +152,7 @@ def test_job_box_redirects_to_a_reading_you_can_correct(client, monkeypatch):
     assert "persona=rider" in loc and "read=keywords" in loc and "job=Zomato" in loc
     html = client.get(loc).get_data(as_text=True)
     assert "role=Zomato+rider" in loc
-    assert "We read you as" not in html and "Delivery or gig rider" in html and '<p class="role" translate="no">Zomato rider</p>' in html
+    assert "We read you as" not in html and "Delivery or gig rider" in html and 'class="role"' not in html
     assert '<details class="fix"' in html and "Change" in html
     assert 'name="read" value="picked"' in html and 'name="job" value="Zomato rider"' in html
 

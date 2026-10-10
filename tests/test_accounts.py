@@ -268,3 +268,12 @@ def test_poster_shows_the_name_only(client):
     client.post("/account/profile", data=PROFILE)
     html = client.get("/poster").get_data(as_text=True)
     assert '<b translate="no">Asha</b></p>' in html and "<small" not in html.split('class="who"')[1].split("</p>")[0]
+
+
+def test_plan_header_has_no_occupation_text(client):
+    sign_up_and_in(client)
+    client.post("/account/profile", data=PROFILE)
+    html = client.get("/plan").get_data(as_text=True)
+    head = html[html.index('<section class="summary">'):html.index("</section>", html.index('<section class="summary">'))]
+    assert "Asha" in head and "Rohini → ITO" in head and "Edit profile" in head
+    assert "Delivery or gig rider" not in head and "I deliver food" not in head and 'class="role"' not in head

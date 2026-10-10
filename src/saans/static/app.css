@@ -450,7 +450,6 @@ section.panel[id] > h2::before,section.panel[id] > .h-row > h2::before,section.p
 .theme-toggle{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:4px 10px;font:inherit;font-size:14px;cursor:pointer}
 /* Plan header: name, short role, details as chips, small Change folds */
 .who h1{margin:2px 0 0;line-height:1.15}
-.who .role{margin:2px 0 8px;font-size:17px;color:var(--muted)}
 .chips{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
 .chips li{padding:3px 10px;border:1px solid var(--line);border-radius:999px;font-size:14px;background:var(--panel)}
 .chips li.c-health{border-color:var(--no);color:var(--no)}
