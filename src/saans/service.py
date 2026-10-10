@@ -35,7 +35,7 @@ def air_now(forecast, now):
     local = now.astimezone(data.IST)
     r = data.readings_for(forecast, local.date(), [local.hour])[0]
     return {"aqi": r["aqi"], "category": aqi_mod.category(r["aqi"]), "dominant": r["dominant"],
-            "time": local.strftime("%Y-%m-%d %H:00")}
+            "time": local.strftime("%Y-%m-%d %H:00"), "particles": data.particles_now(forecast, now)}
 
 
 def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None, rulebook=None, fetcher=None,

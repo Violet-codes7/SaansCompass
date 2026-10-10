@@ -48,13 +48,15 @@ def now_ist():
 
 
 def fetch_open_meteo(area, session=None):
-    """Return a list of {time, pm25, pm10} for forecast_days days, in IST."""
+    """Return a list of {time, pm25, pm10} for past_days and forecast_days days, in IST."""
     params = {
         "latitude": area.lat,
         "longitude": area.lon,
         "hourly": "pm2_5,pm10",
         "timezone": settings.get("timezone"),
         "forecast_days": settings.get("forecast_days"),
+        # Yesterday too, so "now" can be a 24-hour average as CPCB computes it.
+        "past_days": settings.get("past_days"),
     }
     get = (session or requests).get
     resp = get(settings.get("open_meteo_url"), params=params, timeout=settings.get("http_timeout_seconds"))
@@ -162,3 +164,33 @@ def day_aqi(forecast, date):
     avg25 = sum(pm25) / len(pm25) if pm25 else None
     avg10 = sum(pm10) / len(pm10) if pm10 else None
     return aqi_mod.aqi(avg25, avg10)[0]
+
+
+def _mean(values):
+    values = [v for v in values if v is not None]
+    return sum(values) / len(values) if values else None
+
+
+def particles_now(forecast, now):
+    """PM2.5 and PM10 for the current IST hour and averaged over a day.
+
+    The average is over the last 24 hours, the way CPCB computes AQI, when at
+    least rolling_min_hours of them are known; otherwise it is the forecast
+    average for today. basis says which.
+    """
+    local = now.astimezone(IST).replace(minute=0, second=0, microsecond=0)
+    by_time = {h["time"]: h for h in forecast["hours"]}
+    last24 = [by_time.get((local - timedelta(hours=k)).strftime("%Y-%m-%dT%H:00"), {}) for k in range(24)]
+    known = [h for h in last24 if h.get("pm25") is not None]
+    if len(known) >= settings.get("rolling_min_hours"):
+        rows, basis = last24, "last24"
+    else:
+        prefix = local.date().isoformat()
+        rows, basis = [h for h in forecast["hours"] if h["time"].startswith(prefix)], "today"
+    hour = by_time.get(local.strftime("%Y-%m-%dT%H:00"), {})
+    pm25, pm10 = _mean(h.get("pm25") for h in rows), _mean(h.get("pm10") for h in rows)
+    value, dominant = aqi_mod.aqi(pm25, pm10)
+    rnd = lambda v: round(v) if v is not None else None  # noqa: E731
+    return {"basis": basis, "pm25": rnd(pm25), "pm10": rnd(pm10), "aqi": value, "dominant": dominant,
+            "category": aqi_mod.category(value) if value is not None else None,
+            "pm25_hour": rnd(hour.get("pm25")), "pm10_hour": rnd(hour.get("pm10"))}

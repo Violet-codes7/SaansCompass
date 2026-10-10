@@ -55,6 +55,8 @@ def _read_work(job):
     return out
 
 
+PARTICLES = settings.load("particles")
+
 _route_cache = {}
 
 
@@ -179,7 +181,8 @@ def create_app():
     def globals_():
         return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN, "ai_enabled": ai.enabled(), "ai_label": ai.label(),
                 "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link,
-                "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge,
+                "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge, "band_gauge": gauges.band_gauge,
+                "weather_dials": weather.DIALS, "weather_text": weather.TEXT["explain"], "particles": PARTICLES,
                 "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES,
                 "hour_labels": ADVICE_TEXT["hour_verdict_labels"], "hour_tags": ADVICE_TEXT["hour_tags"],
                 "source_links": settings.get("source_links"), "route_messages": route.TEXT["messages"],

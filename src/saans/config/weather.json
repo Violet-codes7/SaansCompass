@@ -1,0 +1,205 @@
+{
+  "_about": "Weather dials: bands, what each band does to the air, and wind directions. Tones colour the dial: for wind and mixing height they show the effect on pollution (red = traps it).",
+  "dials": {
+    "temp_c": {
+      "label": "Temperature",
+      "unit": "°C",
+      "lo": 0,
+      "hi": 48,
+      "bands": [
+        {
+          "max": 10,
+          "name": "Cold",
+          "tone": "blue",
+          "air": "Cold air near the ground often traps smoke under a warmer layer above (an inversion)."
+        },
+        {
+          "max": 18,
+          "name": "Cool",
+          "tone": "teal",
+          "air": "Cool air near the ground often traps smoke under a warmer layer above (an inversion), worst at night and early morning."
+        },
+        {
+          "max": 27,
+          "name": "Pleasant",
+          "tone": "green",
+          "air": null
+        },
+        {
+          "max": 35,
+          "name": "Warm",
+          "tone": "yellow",
+          "air": null
+        },
+        {
+          "max": 40,
+          "name": "Hot",
+          "tone": "orange",
+          "air": "Heat and strong sun turn traffic fumes into ozone in the afternoon."
+        },
+        {
+          "max": 70,
+          "name": "Very hot",
+          "tone": "red",
+          "air": "Heat and strong sun turn traffic fumes into ozone in the afternoon; heat itself also strains the heart and lungs."
+        }
+      ]
+    },
+    "humidity": {
+      "label": "Humidity",
+      "unit": "%",
+      "lo": 0,
+      "hi": 100,
+      "bands": [
+        {
+          "max": 30,
+          "name": "Dry",
+          "tone": "yellow",
+          "air": "Dry air lets road and building dust (PM10) lift and stay up easily."
+        },
+        {
+          "max": 60,
+          "name": "Comfortable",
+          "tone": "green",
+          "air": null
+        },
+        {
+          "max": 80,
+          "name": "Humid",
+          "tone": "teal",
+          "air": "Humid air helps fine particles grow and linger, which makes haze and smog worse."
+        },
+        {
+          "max": 101,
+          "name": "Very humid",
+          "tone": "blue",
+          "air": "Humid air helps fine particles grow and linger, which makes haze and smog worse; fog can form at night."
+        }
+      ]
+    },
+    "wind_kmh": {
+      "label": "Wind",
+      "unit": "km/h",
+      "lo": 0,
+      "hi": 40,
+      "bands": [
+        {
+          "max": 6,
+          "name": "Calm",
+          "tone": "red",
+          "air": "Very little wind, so pollution is not being blown away and builds up near the ground."
+        },
+        {
+          "max": 12,
+          "name": "Light breeze",
+          "tone": "orange",
+          "air": "A light breeze is moving some pollution along, but slowly."
+        },
+        {
+          "max": 20,
+          "name": "Gentle breeze",
+          "tone": "yellow",
+          "air": "A gentle breeze is moving pollution along."
+        },
+        {
+          "max": 29,
+          "name": "Moderate breeze",
+          "tone": "green",
+          "air": "A good breeze is helping to clear pollution."
+        },
+        {
+          "max": 500,
+          "name": "Strong wind",
+          "tone": "teal",
+          "air": "Strong wind clears smoke but can raise dust (PM10)."
+        }
+      ]
+    },
+    "mixing_m": {
+      "label": "Mixing height",
+      "unit": "m",
+      "lo": 0,
+      "hi": 2500,
+      "bands": [
+        {
+          "max": 300,
+          "name": "Very low lid",
+          "tone": "red",
+          "air": "The air can only mix up to about {value} m, like a low lid over the city: smoke has nowhere to go."
+        },
+        {
+          "max": 800,
+          "name": "Low lid",
+          "tone": "orange",
+          "air": "The air mixes only up to about {value} m, so pollution stays close to the ground."
+        },
+        {
+          "max": 1500,
+          "name": "Moderate",
+          "tone": "yellow",
+          "air": null
+        },
+        {
+          "max": 100000,
+          "name": "High",
+          "tone": "green",
+          "air": "The air mixes high up (about {value} m), which thins pollution out."
+        }
+      ]
+    }
+  },
+  "explain": {
+    "feels_like": "Feels like {value}°C",
+    "dew_point": "Dew point {value}°C",
+    "gusts": "Gusts {value} km/h",
+    "from": "From the {name}",
+    "mixing": "How high the air can mix",
+    "mixing_help": "The height the air near the ground can rise and mix to. Below a few hundred metres, smoke is trapped like under a lid.",
+    "updated": "Open-Meteo weather model, {time} IST"
+  },
+  "compass": [
+    "north",
+    "north-north-east",
+    "north-east",
+    "east-north-east",
+    "east",
+    "east-south-east",
+    "south-east",
+    "south-south-east",
+    "south",
+    "south-south-west",
+    "south-west",
+    "west-south-west",
+    "west",
+    "west-north-west",
+    "north-west",
+    "north-north-west"
+  ],
+  "compass_short": [
+    "N",
+    "NNE",
+    "NE",
+    "ENE",
+    "E",
+    "ESE",
+    "SE",
+    "SSE",
+    "S",
+    "SSW",
+    "SW",
+    "WSW",
+    "W",
+    "WNW",
+    "NW",
+    "NNW"
+  ],
+  "stubble": {
+    "from_deg": 270,
+    "to_deg": 350,
+    "months": [
+      10,
+      11
+    ],
+    "text": "Wind from the north-west in October and November can carry smoke from crop-stubble burning in Punjab and Haryana."
+  }
+}

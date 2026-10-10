@@ -1,24 +1,49 @@
-{# Dial gauges: AQI now and tomorrow, and the weather that moves the air. #}
+{# Dial gauges: the air now and tomorrow, its particles, and the weather that moves the air. #}
+{% set pt = air_now.particles %}
 <section class="panel dash" aria-label="Air and weather now">
   <div class="dash-group">
     <h2>Air quality{% if area_name %} at {{ area_name }}{% endif %}</h2>
     <div class="gauges">
-      <figure>{{ aqi_gauge(air_now.aqi, 'AQI now') }}
-        <figcaption><b>Now</b> · {{ air_now.category if air_now.aqi is not none else 'No data' }}<br><small>{{ air_now.time }} IST{% if air_now.dominant %} · {{ air_now.dominant }}{% endif %}</small></figcaption></figure>
+      <figure>{{ aqi_gauge(pt.aqi, 'AQI, 24-hour average') }}
+        <figcaption><b>{{ 'Last 24 hours' if pt.basis == 'last24' else 'Today' }}</b><span class="cat-chip {{ (pt.category or 'no data')|lower|replace(' ', '-') }}">{{ pt.category or 'No data' }}</span>
+          <small>{{ '24-hour average, as CPCB reports AQI' if pt.basis == 'last24' else 'Forecast average for today' }}</small></figcaption></figure>
+      <figure>{{ aqi_gauge(air_now.aqi, 'AQI this hour') }}
+        <figcaption><b>This hour</b><span class="cat-chip {{ (air_now.category if air_now.aqi is not none else 'no data')|lower|replace(' ', '-') }}">{{ air_now.category if air_now.aqi is not none else 'No data' }}</span>
+          <small>{{ air_now.time[11:] }} IST{% if air_now.dominant %} · mostly {{ air_now.dominant }}{% endif %}</small></figcaption></figure>
       <figure>{{ aqi_gauge(air_tomorrow.aqi, 'AQI tomorrow') }}
-        <figcaption><b>Tomorrow</b> · {{ air_tomorrow.category if air_tomorrow.category else '' }}<br><small>Day average, forecast</small></figcaption></figure>
+        <figcaption><b>Tomorrow</b>{% if air_tomorrow.category %}<span class="cat-chip {{ air_tomorrow.category|lower|replace(' ', '-') }}">{{ air_tomorrow.category }}</span>{% endif %}
+          <small>Day average, forecast</small></figcaption></figure>
     </div>
-    <p class="small">Estimated from the Open-Meteo PM2.5/PM10 forecast with CPCB breakpoints{% if is_stale %}. <b>The live forecast is unreachable: this is the last one, fetched {{ fetched_at[:16]|replace('T', ' ') }} IST</b>{% endif %}.</p>
+    <ul class="pm-chips">
+      {% for p in particles.particles %}{% set v = pt[p.key] %}
+      <li><a href="#particles"><b>{{ p.id }}</b> {{ v if v is not none else '–' }} <small>µg/m³</small>
+        {% if v is not none %}<span class="{{ 'over' if v > p.limits.cpcb_24h else 'ok' }}">{{ (v / p.limits.who_24h)|round(1) }}× WHO</span>{% endif %}</a></li>
+      {% endfor %}
+    </ul>
+    <p class="small">Estimated from the Open-Meteo PM2.5/PM10 forecast with CPCB breakpoints. The hourly value is a guide; official AQI uses 24-hour averages{% if is_stale %}. <b>The live forecast is unreachable: this is the last one, fetched {{ fetched_at[:16]|replace('T', ' ') }} IST</b>{% endif %}.</p>
   </div>
   <div class="dash-group">
     <h2>Weather now</h2>
     {% if weather %}
-    <div class="gauges">
-      <figure>{{ simple_gauge(weather.temp_c, 0, 50, '°C', 'Temperature') }}<figcaption><b>Temperature</b></figcaption></figure>
-      <figure>{{ simple_gauge(weather.humidity, 0, 100, '%', 'Humidity') }}<figcaption><b>Humidity</b></figcaption></figure>
-      <figure>{{ simple_gauge(weather.wind_kmh, 0, 40, '', 'Wind km/h') }}<figcaption><b>Wind</b> km/h</figcaption></figure>
+    {% set b = weather.bands %}
+    <div class="gauges weather">
+      <figure>{{ band_gauge(weather.temp_c, weather_dials.temp_c, 'Temperature') }}
+        <figcaption><b>Temperature</b><span class="tone-chip tone-{{ b.temp_c.tone }}">{{ b.temp_c.name }}</span>
+          <small>{% if weather.feels_c is not none %}{{ weather_text.feels_like.format(value=weather.feels_c|round|int) }}{% endif %}</small></figcaption></figure>
+      <figure>{{ band_gauge(weather.humidity, weather_dials.humidity, 'Humidity') }}
+        <figcaption><b>Humidity</b><span class="tone-chip tone-{{ b.humidity.tone }}">{{ b.humidity.name }}</span>
+          <small>{% if weather.dew_c is not none %}{{ weather_text.dew_point.format(value=weather.dew_c|round|int) }}{% endif %}</small></figcaption></figure>
+      <figure>{{ band_gauge(weather.wind_kmh, weather_dials.wind_kmh, 'Wind') }}
+        <figcaption><b>Wind</b> <small>km/h</small><span class="tone-chip tone-{{ b.wind_kmh.tone }}">{{ b.wind_kmh.name }}</span>
+          <small>{% if weather.wind_from %}<span class="wind-arrow" style="transform: rotate({{ (weather.wind_dir + 180) % 360 }}deg)" aria-hidden="true">↑</span> {{ weather_text['from'].format(name=weather.wind_from) }}{% endif %}{% if weather.gust_kmh is not none %}<br>{{ weather_text.gusts.format(value=weather.gust_kmh|round|int) }}{% endif %}</small></figcaption></figure>
+      {% if weather.mixing_m is not none %}
+      <figure title="{{ weather_text.mixing_help }}">{{ band_gauge(weather.mixing_m, weather_dials.mixing_m, 'Mixing height') }}
+        <figcaption><b>Mixing height</b> <small>m</small><span class="tone-chip tone-{{ b.mixing_m.tone }}">{{ b.mixing_m.name }}</span>
+          <small>{{ weather_text.mixing }}</small></figcaption></figure>
+      {% endif %}
     </div>
-    <p class="small"><b>Why it matters:</b> {{ weather.note }} <span class="muted">({{ weather.time|replace('T', ' ') }} IST, Open-Meteo)</span></p>
+    {% if weather.note %}<p class="small"><b>Why it matters:</b> {{ weather.note }}</p>{% endif %}
+    <p class="small muted">{{ weather_text.updated.format(time=weather.time|replace('T', ' ')) }}</p>
     {% else %}
     <p class="small">Weather is not available right now.</p>
     {% endif %}

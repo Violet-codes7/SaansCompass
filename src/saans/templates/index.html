@@ -30,6 +30,7 @@
   <a href="{{ url_for('plan_page', persona='school', area='anand-vihar', stage='IV', age=9, cond='asthma', commute='bus') }}">Child with asthma, Stage IV</a>
   <a href="{{ url_for('plan_page', persona='worker', area='anand-vihar', stage='III', age=38, commute='cycle') }}">Construction worker, Stage III</a>
   <a href="{{ url_for('plan_page', persona='commuter', area='ito', stage='III', age=29, commute='car') }}">Office commuter by car, Stage III</a></p>
+{% if dash %}{% with area_name=dash.area, air_now=dash.air_now %}{% include "_particles.html" %}{% endwith %}{% endif %}
 <script>
 document.querySelectorAll("[data-example]").forEach(function (b) {
   b.addEventListener("click", function () { var t = document.querySelector("textarea[name=job]"); t.value = b.dataset.example; t.focus(); });

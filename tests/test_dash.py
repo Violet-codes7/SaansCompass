@@ -4,6 +4,7 @@ from saans import data, weather
 from saans.gauges import aqi_gauge, simple_gauge
 from saans.web import create_app
 
+REAL_FETCH_WEATHER = weather.fetch_weather  # before the autouse fixture replaces it
 WX = {"time": "2026-10-10T09:00", "temp_c": 27.0, "humidity": 74.0, "wind_kmh": 5.6}
 
 
@@ -53,10 +54,77 @@ def test_dashboard_on_home_and_plan(client):
     home = client.get("/").get_data(as_text=True)
     assert "Air quality at ITO" in home and "Weather now" in home and "Why it matters" in home
     plan = client.get("/plan?persona=rider&area=okhla").get_data(as_text=True)
-    assert "Air quality at Okhla" in plan and plan.count('<svg class="gauge"') == 5
+    assert "Air quality at Okhla" in plan and plan.count('<svg class="gauge"') == 6  # 3 air, 3 weather
 
 
 def test_plan_without_weather_still_renders(mem_store, monkeypatch, live_fetcher):
     monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
     html = create_app().test_client().get("/plan?persona=older&area=ito").get_data(as_text=True)
     assert "Weather is not available right now" in html
+
+
+FULL_WX = {**WX, "time": "2026-10-10T09:00", "feels_c": 29.4, "dew_c": 22.1, "gust_kmh": 14.0, "wind_dir": 315.0,
+           "mixing_m": 240.0}
+
+
+def test_weather_bands_and_compass():
+    assert weather.band("wind_kmh", 5.6)["name"] == "Calm" and weather.band("wind_kmh", 25)["name"] == "Moderate breeze"
+    assert weather.band("temp_c", 27.0)["name"] == "Warm" and weather.band("humidity", 74)["name"] == "Humid"
+    assert weather.band("mixing_m", 240)["tone"] == "red" and weather.band("mixing_m", None) is None
+    assert weather.compass(315) == ("north-west", "NW") and weather.compass(2) == ("north", "N")
+
+
+def test_weather_explains_mixing_height_and_stubble_smoke():
+    note = weather.explain(FULL_WX)
+    assert "low lid" in note and "240 m" in note and "crop-stubble" in note
+    assert "crop-stubble" not in weather.explain({**FULL_WX, "time": "2026-06-10T09:00"})
+    assert "crop-stubble" not in weather.explain({**FULL_WX, "wind_dir": 120.0})
+
+
+def test_fetch_weather_reads_the_extra_fields():
+    class Resp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"current": {"time": "2026-10-10T09:00", "temperature_2m": 27, "relative_humidity_2m": 74,
+                                "wind_speed_10m": 5.6, "apparent_temperature": 29.4, "dew_point_2m": 22.1,
+                                "wind_direction_10m": 315, "wind_gusts_10m": 14},
+                    "hourly": {"time": ["2026-10-10T09:00"], "boundary_layer_height": [240]}}
+
+    class Session:
+        def get(self, url, params, timeout):
+            assert "boundary_layer_height" in params["hourly"] and "wind_direction_10m" in params["current"]
+            return Resp()
+
+    w = REAL_FETCH_WEATHER(data.AREAS["ito"], session=Session())
+    assert w["mixing_m"] == 240.0 and w["wind_dir"] == 315.0 and w["feels_c"] == 29.4
+
+
+def test_old_cached_weather_without_new_fields_still_renders(mem_store):
+    mem_store.put_text("WX#ito", '{"time": "2026-10-10T09:00", "temp_c": 27.0, "humidity": 74.0, "wind_kmh": 5.6}')
+    w = weather.get_weather(data.AREAS["ito"], mem_store, fetcher=lambda a: 1 / 0)
+    assert w["mixing_m"] is None and w["wind_from"] is None and "little wind" in w["note"]
+
+
+def test_dashboard_shows_banded_weather_and_particles(mem_store, monkeypatch, live_fetcher):
+    monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
+    monkeypatch.setattr(weather, "fetch_weather", lambda area: dict(FULL_WX))
+    html = create_app().test_client().get("/plan?persona=rider&area=okhla").get_data(as_text=True)
+    assert html.count('<svg class="gauge"') == 7
+    for part in ("Feels like 29°C", "Dew point 22°C", "From the north-west", "Gusts 14 km/h", "Mixing height",
+                 "Very low lid", "This hour", "µg/m³", "× WHO"):
+        assert part in html
+    assert 'id="particles"' in html and "PM2.5: fine particles" in html and "Deep in the lungs" in html
+
+
+def test_particles_use_24_hours_when_known():
+    from datetime import timedelta
+    from conftest import FIXED_NOW, make_hours
+    yesterday = FIXED_NOW - timedelta(days=1)
+    full = {"hours": make_hours([100] * 24, days=3, start=yesterday)}
+    p = data.particles_now(full, FIXED_NOW)
+    assert p["basis"] == "last24" and p["pm25"] == 100 and p["pm10"] == 150 and p["pm25_hour"] == 100
+    today_only = {"hours": make_hours([40] * 12 + [80] * 12, days=1, start=FIXED_NOW)}
+    p = data.particles_now(today_only, FIXED_NOW)
+    assert p["basis"] == "today" and p["pm25"] == 60

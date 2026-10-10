@@ -299,6 +299,8 @@
   </ol>
 </section>
 
+{% with area_name=plan.area.name, air_now=plan.air_now %}{% include "_particles.html" %}{% endwith %}
+
 <section class="panel notes">
   <h2>Please read</h2>
   <ul class="note-list">

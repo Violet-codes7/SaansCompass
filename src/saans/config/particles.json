@@ -1,0 +1,85 @@
+{
+  "_about": "What PM2.5 and PM10 are and what they do to the body. Limits: CPCB National Ambient Air Quality Standards (2009) and WHO Global Air Quality Guidelines (2021).",
+  "hair_um": 70,
+  "sources": [
+    {
+      "label": "WHO air quality guidelines (2021)",
+      "url": "https://www.who.int/publications/i/item/9789240034228"
+    },
+    {
+      "label": "CPCB National Ambient Air Quality Standards",
+      "url": "https://cpcb.nic.in/air-quality-standard/"
+    }
+  ],
+  "particles": [
+    {
+      "id": "PM2.5",
+      "key": "pm25",
+      "um": 2.5,
+      "title": "PM2.5: fine particles",
+      "size": "2.5 micrometres or smaller: about 30 times thinner than a human hair. You cannot see one, but together they make the haze.",
+      "sources": "Vehicle exhaust, burning (crop stubble, rubbish, wood, coal), factories and power plants, firecrackers, and particles that form in the air from gases.",
+      "reaches": [
+        "Nose and throat",
+        "Deep in the lungs",
+        "Into the blood",
+        "Heart and brain"
+      ],
+      "reach_note": "Small enough to pass the nose and airways, reach the air sacs deep in the lungs, and the smallest enter the blood.",
+      "short_term": "Cough, burning eyes and throat, a tight chest and asthma attacks. On bad days more people have heart attacks and strokes.",
+      "long_term": "Slower lung growth in children, COPD, lung cancer, heart disease, stroke and diabetes, and babies born smaller. It is the air pollutant that shortens lives the most.",
+      "limits": {
+        "cpcb_24h": 60,
+        "who_24h": 15,
+        "cpcb_year": 40,
+        "who_year": 5
+      }
+    },
+    {
+      "id": "PM10",
+      "key": "pm10",
+      "um": 10,
+      "title": "PM10: coarse dust",
+      "size": "10 micrometres or smaller: about 7 times thinner than a hair. It includes all of PM2.5 plus bigger dust.",
+      "sources": "Road dust, building and demolition work, soil blown by the wind, plus everything in PM2.5.",
+      "reaches": [
+        "Nose and throat",
+        "Upper airways"
+      ],
+      "reach_note": "Mostly caught in the nose, throat and upper airways before it reaches the deep lungs.",
+      "short_term": "Sneezing, a sore throat, coughing and itchy eyes; asthma and bronchitis get worse.",
+      "long_term": "Breathing it day after day keeps the airways inflamed and worsens asthma and COPD.",
+      "limits": {
+        "cpcb_24h": 100,
+        "who_24h": 45,
+        "cpcb_year": 60,
+        "who_year": 15
+      }
+    }
+  ],
+  "protect": [
+    "A well-fitted N95 (or FFP2) mask filters both; cloth and surgical masks let most PM2.5 through.",
+    "Indoors, keep windows shut at the worst hours and air rooms out at the cleanest; a HEPA air purifier cuts indoor PM2.5 sharply.",
+    "Skip hard exercise and busy roads when the air is Poor or worse: you breathe in several times more when you exert yourself."
+  ],
+  "labels": {
+    "title": "PM2.5 and PM10: what you are breathing",
+    "intro": "AQI is worked out from tiny particles in the air. In Delhi the two that matter most are PM2.5 and PM10. Here is what they are, how much is in the air at {area}, and what they do to you.",
+    "now": "Average over the last 24 hours",
+    "today": "Forecast average for today",
+    "times_who": "{times}× the WHO guideline",
+    "within_who": "Within the WHO guideline",
+    "over_cpcb": "Above India's 24-hour limit ({limit})",
+    "under_cpcb": "Within India's 24-hour limit ({limit})",
+    "who_line": "WHO {value}",
+    "cpcb_line": "India {value}",
+    "sources_label": "Where it comes from",
+    "reach_label": "How far it gets in your body",
+    "short_label": "Within hours or days",
+    "long_label": "Over months and years",
+    "protect_label": "How to protect yourself",
+    "size_label": "Size compared with a human hair",
+    "hair": "Human hair, about {um} µm",
+    "unit_note": "µg/m³ is micrograms of particles in each cubic metre of air."
+  }
+}

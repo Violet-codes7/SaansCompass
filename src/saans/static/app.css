@@ -245,3 +245,44 @@ button.locate{white-space:nowrap;padding:6px 10px;font-size:14px;background:tran
 .stops li.is-worst{outline:3px solid var(--ink);outline-offset:1px}
 .trip-read label{display:flex;gap:6px;align-items:center}
 .stops li.good,.stops li.very-poor,.stops li.severe,.stops li.no-data{color:#fff}
+/* air and weather dials */
+:root{--tone-blue:#2f6fd0;--tone-teal:#1b9aa0;--tone-green:#2ea043;--tone-yellow:#d9b400;--tone-orange:#f08c00;--tone-red:#d92020}
+svg.gauge .arc.band.tone-blue{stroke:var(--tone-blue)}svg.gauge .arc.band.tone-teal{stroke:var(--tone-teal)}
+svg.gauge .arc.band.tone-green{stroke:var(--tone-green)}svg.gauge .arc.band.tone-yellow{stroke:var(--tone-yellow)}
+svg.gauge .arc.band.tone-orange{stroke:var(--tone-orange)}svg.gauge .arc.band.tone-red{stroke:var(--tone-red)}
+.gauges figcaption{display:grid;justify-items:center;gap:3px}
+.cat-chip,.tone-chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:999px;color:#fff;background:var(--none)}
+.cat-chip.satisfactory,.cat-chip.moderate,.cat-chip.poor{color:#1a1a1a}
+.cat-chip.good{background:var(--good)}.cat-chip.satisfactory{background:var(--satisfactory)}.cat-chip.moderate{background:var(--moderate)}
+.cat-chip.poor{background:var(--poor)}.cat-chip.very-poor{background:var(--very-poor)}.cat-chip.severe{background:var(--severe)}
+.tone-chip.tone-blue{background:var(--tone-blue)}.tone-chip.tone-teal{background:var(--tone-teal)}.tone-chip.tone-green{background:var(--tone-green)}
+.tone-chip.tone-yellow{background:var(--tone-yellow);color:#1a1a1a}.tone-chip.tone-orange{background:var(--tone-orange);color:#1a1a1a}.tone-chip.tone-red{background:var(--tone-red)}
+.wind-arrow{display:inline-block;font-weight:800;color:var(--accent)}
+.gauges.weather{flex-wrap:wrap}
+.gauges.weather figure{flex:1 1 22%;min-width:110px}
+.pm-chips{list-style:none;padding:0;margin:8px 0 4px;display:flex;gap:8px;flex-wrap:wrap}
+.pm-chips a{display:inline-flex;gap:6px;align-items:baseline;padding:4px 10px;border:1px solid var(--line);border-radius:999px;text-decoration:none;color:var(--ink);font-size:14px}
+.pm-chips .over{color:var(--no);font-weight:700}.pm-chips .ok{color:var(--ok);font-weight:700}
+@media (max-width:520px){.gauges{flex-wrap:wrap}.gauges figure{flex:1 1 40%}}
+/* PM2.5 and PM10 explainer */
+.pm-grid{display:grid;grid-template-columns:1fr 1fr minmax(220px,.8fr);gap:14px;margin-top:10px}
+@media (max-width:900px){.pm-grid{grid-template-columns:1fr}}
+.pm-card{border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.pm-card h3{margin:0 0 8px}
+.pm-card h4,.pm-side h4{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:12px 0 4px}
+.pm-card p{margin:4px 0}
+.pm-meter{position:relative;height:14px;background:var(--bg);border-radius:7px;margin:22px 0 6px}
+.pm-fill{height:100%;border-radius:7px}
+.pm-fill.ok{background:var(--good)}.pm-fill.mid{background:var(--poor)}.pm-fill.over{background:var(--very-poor)}
+.pm-line{position:absolute;top:-4px;bottom:-4px;border-left:2px dashed var(--ink)}
+.pm-line i{position:absolute;bottom:100%;left:-2px;transform:translateX(-50%);font-style:normal;font-size:11px;white-space:nowrap;color:var(--muted)}
+.pm-line.who i{transform:translateX(-90%)}.pm-line.cpcb i{transform:translateX(-10%)}
+.pm-value b{font-size:26px}
+.reach{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:4px 0}
+.reach li{font-size:13px;padding:3px 10px;background:var(--no-bg);color:var(--no);border-radius:999px;margin-right:16px;position:relative}
+.reach li:not(:last-child)::after{content:"→";position:absolute;right:-13px;color:var(--muted)}
+.pm-side ul{padding-left:18px;margin:4px 0}
+svg.pm-size{width:100%;max-width:240px;display:block}
+svg.pm-size .hair{fill:#c8a27a;opacity:.55}
+svg.pm-size .dot{fill:var(--ink)}
+svg.pm-size text{font-size:11px;fill:var(--ink)}

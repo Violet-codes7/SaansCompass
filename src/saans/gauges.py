@@ -65,6 +65,24 @@ def simple_gauge(value, lo, hi, unit, label):
     return _svg(parts, f"{label}: {shown}", shown)
 
 
+def band_gauge(value, dial, label):
+    """A dial split into the coloured bands of a config/weather.json dial,
+    with the needle at `value` (clamped to the dial's range)."""
+    lo, hi = dial["lo"], dial["hi"]
+    parts, prev = [], lo
+    for b in dial["bands"]:
+        top = min(b["max"], hi)
+        if top > prev:
+            parts.append(_arc(_angle(prev, lo, hi), _angle(top, lo, hi), f"band tone-{b['tone']}"))
+        prev = top
+    if value is None:
+        return _svg(parts, f"{label}: no data", "–")
+    parts.append(_needle(_angle(value, lo, hi)))
+    unit = dial["unit"] if dial["unit"] in ("°C", "%") else ""
+    shown = f"{value:.0f}{unit}" if abs(value) >= 10 or unit else f"{value:.1f}"
+    return _svg(parts, f"{label}: {value:.0f} {dial['unit']}", shown)
+
+
 def qr_code(url, label):
     """A QR code for `url` as inline SVG, so a printed poster links back to the live plan."""
     import segno
