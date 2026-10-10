@@ -29,7 +29,7 @@
         <h1>{{ plan.area.name }}</h1>
         <p class="when">{{ date_label }}</p>
       </div>
-      <p class="who"><span>Plan for</span><b {% if name or role %}translate="no"{% endif %}>{{ name or role or plan.persona.label }}</b>{% if name %}<small translate="no">{{ role or plan.persona.label }}</small>{% endif %}</p>
+      <p class="who"><span>Plan for</span><b {% if name or role %}translate="no"{% endif %}>{{ name or role or plan.persona.label }}</b></p>
     </header>
 
     {% if stale %}<p class="flag stale">{{ stale.title }}: {{ stale.text }}</p>{% endif %}

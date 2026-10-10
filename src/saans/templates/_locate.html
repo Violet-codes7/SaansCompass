@@ -1,0 +1,29 @@
+<script>
+(function () {
+  var btn = document.querySelector("button.locate");
+  if (!btn || btn.dataset.bound) return;
+  btn.dataset.bound = "1";
+  var form = btn.closest("form"), from = form.querySelector("input[name=from]"),
+      area = form.querySelector("input[name=area]"), status = form.querySelector(".locate-status");
+  // A typed change replaces what was read before: the live location, or today's saved places.
+  form.querySelectorAll("[data-clears]").forEach(function (el) {
+    el.addEventListener("input", function () {
+      el.dataset.clears.split(",").forEach(function (n) { var h = form.querySelector('input[type=hidden][name="' + n + '"]'); if (h) h.value = ""; });
+    });
+  });
+  btn.addEventListener("click", function () {
+    if (!navigator.geolocation) { status.textContent = btn.dataset.msgUnsupported; return; }
+    status.textContent = btn.dataset.msgLocating;
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      fetch(btn.dataset.api, {method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({lat: pos.coords.latitude, lon: pos.coords.longitude})})
+        .then(function (r) { return r.json().then(function (d) { return {ok: r.ok, d: d}; }); })
+        .then(function (res) {
+          if (!res.ok) { status.textContent = res.d.error || btn.dataset.msgOutside; return; }
+          area.value = res.d.area; from.value = res.d.label; status.textContent = "";
+        })
+        .catch(function () { status.textContent = btn.dataset.msgDenied; });
+    }, function () { status.textContent = btn.dataset.msgDenied; }, {timeout: 10000, maximumAge: 300000});
+  });
+})();
+</script>

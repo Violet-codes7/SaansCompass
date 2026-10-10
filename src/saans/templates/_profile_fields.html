@@ -18,7 +18,7 @@
   <div class="trip-grid">
     <label>Where you start
       <span class="with-button">
-        <input name="from" required maxlength="120" autocomplete="off" placeholder="e.g. Mayur Vihar Phase 1, or your metro station" value="{{ p.from or '' }}">
+        <input name="from" data-clears="area" required maxlength="120" autocomplete="off" placeholder="e.g. Mayur Vihar Phase 1, or your metro station" value="{{ p.from or '' }}">
         <button type="button" class="ghost locate" data-api="{{ url_for('api_locate') }}"
           {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>
       </span></label>
@@ -54,27 +54,4 @@
     <label class="check"><input type="checkbox" name="mask" value="1" {% if p.mask %}checked{% endif %}> I have an N95 mask</label>
   </div>
 </fieldset>
-<script>
-(function () {
-  var btn = document.querySelector("button.locate");
-  if (!btn || btn.dataset.bound) return;
-  btn.dataset.bound = "1";
-  var form = btn.closest("form"), from = form.querySelector("input[name=from]"),
-      area = form.querySelector("input[name=area]"), status = form.querySelector(".locate-status");
-  from.addEventListener("input", function () { area.value = ""; });
-  btn.addEventListener("click", function () {
-    if (!navigator.geolocation) { status.textContent = btn.dataset.msgUnsupported; return; }
-    status.textContent = btn.dataset.msgLocating;
-    navigator.geolocation.getCurrentPosition(function (pos) {
-      fetch(btn.dataset.api, {method: "POST", headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({lat: pos.coords.latitude, lon: pos.coords.longitude})})
-        .then(function (r) { return r.json().then(function (d) { return {ok: r.ok, d: d}; }); })
-        .then(function (res) {
-          if (!res.ok) { status.textContent = res.d.error || btn.dataset.msgOutside; return; }
-          area.value = res.d.area; from.value = res.d.label; status.textContent = "";
-        })
-        .catch(function () { status.textContent = btn.dataset.msgDenied; });
-    }, function () { status.textContent = btn.dataset.msgDenied; }, {timeout: 10000, maximumAge: 300000});
-  });
-})();
-</script>
+{% include "_locate.html" %}

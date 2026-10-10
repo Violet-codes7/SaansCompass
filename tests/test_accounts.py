@@ -240,8 +240,10 @@ def test_home_asks_nothing_the_saved_profile_has(client, mem_store):
     assert "Answer these once" in new and "data-draft>" not in new
     client.post("/account/profile", data=PROFILE)
     html = client.get("/").get_data(as_text=True)
-    assert 'name="job"' not in html and 'name="from"' not in html and 'name="age"' not in html
-    assert "Welcome back, Asha." in html and "Rohini" in html and "Age 66" in html and "Open my plan" in html
+    assert 'name="job"' not in html and 'name="age"' not in html and 'name="cond"' not in html
+    assert "Welcome back, Asha." in html and "Age 66" in html and "Delivery or gig rider" in html
+    # today's trip stays editable, prefilled from the profile
+    assert "Today&#39;s trip" in html and 'value="Rohini Sector 9"' in html and 'name="to_area" value="ito"' in html
     assert "Tell us a little about you" not in html
 
 
@@ -250,3 +252,19 @@ def test_profile_page_shows_the_sign_up_name_folded(client):
     html = client.get("/account/profile").get_data(as_text=True)
     assert "Shown as Asha" in html and 'value="Asha"' in html and "<details class=\"fix name-fix\">" in html
     assert "saans-draft" in html  # fills in what the home page form was told in this tab
+
+
+def test_todays_trip_changes_the_plan_not_the_profile(client, mem_store):
+    sign_up_and_in(client)
+    client.post("/account/profile", data=PROFILE)
+    html = client.get("/plan?from=Dwarka&area=&to=Connaught+Place&to_area=ito&travel=scooter&commute=two_wheeler"
+                      "&modes=two_wheeler", follow_redirects=True).get_data(as_text=True)
+    assert "Dwarka → ITO" in html and '<h1 translate="no">Asha</h1>' in html  # still the saved person
+    assert mem_store.get_user_profile("sub-0")["area"] == "rohini"
+
+
+def test_poster_shows_the_name_only(client):
+    sign_up_and_in(client)
+    client.post("/account/profile", data=PROFILE)
+    html = client.get("/poster").get_data(as_text=True)
+    assert '<b translate="no">Asha</b></p>' in html and "<small" not in html.split('class="who"')[1].split("</p>")[0]

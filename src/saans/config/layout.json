@@ -88,6 +88,10 @@
     "show": "Show my plan",
     "name_shown": "Shown as {name}",
     "change": "Change",
-    "prefilled": "We filled this in from what you told us before. Check it and save."
+    "prefilled": "We filled this in from what you told us before. Check it and save.",
+    "today_trip": "Today's trip",
+    "today_help": "For today only; your profile stays the same.",
+    "today_to": "Where you're going today",
+    "today_go": "Show today's plan"
   }
 }

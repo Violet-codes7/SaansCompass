@@ -9,15 +9,34 @@
 <section class="panel welcome">
   {% if saved %}
   <p><b translate="no">{{ hm.welcome_back.format(name=saved.name or user.name) }}</b> {{ hm.uses_saved }}</p>
-  <p class="fix"><span>{{ work[saved.persona] if saved.persona in work else saved.job }}</span>
-    {%- if saved.area in areas %} <span>{{ areas[saved.area].name }}{% if saved.to_area in areas and saved.to_area != saved.area %} → {{ areas[saved.to_area].name }}{% endif %}{% if saved.commute in commute_modes %} · {{ commute_modes[saved.commute] }}{% endif %}</span>{% endif %}</p>
-  {% if saved.age or saved.cond %}
   <ul class="chips">
+    <li>{{ work[saved.persona] if saved.persona in work else saved.job }}</li>
     {%- if saved.age %}<li>{{ layout.header.age.format(age=saved.age) }}</li>{% endif -%}
     {%- for c in saved.cond or [] if c in conditions %}<li class="c-health">{{ conditions[c] }}</li>{% endfor -%}
   </ul>
-  {% endif %}
-  <p><a class="button" href="{{ url_for('plan_page') }}">Open my plan</a> <a class="button ghost" href="{{ url_for('poster') }}">My daily poster</a> <a class="button ghost" href="{{ url_for('account_profile') }}">Edit profile</a></p>
+  {# Today's trip: prefilled from the profile, changed for this plan only (never saved). #}
+  <form class="picker profile today-trip" method="get" action="{{ url_for('plan_page') }}">
+    <fieldset class="trip">
+      <legend>{{ hm.today_trip }} <small class="small">{{ hm.today_help }}</small></legend>
+      <div class="trip-grid">
+        <label>Where you start
+          <span class="with-button">
+            <input name="from" data-clears="area" required maxlength="120" autocomplete="off" value="{{ saved['from'] or '' }}">
+            <button type="button" class="ghost locate" data-api="{{ url_for('api_locate') }}"
+              {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>
+          </span></label>
+        <input type="hidden" name="area" value="{{ saved.area or '' }}">
+        <label>{{ hm.today_to }} <input name="to" data-clears="to_area" maxlength="120" autocomplete="off" value="{{ saved.to or '' }}"></label>
+        <input type="hidden" name="to_area" value="{{ saved.to_area or '' }}">
+        <label>How you travel <input name="travel" data-clears="commute,modes" maxlength="120" autocomplete="off" value="{{ saved.travel or '' }}"></label>
+        <input type="hidden" name="commute" value="{{ saved.commute or '' }}">
+        <input type="hidden" name="modes" {% set m = saved.modes or '' %}value="{{ m if m is string else m|join(',') }}">
+      </div>
+      <p class="small locate-status" aria-live="polite"></p>
+    </fieldset>
+    <p><button type="submit">{{ hm.today_go }}</button> <a class="button ghost" href="{{ url_for('poster') }}">My daily poster</a> <a class="button ghost" href="{{ url_for('account_profile') }}">Edit profile</a></p>
+  </form>
+  {% include "_locate.html" %}
   {% else %}
   <p><b translate="no">{{ hm.welcome_new.format(name=user.name) }}</b> {{ hm.answer_once }}</p>
   {% endif %}

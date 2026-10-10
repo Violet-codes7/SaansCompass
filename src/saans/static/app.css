@@ -464,7 +464,8 @@ section.panel[id] > h2::before,section.panel[id] > .h-row > h2::before,section.p
 .fix form label{display:flex;gap:6px;align-items:center}
 .fix form button.ghost{background:transparent;color:var(--accent);padding:6px 12px}
 .fix .note{margin:8px 0 0}
-.welcome .fix span+span::before{content:"· ";color:var(--muted)}
+.today-trip{margin:12px 0 0}
+.today-trip fieldset{margin:0 0 8px}
 .name-fix{margin:0 0 14px}
 .name-fix label{margin-top:8px;max-width:360px}
 /* Air and weather dials: two even halves, dials the same size, captions aligned */
