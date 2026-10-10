@@ -42,40 +42,6 @@
     "n95": "Has an N95"
   },
   "footer": "Not medical advice. In an emergency, call 112. Data:",
-  "try_title": "Clean air today? See a bad-air day:",
-  "try_examples": [
-    {
-      "label": "Child with asthma, Stage IV",
-      "args": {
-        "persona": "school",
-        "area": "anand-vihar",
-        "stage": "IV",
-        "age": 9,
-        "cond": "asthma",
-        "commute": "bus"
-      }
-    },
-    {
-      "label": "Construction worker, Stage III",
-      "args": {
-        "persona": "worker",
-        "area": "anand-vihar",
-        "stage": "III",
-        "age": 38,
-        "commute": "cycle"
-      }
-    },
-    {
-      "label": "Office commuter by car, Stage III",
-      "args": {
-        "persona": "commuter",
-        "area": "ito",
-        "stage": "III",
-        "age": 29,
-        "commute": "car"
-      }
-    }
-  ],
   "theme": {
     "dark": "🌙 Dark",
     "light": "☀️ Light"
