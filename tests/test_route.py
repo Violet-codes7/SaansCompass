@@ -137,3 +137,17 @@ def test_locate_api(client, caplog):
     assert client.post("/api/locate", json={"lat": "x"}).status_code == 400
     assert client.post("/api/locate", json={"lat": 100, "lon": 0}).status_code == 400
     assert "28.6275" not in caplog.text and "77.2412" not in caplog.text
+
+
+def test_places_near_delhi_get_their_own_area_far_ones_none(mem_store):
+    from saans import data, route
+    near = route.place_for(28.6300, 77.2400, "ITO crossing")
+    assert near.id == "ito"  # within area_snap_km of ITO
+    town = route.place_for(28.4595, 77.0266, "Gurugram")
+    assert town.id.startswith("p-") and town.name == "Gurugram" and (town.lat, town.lon) == (28.46, 77.03)
+    data._places.clear()
+    assert data.get_area(town.id) == town  # read back from the store
+    assert route.place_for(19.07, 72.88, "Mumbai") is None
+    import pytest
+    with pytest.raises(ValueError):
+        data.get_area("p-000000000000")

@@ -77,7 +77,8 @@ def stations_from_records(records):
             continue
         s = by_station.setdefault(name, {"name": name, "lat": _number(_field(r, fields["lat"])),
                                          "lon": _number(_field(r, fields["lon"])),
-                                         "updated": _field(r, fields["updated"]), "subs": {}})
+                                         "updated": _field(r, fields["updated"]),
+                                         "state": r.get(settings.get("cpcb_filter_field")), "subs": {}})
         s["subs"][pollutant] = value
     out = []
     for s in by_station.values():
@@ -92,23 +93,31 @@ def stations_from_records(records):
 
 
 def fetch(session=None):
-    """The feed's records for the configured state, or None."""
+    """The feed's records for the configured states (Delhi and the NCR states
+    around it), or None when the key is missing or every request fails."""
     key = _api_key()
     if not key:
         return None
     import requests
 
-    params = {"api-key": key, "format": "json", "limit": settings.get("cpcb_limit"),
-              f"filters[{settings.get('cpcb_filter_field')}]": settings.get("cpcb_filter_value")}
-    try:
-        resp = (session or requests).get(settings.get("cpcb_url"), params=params,
-                                         timeout=settings.get("cpcb_timeout_seconds"))
-        resp.raise_for_status()
-        records = resp.json().get("records")
-    except Exception as exc:  # network, HTTP or JSON error; the message may carry the URL, so log the type only
-        log.warning("cpcb feed failed: %s", type(exc).__name__)
-        return None
-    return records if isinstance(records, list) else None
+    states = settings.get("cpcb_filter_value")
+    states = [states] if isinstance(states, str) else states
+    records, ok = [], False
+    for state in states:
+        params = {"api-key": key, "format": "json", "limit": settings.get("cpcb_limit"),
+                  f"filters[{settings.get('cpcb_filter_field')}]": state}
+        try:
+            resp = (session or requests).get(settings.get("cpcb_url"), params=params,
+                                             timeout=settings.get("cpcb_timeout_seconds"))
+            resp.raise_for_status()
+            got = resp.json().get("records")
+        except Exception as exc:  # network, HTTP or JSON error; the message may carry the URL, so log the type only
+            log.warning("cpcb feed failed: %s", type(exc).__name__)
+            continue
+        if isinstance(got, list):
+            records += got
+            ok = True
+    return records if ok else None
 
 
 def _parse_time(raw):
@@ -177,8 +186,9 @@ def nearest(stations, area):
 
 
 def city_air(stations):
-    """Delhi's AQI as CPCB reports a city: the average of its stations' AQIs."""
-    stations = sorted(stations or (), key=lambda s: s["aqi"])
+    """Delhi's AQI as CPCB reports a city: the average of its own stations' AQIs."""
+    city_state = settings.get("cpcb_city_state")
+    stations = sorted((s for s in stations or () if s.get("state") in (None, city_state)), key=lambda s: s["aqi"])
     if len(stations) < settings.get("cpcb_city_min_stations"):
         return None
     value = round(sum(s["aqi"] for s in stations) / len(stations))

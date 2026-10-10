@@ -37,11 +37,84 @@ class Area:
 AREAS = {a["id"]: Area(**a) for a in settings.load("areas")["areas"]}
 
 
-def get_area(area_id):
+# Places someone typed that are not near one of the AREAS (Gurugram, Rewari).
+# A link names one by a short id; its name and rounded coordinates are kept in
+# the store under that id, so no coordinates go in a link or a log.
+PLACE_PREFIX = "p-"
+_places = {}
+
+
+def _km(lat1, lon1, lat2, lon2):
+    import math
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    a = (math.sin((p2 - p1) / 2) ** 2
+         + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lon2 - lon1) / 2) ** 2)
+    return 6371.0 * 2 * math.asin(math.sqrt(a))
+
+
+def make_place(lat, lon, name, store=None):
+    """An Area for a typed place, or None when it is too far from Delhi for
+    Delhi-NCR's GRAP rules (max_place_km)."""
+    import hashlib
+
+    centre = settings.get("weather_place")
+    if _km(lat, lon, centre["lat"], centre["lon"]) > settings.get("max_place_km"):
+        return None
+    digits = settings.get("place_round_digits")
+    lat, lon = round(lat, digits), round(lon, digits)
+    name = " ".join(str(name).split())[:settings.get("place_name_max_chars")] or "Your place"
+    pid = PLACE_PREFIX + hashlib.sha256(f"{lat},{lon},{name}".encode()).hexdigest()[:12]
+    area = Area(pid, name, lat, lon)
+    _places[pid] = area
     try:
+        _place_store(store).put_text("PLACE#" + pid, json.dumps({"name": name, "lat": lat, "lon": lon}),
+                                     ttl_seconds=settings.get("place_days") * 86400)
+    except Exception as exc:
+        log.warning("could not keep place %s: %s", pid, type(exc).__name__)
+    return area
+
+
+def _place_store(store):
+    if store is not None:
+        return store
+    from .store import get_store  # here to avoid an import cycle
+    return get_store()
+
+
+def get_area(area_id, store=None):
+    if area_id in AREAS:
         return AREAS[area_id]
-    except KeyError:
-        raise ValueError(f"area must be one of {', '.join(AREAS)}") from None
+    if str(area_id).startswith(PLACE_PREFIX):
+        if area_id in _places:
+            return _places[area_id]
+        try:
+            raw = _place_store(store).get_text("PLACE#" + area_id)
+        except Exception:
+            raw = None
+        if raw:
+            p = json.loads(raw)
+            _places[area_id] = Area(area_id, p["name"], p["lat"], p["lon"])
+            return _places[area_id]
+        raise ValueError("That place has expired. Please type it again.")
+    raise ValueError(f"area must be one of {', '.join(AREAS)}") from None
+
+
+def geocode(text, session=None):
+    """(lat, lon, name) for a town or locality name from the Open-Meteo
+    geocoding API, or None. Used when the AI model cannot read the place."""
+    params = {"name": str(text)[:settings.get("place_name_max_chars")], "count": 1,
+              "countryCode": settings.get("geocode_country"), "language": "en", "format": "json"}
+    try:
+        resp = (session or requests).get(settings.get("geocode_url"), params=params,
+                                         timeout=settings.get("http_timeout_seconds"))
+        resp.raise_for_status()
+        hit = (resp.json().get("results") or [None])[0]
+    except Exception as exc:  # network, HTTP or JSON error; the typed text is never logged
+        log.warning("geocoding failed: %s", type(exc).__name__)
+        return None
+    if not hit or not all(isinstance(hit.get(k), (int, float)) for k in ("latitude", "longitude")):
+        return None
+    return float(hit["latitude"]), float(hit["longitude"]), hit.get("name") or str(text)
 
 
 def now_ist():

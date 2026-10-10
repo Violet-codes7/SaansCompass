@@ -94,6 +94,7 @@ def test_key_goes_in_the_request_only(feed_on):
     s = FakeSession(delhi_records())
     cpcb.get_stations(now=FIXED_NOW, session=s)
     assert s.calls[0]["params"]["api-key"] == "test-key" and s.calls[0]["params"]["filters[state]"] == "Delhi"
+    assert [c["params"]["filters[state]"] for c in s.calls] == ["Delhi", "Haryana", "Uttar_Pradesh", "Rajasthan"]
 
 
 def test_city_aqi_is_the_station_average(feed_on):

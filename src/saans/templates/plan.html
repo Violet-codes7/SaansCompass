@@ -28,12 +28,13 @@
       {%- if pf.has_n95_mask %}<li>{{ hd.n95 }}</li>{% endif -%}
     </ul>
     {% else %}<p class="question">{{ plan.persona.question }}</p>{% endif %}
-    {% set unplaced_from = route_texts.from and not request.args.get('area') and not using_saved %}
-    {% set unplaced_to = route_texts.to and not request.args.get('to_area') and not using_saved %}
+    {% set unplaced_from = route_texts.from and not request.args.get('area') and not saved_trip %}
+    {% set unplaced_to = route_texts.to and not request.args.get('to_area') and not saved_trip %}
     {% set r = plan.route %}
     <div class="fixes">
       {% if using_saved %}
-      <p class="fix">{% if r %}<span>{{ r.from.name }} → {{ r.to.name }}{% if r.mode_labels %} · {{ r.mode_labels|join(' + ') }}{% endif %}</span> {% endif %}<a href="{{ url_for('account_profile') }}">{{ hd.edit_profile }}</a></p>
+      <p class="fix">{% if r %}<span>{{ r.from.name }} → {{ r.to.name }}{% if r.mode_labels %} · {{ r.mode_labels|join(' + ') }}{% endif %}</span> {% elif not saved_trip %}<span>{{ plan.area.name }}</span> {% endif %}<a href="{{ url_for('account_profile') }}">{{ hd.edit_profile }}</a></p>
+      {% for t in [route_texts.from if unplaced_from else None, route_texts.to if unplaced_to else None] if t %}<p class="note err">{{ route_text.messages.not_found_typed.format(text=t) }}</p>{% endfor %}
       {% else %}
       <details class="fix"{% if request.args.get('read') == 'default' %} open{% endif %}>
         <summary><span>{{ work[plan.persona.id] }}</span> <b>{{ hd.change }}</b></summary>

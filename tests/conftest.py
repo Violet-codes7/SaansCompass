@@ -63,6 +63,8 @@ def no_real_network(monkeypatch):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(ai, "_key_cache", {"at": -1e9, "value": None})
     monkeypatch.setattr(ai, "_resting", {})
+    monkeypatch.setattr(data, "geocode", lambda text, session=None: None)  # no real geocoding in tests
+    monkeypatch.setattr(data, "_places", {})
     # No CPCB feed unless a test turns one on.
     from saans import cpcb
     for name in ("DATAGOV_API_KEY", "DATAGOV_KEY_PARAM"):

@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 
-from . import ai, data, guide, i18n, route, settings, web_accounts
+from . import ai, cpcb, data, guide, i18n, route, settings, web_accounts
 from .alerts import subscribe as sns_subscribe
 from .personas import PERSONAS
 from . import gauges, weather
@@ -131,15 +131,22 @@ def _persona_id():
     return saved["persona"] if saved else settings.get("default_persona")
 
 
+def _typed_trip():
+    """True when the link gives today's trip (the home page's "Today's trip"
+    or a typed route): then it is used as given, never the saved one."""
+    return any(request.args.get(k) for k in ("from", "to", "area", "to_area"))
+
+
 def _plan_args():
     saved = _saved()
-    source = saved if saved else request.args
+    source = saved if saved and not _typed_trip() else request.args
     modes = _modes(request.args.get("modes") or source.get("modes"))
     commute = request.args.get("commute") or source.get("commute")
     if commute in COMMUTE_MODES and commute not in modes:  # picked by hand on the plan page
         modes = [commute]
     return {
         "persona_id": _persona_id(),
+        # A start that could not be found keeps the saved one (the page says so).
         "area_id": request.args.get("area") or (saved and saved.get("area")) or settings.get("default_area"),
         "to_area_id": request.args.get("to_area") or source.get("to_area") or None,
         "modes": modes,
@@ -195,7 +202,7 @@ def create_app():
                 "weather_dials": weather.DIALS, "weather_text": weather.TEXT["explain"], "weather_place": weather.city_place().name, "particles": PARTICLES,
                 "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "glance_text": guide.TEXT, "chat_text": CHAT_TEXT, "layout": LAYOUT, "chat_max_chars": settings.get("chat_max_chars"), "aqi_category": aqi_category, "vehicles": VEHICLES, "vehicle_labels": VEHICLE_LABELS,
                 "hour_labels": ADVICE_TEXT["hour_verdict_labels"], "hour_tags": ADVICE_TEXT["hour_tags"],
-                "source_links": settings.get("source_links"), "route_messages": route.TEXT["messages"],
+                "source_links": settings.get("source_links"), "cpcb_on": cpcb.enabled(), "route_messages": route.TEXT["messages"],
                 "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision")}
 
     @app.errorhandler(data.ForecastUnavailable)
@@ -256,8 +263,10 @@ def create_app():
         wx = weather.get_weather(weather.city_place(), get_store())
         plan["hour_details"] = guide.hour_details(plan, wx)
         saved = _saved()
-        texts = route_texts(saved or request.args)
+        typed = _typed_trip()
+        texts = route_texts(request.args if typed or not saved else saved)
         return render_template("plan.html", plan=plan, args=args, weather=wx, using_saved=bool(saved),
+                               saved_trip=bool(saved) and not typed,
                                route_texts=texts, route_text=route.TEXT, role=_role(saved),
                                display_name=saved.get("name") if saved else None)
 

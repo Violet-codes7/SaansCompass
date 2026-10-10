@@ -93,5 +93,6 @@
     "today_help": "For today only; your profile stays the same.",
     "today_to": "Where you're going today",
     "today_go": "Show today's plan"
-  }
+  },
+  "no_station": "No CPCB station near {area}: 24-hour average, forecast model"
 }

@@ -72,7 +72,7 @@ def test_poster_qr_leaves_out_health_and_what_if(client):
 
 
 def test_poster_lists_day_actions_not_rule_repeats(client):
-    html = client.get("/poster?persona=rider&area=ito&stage=IV").get_data(as_text=True)
+    html = client.get("/poster?persona=rider&area=ito&stage=IV&day=today").get_data(as_text=True)
     todo = html.split('class="todo"', 1)[1].split("</section>", 1)[0]
     assert "Not allowed at this GRAP stage" not in todo and "<li>" in todo
 
@@ -132,15 +132,15 @@ def test_lambda_handler_serves_http_api_v2_event(mem_store, monkeypatch, live_fe
 
 
 def test_stage_links_poster_order_and_favicon(client):
-    html = client.get("/plan?persona=school&area=ito&stage=0").get_data(as_text=True)
+    html = client.get("/plan?persona=school&area=ito&stage=0&day=today").get_data(as_text=True)
     assert "Try Stage" not in html and "Not covered by GRAP at any stage" in html
     assert 'class="pill check_official_order"' not in html
-    hard = client.get("/plan?persona=school&area=ito&stage=IV").get_data(as_text=True)
+    hard = client.get("/plan?persona=school&area=ito&stage=IV&day=today").get_data(as_text=True)
     assert "Set by the GRAP rules at Stage IV" in hard
-    poster = client.get("/poster?persona=rider&area=ito&stage=IV").get_data(as_text=True)
+    poster = client.get("/poster?persona=rider&area=ito&stage=IV&day=today").get_data(as_text=True)
     rules = poster[poster.index('class="rules"'):]
     assert rules.index("Not allowed") < rules.index("</ul>")
-    calm = client.get("/poster?persona=school&area=ito&stage=0").get_data(as_text=True)
+    calm = client.get("/poster?persona=school&area=ito&stage=0&day=today").get_data(as_text=True)
     assert "No GRAP stage today" in calm and "Check the official order" not in calm
     assert client.get("/favicon.ico").status_code == 301
     assert client.get("/static/favicon.svg").status_code == 200

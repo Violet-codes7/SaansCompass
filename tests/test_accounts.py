@@ -277,3 +277,29 @@ def test_plan_header_has_no_occupation_text(client):
     head = html[html.index('<section class="summary">'):html.index("</section>", html.index('<section class="summary">'))]
     assert "Asha" in head and "Rohini → ITO" in head and "Edit profile" in head
     assert "Delivery or gig rider" not in head and "I deliver food" not in head and 'class="role"' not in head
+
+
+TOWNS = {"gurgaon": (28.4595, 77.0266, "Gurugram"), "rewari": (28.1928, 76.6191, "Rewari")}
+
+
+def test_todays_trip_outside_our_areas_is_used_as_typed(client, mem_store, monkeypatch):
+    monkeypatch.setattr(data, "geocode", lambda text, session=None: TOWNS.get(text.strip().lower()))
+    sign_up_and_in(client)
+    client.post("/account/profile", data=PROFILE)  # saved: Rohini -> Connaught Place by scooter
+    resp = client.get("/plan?from=gurgaon&area=&to=rewari&to_area=&travel=bus&commute=&modes=")
+    loc = resp.headers["Location"]
+    assert resp.status_code == 302 and "area=p-" in loc and "to_area=p-" in loc and "commute=bus" in loc
+    html = client.get(loc).get_data(as_text=True)
+    head = html[html.index('<section class="summary">'):html.index('<div class="stage-box')]
+    assert "Gurugram → Rewari · Bus" in head and "Rohini" not in head and "Air quality at Rewari" in html
+    assert mem_store.get_user_profile("sub-0")["area"] == "rohini"  # the profile is not changed
+    assert "28.19" not in loc and "76.6" not in loc  # no coordinates in the link
+
+
+def test_a_place_that_cannot_be_found_is_said_not_replaced(client, mem_store):
+    sign_up_and_in(client)
+    client.post("/account/profile", data=PROFILE)
+    html = client.get("/plan?from=Rohini+Sector+9&area=rohini&to=Atlantis&to_area=&travel=bus&commute=bus&modes=bus",
+                      follow_redirects=True).get_data(as_text=True)
+    assert "We could not find &#34;Atlantis&#34; near Delhi" in html and "Connaught Place" not in html
+    assert "Air quality at Rohini" in html  # no destination today: the start's air

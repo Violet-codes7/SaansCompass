@@ -9,11 +9,9 @@
       "shahdara",
       "vivek vihar",
       "karkardooma",
-      "ghaziabad",
       "kaushambi",
       "vaishali",
       "indirapuram",
-      "noida",
       "akshardham",
       "geeta colony",
       "krishna nagar"
@@ -69,8 +67,6 @@
       "aiims"
     ],
     "dwarka": [
-      "gurugram",
-      "gurgaon",
       "palam",
       "airport",
       "igi airport",
@@ -97,7 +93,6 @@
       "jasola",
       "sarita vihar",
       "badarpur",
-      "faridabad",
       "sangam vihar",
       "greater kailash",
       "gk",
@@ -215,6 +210,132 @@
     "outside": "You seem to be outside the Delhi areas we cover. Type the nearest place instead.",
     "unsupported": "This browser cannot share your location. Type where you start instead.",
     "not_found": "We could not place \"{text}\" on our map of Delhi. Pick the closest area below.",
-    "day_area": "Your hour-by-hour plan uses the air at {area}, where you spend the day."
-  }
+    "day_area": "Your hour-by-hour plan uses the air at {area}, where you spend the day.",
+    "not_found_typed": "We could not find \"{text}\" near Delhi. Try a nearby town, locality or metro station."
+  },
+  "_towns_about": "Towns in Delhi-NCR outside our Delhi areas, matched by name when the AI model is off (approximate centres).",
+  "towns": [
+    {
+      "name": "Gurugram",
+      "lat": 28.4595,
+      "lon": 77.0266,
+      "names": [
+        "gurugram",
+        "gurgaon"
+      ]
+    },
+    {
+      "name": "Noida",
+      "lat": 28.5355,
+      "lon": 77.391,
+      "names": [
+        "noida"
+      ]
+    },
+    {
+      "name": "Greater Noida",
+      "lat": 28.4744,
+      "lon": 77.504,
+      "names": [
+        "greater noida"
+      ]
+    },
+    {
+      "name": "Ghaziabad",
+      "lat": 28.6692,
+      "lon": 77.4538,
+      "names": [
+        "ghaziabad"
+      ]
+    },
+    {
+      "name": "Faridabad",
+      "lat": 28.4089,
+      "lon": 77.3178,
+      "names": [
+        "faridabad"
+      ]
+    },
+    {
+      "name": "Sonipat",
+      "lat": 28.9931,
+      "lon": 77.0151,
+      "names": [
+        "sonipat",
+        "sonepat"
+      ]
+    },
+    {
+      "name": "Bahadurgarh",
+      "lat": 28.692,
+      "lon": 76.924,
+      "names": [
+        "bahadurgarh"
+      ]
+    },
+    {
+      "name": "Manesar",
+      "lat": 28.354,
+      "lon": 76.939,
+      "names": [
+        "manesar"
+      ]
+    },
+    {
+      "name": "Rewari",
+      "lat": 28.1928,
+      "lon": 76.6191,
+      "names": [
+        "rewari"
+      ]
+    },
+    {
+      "name": "Meerut",
+      "lat": 28.9845,
+      "lon": 77.7064,
+      "names": [
+        "meerut"
+      ]
+    },
+    {
+      "name": "Panipat",
+      "lat": 29.3909,
+      "lon": 76.9635,
+      "names": [
+        "panipat"
+      ]
+    },
+    {
+      "name": "Rohtak",
+      "lat": 28.8955,
+      "lon": 76.6066,
+      "names": [
+        "rohtak"
+      ]
+    },
+    {
+      "name": "Palwal",
+      "lat": 28.1487,
+      "lon": 77.332,
+      "names": [
+        "palwal"
+      ]
+    },
+    {
+      "name": "Bhiwadi",
+      "lat": 28.209,
+      "lon": 76.8606,
+      "names": [
+        "bhiwadi"
+      ]
+    },
+    {
+      "name": "Jhajjar",
+      "lat": 28.6063,
+      "lon": 76.6565,
+      "names": [
+        "jhajjar"
+      ]
+    }
+  ]
 }

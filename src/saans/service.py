@@ -105,7 +105,8 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
     # GRAP is decided for all of Delhi-NCR on Delhi's city-wide AQI, so the
     # estimate uses every area, not just this one.
     forecasts = data.get_forecasts(data.AREAS.values(), store, now=now, fetcher=fetcher)
-    forecasts[area.id] = forecast
+    if area.id in forecasts:  # a typed place outside Delhi's areas is not part of Delhi's AQI
+        forecasts[area.id] = forecast
     station, station_city = official_air(area, store, now)
     city = (station_city if day == "today" else None) or data.city_air(forecasts, date, now)
     next_day = data.city_air(forecasts, date + timedelta(days=1), now) if day == "today" else None

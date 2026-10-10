@@ -82,13 +82,13 @@ def test_stage_headline(stage, value, cat, title, sub):
 
 
 def test_plan_page_explains_rules_and_glance(client):
-    html = client.get("/plan?persona=worker&area=ito&stage=III").get_data(as_text=True)
+    html = client.get("/plan?persona=worker&area=ito&stage=III&day=today").get_data(as_text=True)
     assert "What it means for you:" in html and "Dusty construction work" in html
     assert "Official source" in html and "worker.dusty_cnd.stage3" in html
     assert "You are here" in html and "Stage III: Severe air" in html
     for label in ("At a glance in ITO", "AQI in ITO", "Worst time", "Your limits", "like smoking", "What to do today"):
         assert label in html
-    html0 = client.get("/plan?persona=commuter&area=ito&stage=0").get_data(as_text=True)
+    html0 = client.get("/plan?persona=commuter&area=ito&stage=0&day=today").get_data(as_text=True)
     assert "No GRAP stage today" in html0 and ">None<" not in html0
 
 

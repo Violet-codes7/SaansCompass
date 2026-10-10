@@ -19,6 +19,7 @@ from . import ai, data, settings
 
 TEXT = settings.load("route")
 ALIASES = TEXT["aliases"]
+TOWNS = TEXT["towns"]
 COMMUTE_KEYWORDS = TEXT["commute_keywords"]
 EXPOSURE_ORDER = TEXT["exposure_order"]
 MODE_LABELS = settings.load("profile")["commute_modes"]
@@ -57,6 +58,17 @@ def match_place(text):
     return best
 
 
+def match_town(text):
+    """(lat, lon, name) for a Delhi-NCR town named in free text, or None.
+    The longest name wins, so "Greater Noida" beats "Noida"."""
+    words = _words(text)
+    hits = [(len(_words(n)), t) for t in TOWNS for n in t["names"] if _words(n) in words]
+    if not hits:
+        return None
+    t = max(hits, key=lambda h: h[0])[1]
+    return t["lat"], t["lon"], t["name"]
+
+
 def match_modes(text):
     """Ways of travelling mentioned in free text, most exposed first."""
     words = _words(text)
@@ -70,17 +82,37 @@ def main_mode(modes):
     return min(modes, key=EXPOSURE_ORDER.index) if modes else None
 
 
+def place_for(lat, lon, name):
+    """One of our areas when the place is within area_snap_km of it, else the
+    place itself (None when it is too far from Delhi-NCR)."""
+    area = min(data.AREAS.values(), key=lambda a: distance_km(lat, lon, a.lat, a.lon))
+    if distance_km(lat, lon, area.lat, area.lon) <= settings.get("area_snap_km"):
+        return area
+    return data.make_place(lat, lon, name)
+
+
+def _place_name(text):
+    """A short display name from what was typed: "gurgaon" -> "Gurgaon"."""
+    words = str(text).split(",")[0].split()
+    return " ".join(w if w.isupper() else w[:1].upper() + w[1:] for w in words)
+
+
 def read_route(start, destination, travel):
     """{"area", "to_area", "commute", "modes", "how"} from typed text. Areas
-    are ids or None when a place could not be found."""
+    are ids (one of ours, or a typed place's) or None when a place could not
+    be found. The AI model reads places first; an area name or locality we
+    know comes next; then a geocoder for towns."""
     reading = ai.read_route(start, destination, travel)
     out, used_ai = {}, reading is not None
     for key, text, field in (("area", start, "start"), ("to_area", destination, "destination")):
         area = None
         if reading and reading[field]:
-            area = nearest_area(*reading[field])[0]
+            area = place_for(*reading[field], _place_name(text))
         if area is None and text:
             area = match_place(text)
+        if area is None and text:
+            hit = match_town(text) or data.geocode(text)
+            area = place_for(hit[0], hit[1], hit[2]) if hit else None
         out[key] = area.id if area else None
     modes = (reading["modes"] if reading else []) or match_modes(travel)
     out["modes"] = sorted(dict.fromkeys(modes), key=EXPOSURE_ORDER.index)
