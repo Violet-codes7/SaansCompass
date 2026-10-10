@@ -204,7 +204,8 @@ def create_app():
                 "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "glance_text": guide.TEXT, "chat_text": CHAT_TEXT, "layout": LAYOUT, "chat_max_chars": settings.get("chat_max_chars"), "aqi_category": aqi_category, "vehicles": VEHICLES, "vehicle_labels": VEHICLE_LABELS,
                 "hour_labels": ADVICE_TEXT["hour_verdict_labels"], "hour_tags": ADVICE_TEXT["hour_tags"],
                 "source_links": [l for l in settings.get("source_links") if grap_on or not l.get("grap")],
-                "grap_on": grap_on, "suggest_min_chars": settings.get("suggest_min_chars"), "brand": LAYOUT["brand"]["grap" if grap_on else "plain"], "cpcb_on": cpcb.enabled() or waqi.enabled(), "route_messages": route.TEXT["messages"],
+                "grap_on": grap_on, "suggest_min_chars": settings.get("suggest_min_chars"),
+                "region_only": bool(settings.get("place_region_km")), "brand": LAYOUT["brand"]["grap" if grap_on else "plain"], "cpcb_on": cpcb.enabled() or waqi.enabled(), "route_messages": route.TEXT["messages"],
                 "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision")}
 
     @app.errorhandler(data.ForecastUnavailable)

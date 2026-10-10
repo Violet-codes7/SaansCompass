@@ -34,7 +34,7 @@
     <div class="fixes">
       {% if using_saved %}
       <p class="fix">{% if r %}<span>{{ r.from.name }} → {{ r.to.name }}{% if r.mode_labels %} · {{ r.mode_labels|join(' + ') }}{% endif %}</span> {% elif not saved_trip %}<span>{{ plan.area.name }}</span> {% endif %}<a href="{{ url_for('account_profile') }}">{{ hd.edit_profile }}</a></p>
-      {% for t in [route_texts.from if unplaced_from else None, route_texts.to if unplaced_to else None] if t %}<p class="note err">{{ route_text.messages.not_found_typed.format(text=t) }}</p>{% endfor %}
+      {% for t in [route_texts.from if unplaced_from else None, route_texts.to if unplaced_to else None] if t %}<p class="note err">{{ (route_text.messages.not_found_region if region_only else route_text.messages.not_found_typed).format(text=t) }}</p>{% endfor %}
       {% else %}
       <details class="fix"{% if request.args.get('read') == 'default' %} open{% endif %}>
         <summary><span>{{ work[plan.persona.id] }}</span> <b>{{ hd.change }}</b></summary>

@@ -211,7 +211,8 @@
     "unsupported": "This browser cannot share your location. Type where you start instead.",
     "not_found": "We could not place \"{text}\" on our map of Delhi. Pick the closest area below.",
     "day_area": "Your hour-by-hour plan uses the air at {area}, where you spend the day.",
-    "not_found_typed": "We could not find \"{text}\" in India. Try a nearby town, locality or station."
+    "not_found_typed": "We could not find \"{text}\" in India. Try a nearby town, locality or station.",
+    "not_found_region": "We could not find \"{text}\" in Delhi-NCR. Try a town, locality or station there."
   },
   "_towns_about": "Towns in Delhi-NCR outside our Delhi areas, matched by name when the AI model is off (approximate centres).",
   "towns": [

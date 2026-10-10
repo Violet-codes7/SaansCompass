@@ -139,7 +139,8 @@ def test_locate_api(client, caplog):
     assert "28.6275" not in caplog.text and "77.2412" not in caplog.text
 
 
-def test_places_anywhere_in_india_get_their_own_area(mem_store):
+def test_places_anywhere_in_india_get_their_own_area(mem_store, monkeypatch):
+    monkeypatch.setenv("PLACE_REGION_KM", "0")  # the whole country
     from saans import data, route
     near = route.place_for(28.6300, 77.2400, "ITO crossing")
     assert near.id == "ito"  # within area_snap_km of ITO
@@ -156,13 +157,27 @@ def test_places_anywhere_in_india_get_their_own_area(mem_store):
 
 # Places outside Delhi-NCR: their own air, no GRAP stage
 
-def test_grap_applies_in_delhi_ncr_only(mem_store):
+@pytest.fixture
+def all_india(monkeypatch):
+    monkeypatch.setenv("PLACE_REGION_KM", "0")
+
+
+def test_site_covers_delhi_ncr_by_default(client, mem_store, monkeypatch):
+    assert route.place_for(28.4595, 77.0266, "Gurugram").id.startswith("p-")
+    assert route.place_for(26.85, 80.95, "Lucknow") is None
+    monkeypatch.setattr(data, "_geocode_hits", lambda name, session=None: [])
+    monkeypatch.setattr(data, "geocode", lambda text, session=None: (26.85, 80.95, "Lucknow"))
+    loc = client.get("/plan?persona=commuter&from=Lucknow&area=&day=today").headers["Location"]
+    assert "We could not place &#34;Lucknow&#34; on our map of Delhi" in client.get(loc).get_data(as_text=True)
+
+
+def test_grap_applies_in_delhi_ncr_only(mem_store, all_india):
     assert data.in_grap_region(data.get_area("ito"))
     assert data.in_grap_region(route.place_for(28.4595, 77.0266, "Gurugram"))
     assert not data.in_grap_region(route.place_for(26.85, 80.95, "Lucknow"))
 
 
-def test_plan_outside_ncr_has_no_grap_stage_or_rules(mem_store, live_fetcher):
+def test_plan_outside_ncr_has_no_grap_stage_or_rules(mem_store, live_fetcher, all_india):
     lucknow = route.place_for(26.85, 80.95, "Lucknow")
     plan = get_plan("commuter", lucknow.id, day="today", now=FIXED_NOW, store=mem_store, fetcher=live_fetcher,
                     every_stage=True)
@@ -173,7 +188,7 @@ def test_plan_outside_ncr_has_no_grap_stage_or_rules(mem_store, live_fetcher):
     assert plan["air"]["day_aqi"] is not None  # the town's own forecast
 
 
-def test_plan_page_outside_ncr(client, monkeypatch):
+def test_plan_page_outside_ncr(client, monkeypatch, all_india):
     from saans import weather
     seen = []
 
@@ -198,7 +213,7 @@ HITS = [{"name": "Aurangabad", "latitude": 19.88, "longitude": 75.34, "admin1": 
         {"name": "Aurangabad", "latitude": 19.88, "longitude": 75.34, "admin1": "Maharashtra"}]
 
 
-def test_state_tells_same_named_places_apart(monkeypatch):
+def test_state_tells_same_named_places_apart(monkeypatch, all_india):
     geocode, place_suggestions = REAL_GEOCODE, REAL_SUGGEST
     monkeypatch.setattr(data, "_geocode_hits", lambda name, session=None: HITS if name.lower() == "aurangabad" else [])
     assert geocode("Aurangabad") == (19.88, 75.34, "Aurangabad, Maharashtra")
@@ -208,7 +223,7 @@ def test_state_tells_same_named_places_apart(monkeypatch):
     assert place_suggestions("Au") == []
 
 
-def test_typed_town_and_state_is_found_and_named_with_its_state(client, monkeypatch):
+def test_typed_town_and_state_is_found_and_named_with_its_state(client, monkeypatch, all_india):
     monkeypatch.setattr(data, "_geocode_hits", lambda name, session=None: HITS if name.lower() == "aurangabad" else [])
     monkeypatch.setattr(data, "geocode", REAL_GEOCODE)
     loc = client.get("/plan?persona=commuter&from=Aurangabad,+Bihar&area=&day=today").headers["Location"]

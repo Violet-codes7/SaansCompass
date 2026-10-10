@@ -172,7 +172,8 @@ def test_last_good_reading_covers_a_feed_outage(feed_on, mem_store, monkeypatch)
     assert stations and cpcb.nearest(stations, data.get_area("ito"))["aqi"] == 312
 
 
-def test_a_town_uses_a_station_up_to_place_station_km_away(feed_on):
+def test_a_town_uses_a_station_up_to_place_station_km_away(feed_on, monkeypatch):
+    monkeypatch.setenv("PLACE_REGION_KM", "0")
     from saans import route
     recs = delhi_records() + station("Lalbagh, Lucknow - UPPCB", 26.845, 80.94, 90)
     stations = cpcb.get_stations(now=FIXED_NOW, session=FakeSession(recs))

@@ -53,12 +53,11 @@ def _km(lat1, lon1, lat2, lon2):
 
 
 def make_place(lat, lon, name, store=None):
-    """An Area for a typed place anywhere in India, or None when it is
-    outside the country's box (place_bounds)."""
+    """An Area for a typed place, or None when it is outside what the site
+    covers (in_coverage)."""
     import hashlib
 
-    box = settings.get("place_bounds")
-    if not (box["lat"][0] <= lat <= box["lat"][1] and box["lon"][0] <= lon <= box["lon"][1]):
+    if not in_coverage(lat, lon):
         return None
     digits = settings.get("place_round_digits")
     lat, lon = round(lat, digits), round(lon, digits)
@@ -72,6 +71,18 @@ def make_place(lat, lon, name, store=None):
     except Exception as exc:
         log.warning("could not keep place %s: %s", pid, type(exc).__name__)
     return area
+
+
+def in_coverage(lat, lon):
+    """True for a place the site covers: within place_region_km of Delhi
+    (weather_place), or anywhere in the country's box (place_bounds) when
+    place_region_km is 0."""
+    box = settings.get("place_bounds")
+    if not (box["lat"][0] <= lat <= box["lat"][1] and box["lon"][0] <= lon <= box["lon"][1]):
+        return False
+    region = settings.get("place_region_km")
+    centre = settings.get("weather_place")
+    return not region or _km(lat, lon, centre["lat"], centre["lon"]) <= region
 
 
 def in_grap_region(area):
@@ -117,7 +128,7 @@ def get_area(area_id, store=None):
 
 
 def _geocode_hits(name, session=None):
-    """Places in the country named `name`, from the Open-Meteo geocoding API, or []."""
+    """Places the site covers named `name`, from the Open-Meteo geocoding API, or []."""
     params = {"name": str(name)[:settings.get("place_name_max_chars")], "count": settings.get("geocode_count"),
               "countryCode": settings.get("geocode_country"), "language": "en", "format": "json"}
     try:
@@ -128,7 +139,8 @@ def _geocode_hits(name, session=None):
     except Exception as exc:  # network, HTTP or JSON error; the typed text is never logged
         log.warning("geocoding failed: %s", type(exc).__name__)
         return []
-    return [h for h in hits if all(isinstance(h.get(k), (int, float)) for k in ("latitude", "longitude"))]
+    return [h for h in hits if all(isinstance(h.get(k), (int, float)) for k in ("latitude", "longitude"))
+            and in_coverage(h["latitude"], h["longitude"])]
 
 
 def _name_and_state(text):
