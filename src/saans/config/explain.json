@@ -388,6 +388,15 @@
     "charter_you": "Because of {reasons}, GRAP's Stage IV advice to stay indoors as much as possible is meant for you.",
     "city_line_cpcb": "Delhi's AQI is {aqi} ({category}): the average of {count} CPCB stations right now.",
     "box_area_cpcb": "{area}: AQI {aqi} ({category}) at CPCB's {station} station, {time} IST.",
-    "places_title": "AQI at your start and destination"
+    "places_title": "AQI at your start and destination",
+    "rest_allowed": "Everything else in your day is allowed {day}: {activities}.",
+    "all_allowed": "Everything in your day is allowed {day}: {activities}.",
+    "rest_free": "No GRAP stage is on {day}, so nothing else in your day is restricted: {activities}.",
+    "all_free": "No GRAP stage is on {day}, so nothing in your day is restricted: {activities}.",
+    "day_words": {
+      "today": "today",
+      "tomorrow": "tomorrow"
+    },
+    "list_joiner": "; "
   }
 }

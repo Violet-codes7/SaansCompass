@@ -87,9 +87,10 @@ def resolve_route(args):
     """Fill in area, to_area, commute and modes from the typed route where the
     link or form does not already give them (a live location sets area)."""
     texts = route_texts(args)
+    stay = args.get("stay") == "1"  # the whole day in one place: no destination, no travel
     need = {"start": texts["from"] if not args.get("area") else None,
-            "destination": texts["to"] if not args.get("to_area") else None,
-            "travel": texts["travel"] if not args.get("commute") else None}
+            "destination": texts["to"] if not (args.get("to_area") or stay) else None,
+            "travel": texts["travel"] if not (args.get("commute") or stay) else None}
     if not any(need.values()):
         return {}
     reading = _read_route(need["start"], need["destination"], need["travel"])
@@ -134,7 +135,12 @@ def _persona_id():
 def _typed_trip():
     """True when the link gives today's trip (the home page's "Today's trip"
     or a typed route): then it is used as given, never the saved one."""
-    return any(request.args.get(k) for k in ("from", "to", "area", "to_area"))
+    return any(request.args.get(k) for k in ("from", "to", "area", "to_area", "stay"))
+
+
+def _staying(source):
+    """True when the day is spent in one place: no trip and no travel."""
+    return str(source.get("stay") or "") in ("1", "True", "true")
 
 
 def _plan_args():
@@ -144,12 +150,13 @@ def _plan_args():
     commute = request.args.get("commute") or source.get("commute")
     if commute in COMMUTE_MODES and commute not in modes:  # picked by hand on the plan page
         modes = [commute]
+    stay = _staying(source)
     return {
         "persona_id": _persona_id(),
         # A start that could not be found keeps the saved one (the page says so).
         "area_id": request.args.get("area") or (saved and saved.get("area")) or settings.get("default_area"),
-        "to_area_id": request.args.get("to_area") or source.get("to_area") or None,
-        "modes": modes,
+        "to_area_id": None if stay else request.args.get("to_area") or source.get("to_area") or None,
+        "modes": ["none"] if stay else modes,
         "stage": request.args.get("stage"),
         "day": request.args.get("day") or None,  # empty means pick today/tomorrow from the clock
     }
@@ -309,7 +316,8 @@ def create_app():
                                air_nf=request.args.get("air_nf"), using_saved=bool(saved),
                                saved_trip=bool(saved) and not typed,
                                route_texts=texts, route_text=route.TEXT, role=_role(saved),
-                               display_name=saved.get("name") if saved else None, weather_place=air_wx_place.name)
+                               display_name=saved.get("name") if saved else None, weather_place=air_wx_place.name,
+                               stay="none" in args["modes"])
 
     @app.get("/poster")
     def poster():

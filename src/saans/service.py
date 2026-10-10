@@ -119,7 +119,8 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
     persona = get_persona(persona_id)
     # The profile fits hours, limits, vehicle rules and travel; without one,
     # how the person travels (from the link) still fits the commute rules.
-    persona = (profile or Profile(work=persona.id)).apply(persona, modes)
+    person = profile or Profile(work=persona.id)
+    persona = person.apply(persona, modes)
     start = data.get_area(area_id)
     dest = data.get_area(to_area_id) if to_area_id else None
     area = dest or start
@@ -161,7 +162,7 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
     plan = build_plan(persona, area, forecast, date, stage_info, rule_results, profile)
     plan["day"] = day
     plan["route"] = (route.trips(persona, start, dest, date, store, now, fetcher, modes=modes)
-                     if dest and not (profile and profile.commute == "none") else None)
+                     if dest and person.travel_mode(modes) != "none" else None)
     trip_actions = [
         ADVICE["actions"]["trip_bad"].format(trip=leg["label"], time=leg["time"], area=leg["worst"]["name"],
                                              aqi=leg["worst"]["aqi"])

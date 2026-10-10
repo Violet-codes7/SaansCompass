@@ -303,3 +303,17 @@ def test_a_place_that_cannot_be_found_is_said_not_replaced(client, mem_store):
                       follow_redirects=True).get_data(as_text=True)
     assert "We could not find &#34;Atlantis&#34; in India" in html and "Connaught Place" not in html
     assert "Air quality at Rohini" in html  # no destination today: the start's air
+
+
+def test_a_day_in_one_place_has_no_trip(client, mem_store):
+    sign_up_and_in(client)
+    client.post("/account/profile", data={**PROFILE, "stay": "1"})
+    saved = mem_store.get_user_profile("sub-0")
+    assert saved["stay"] and saved["commute"] == "none" and not saved["to_area"] and not saved["to"]
+    html = client.get("/plan").get_data(as_text=True)
+    assert "All day at Rohini" in html and "Your trips" not in html and "When you set out" not in html
+    home = client.get("/").get_data(as_text=True)
+    assert 'name="stay" value="1" checked' in home and "Where you are all day" in home
+    # Today's trip can still go somewhere, for this plan only.
+    trip = client.get("/plan?from=Rohini+Sector+9&area=rohini&to=ITO&to_area=ito&travel=bus&commute=bus&route_read=picked")
+    assert "Your trips" in trip.get_data(as_text=True)

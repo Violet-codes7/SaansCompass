@@ -52,3 +52,22 @@
   });
 })();
 </script>
+<script>
+(function () {
+  // "In one place all day": nothing to ask about a destination or travel.
+  document.querySelectorAll("input[name=stay]").forEach(function (box) {
+    if (box.dataset.bound) return;
+    box.dataset.bound = "1";
+    var form = box.closest("form");
+    function sync() {
+      form.querySelectorAll("[data-trip-only]").forEach(function (el) {
+        el.style.display = box.checked ? "none" : "";
+        (el.tagName === "INPUT" ? [el] : el.querySelectorAll("input")).forEach(function (i) { i.disabled = box.checked; });
+      });
+      form.querySelectorAll("[data-from-label]").forEach(function (el) { el.textContent = box.checked ? el.dataset.stay : el.dataset.trip; });
+    }
+    box.addEventListener("change", sync);
+    sync();
+  });
+})();
+</script>

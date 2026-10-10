@@ -46,6 +46,7 @@
   "translate_max_chars": 2000,
   "personal_cache_size": 128,
   "work_cache_size": 256,
+  "glance_activity_lines": 4,
   "grap_revision": "29.09.2026",
   "source_links": [
     {

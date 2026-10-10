@@ -39,7 +39,8 @@
     "edit_profile": "Edit profile",
     "outdoors": "Outdoors {hours}",
     "age": "Age {age}",
-    "n95": "Has an N95"
+    "n95": "Has an N95",
+    "stay_here": "All day at {place}"
   },
   "footer": "Not medical advice. In an emergency, call 112. Data:",
   "theme": {
@@ -59,7 +60,12 @@
     "today_trip": "Today's trip",
     "today_help": "For today only; your profile stays the same.",
     "today_to": "Where you're going today",
-    "today_go": "Show today's plan"
+    "today_go": "Show today's plan",
+    "trip_from": "Where you start",
+    "travel": "How you travel",
+    "stay_from": "Where you are all day",
+    "stay_today": "I'm in one place all day today (no trip)",
+    "stay_profile": "I spend most days in one place (no daily trip)"
   },
   "brand": {
     "_about": "Site tagline, page descriptions and the home-page intro, with GRAP on (grap_enabled) or off.",

@@ -11,7 +11,7 @@ from collections import Counter
 from . import data, settings
 from .aqi import category as aqi_category
 from .dose import total_dose
-from .explain import CATEGORY_IMPACT, POLLUTANTS, VERDICT_MEANING, rule_text, stage_headline
+from .explain import CATEGORY_IMPACT, POLLUTANTS, VERDICT_MEANING, rule_text, rules_for_you, stage_headline
 from .profile import COMMUTE_TIPS
 from .rules import ADVISED_AGAINST, NOT_ALLOWED, CHECK
 
@@ -312,6 +312,7 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
         if commute else None,
         "rules": [r.to_dict() for r in rule_results],
         "activities": activities,
+        "rules_rest": rules_for_you(activities, stage_info["stage"], stage_info.get("day", "today")),
         "hours": readings,
         "dose": total_dose(segments),
         "notes": notes,
