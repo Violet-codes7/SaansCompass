@@ -14,10 +14,21 @@ Parameters:
     Type: String
     Default: ""
     Description: Optional. Email to notify when the Alert Lambda errors. Leave empty to skip.
+  AiProvider:
+    Type: String
+    Default: gemini
+    AllowedValues: [gemini, bedrock, "off"]
+    Description: >
+      Model for personal advice and reading the "What do you do?" box. gemini reads its API key
+      from the SecureString parameter /<stack name>/gemini-api-key; bedrock uses BedrockModel.
+  GeminiModel:
+    Type: String
+    Default: gemini-flash-latest
+    Description: Gemini model id when AiProvider is gemini.
   BedrockModel:
     Type: String
     Default: anthropic.claude-opus-5-5
-    Description: Claude model on Amazon Bedrock for the plain-language summary. Leave empty to turn the summary off.
+    Description: Claude model on Amazon Bedrock when AiProvider is bedrock.
   BedrockRegion:
     Type: String
     Default: ap-south-1
@@ -26,7 +37,9 @@ Parameters:
 Conditions:
   HasBudgetEmail: !Not [!Equals [!Ref BudgetEmail, ""]]
   HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
-  HasBedrock: !Not [!Equals [!Ref BedrockModel, ""]]
+  HasBedrock: !And
+    - !Equals [!Ref AiProvider, bedrock]
+    - !Not [!Equals [!Ref BedrockModel, ""]]
 
 Globals:
   Function:
@@ -59,7 +72,10 @@ Resources:
       Timeout: 29
       Environment:
         Variables:
-          BEDROCK_MODEL: !Ref BedrockModel
+          AI_PROVIDER: !Ref AiProvider
+          GEMINI_MODEL: !Ref GeminiModel
+          GEMINI_KEY_PARAM: !Sub "/${AWS::StackName}/gemini-api-key"
+          BEDROCK_MODEL: !If [HasBedrock, !Ref BedrockModel, ""]
           BEDROCK_REGION: !Ref BedrockRegion
           # The English/Hindi switch uses Amazon Translate, with a built-in
           # dictionary when Translate is unavailable.
@@ -86,17 +102,20 @@ Resources:
               Resource: !Ref AlertTopic
         - SSMParameterReadPolicy:
             ParameterName: !Sub "${AWS::StackName}/official-stage"
+        # The Gemini API key, a SecureString you create once (see DEPLOY_WINDOWS.md).
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub "${AWS::StackName}/gemini-api-key"
         - Statement:
             - Effect: Allow
-              Action: translate:TranslateText
+              Action:
+                - translate:TranslateText
+                - polly:SynthesizeSpeech
               Resource: "*"
         - !If
           - HasBedrock
           - Statement:
               - Effect: Allow
-                Action:
-                  - bedrock-mantle:CreateInference
-                  - polly:SynthesizeSpeech
+                Action: bedrock-mantle:CreateInference
                 Resource: "*"
           - !Ref AWS::NoValue
 

@@ -29,7 +29,7 @@
       {% for k, vs in request.args.lists() if k not in ('persona', 'read') %}{% for v in vs %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endfor %}
       <input type="hidden" name="read" value="picked">
       <p><span>We read you as:</span> <b>{{ work[plan.persona.id] }}</b>
-        <small class="muted">{{ {'ai': '(read by Claude on Amazon Bedrock)', 'keywords': '(matched from your words)',
+        <small class="muted">{{ {'ai': '(read by ' ~ ai_label ~ ')', 'keywords': '(matched from your words)',
           'default': '(we could not tell from your words, so this is a guess)', 'picked': '(your choice)'}.get(request.args.get('read'), '') }}</small></p>
       <label>Not right? Pick the closest:
         <select name="persona">{% for id, label in work.items() %}<option value="{{ id }}" {% if id == plan.persona.id %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
@@ -172,7 +172,7 @@
   </div>
   <div id="ai-text" class="ai-text" aria-live="polite" translate="no"></div>
   <audio id="ai-audio" controls hidden></audio>
-  <p class="small">Written by Claude on Amazon Bedrock from your plan and details, in the language you pick at the top of the page. It explains and personalises; it never changes a GRAP rule. General advice, not a diagnosis.</p>
+  <p class="small">Written by {{ ai_label }} from your plan and details, in the language you pick at the top of the page. It explains and personalises; it never changes a GRAP rule. General advice, not a diagnosis.</p>
 </section>
 <script>
 (function () {

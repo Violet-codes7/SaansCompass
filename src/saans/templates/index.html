@@ -14,7 +14,7 @@
       {% for ex in ["Class 4 student, I walk to school", "Mason on a building site in Rohini", "Software engineer, I drive to Gurugram",
                     "Retired teacher, I walk in the park every morning", "I run 10 km before work", "Swiggy delivery rider at night"] %}
       <button type="button" class="chip" data-example="{{ ex }}">{{ ex }}</button>{% endfor %}</p>
-    <p class="small">{% if ai_enabled %}Claude on Amazon Bedrock reads this to work out how much outdoor air your day involves.{% else %}We match your words to the closest kind of day.{% endif %} You can correct it on the next page.</p>
+    <p class="small">{% if ai_enabled %}{{ ai_label }} reads this to work out how much outdoor air your day involves.{% else %}We match your words to the closest kind of day.{% endif %} You can correct it on the next page.</p>
   </fieldset>
 
   <fieldset>

@@ -106,7 +106,7 @@ def create_app():
 
     @app.context_processor
     def globals_():
-        return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN, "ai_enabled": ai.enabled(),
+        return {"personas": PERSONAS, "areas": data.AREAS, "roman": ROMAN, "ai_enabled": ai.enabled(), "ai_label": ai.label(),
                 "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link,
                 "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge,
                 "condition_groups": CONDITION_GROUPS, "stages": STAGES}
@@ -211,7 +211,7 @@ def create_app():
         text = _summary(plan, lang)
         if not text:
             return jsonify({"error": "No summary right now."}), 502
-        return jsonify({"summary": text, "lang": lang, "by": "Claude on Amazon Bedrock"})
+        return jsonify({"summary": text, "lang": lang, "by": ai.label()})
 
     @app.get("/api/speak")
     def api_speak():

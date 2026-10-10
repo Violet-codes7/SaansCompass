@@ -256,7 +256,7 @@ def clean_job(raw):
     return text[:JOB_MAX] or None
 
 
-# Keyword fallback for reading the "what do you do" box when Bedrock is off.
+# Keyword fallback for reading the "what do you do" box when the AI model is off.
 # Earlier entries win ties: the most exposed kind of work first.
 WORK_KEYWORDS = (
     ("rider", ("deliver", "delivery", "rider", "zomato", "swiggy", "blinkit", "zepto", "dunzo", "courier", "gig",

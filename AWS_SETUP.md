@@ -21,9 +21,10 @@ Please don't paste keys, passwords or account links into chat. You run the deplo
 - **SES: not used**, so there is no sandbox exit to request.
 - **Lambda concurrency:** new accounts sometimes get a low limit, which is still enough here. If a deploy complains, check Service Quotas → Lambda → Concurrent executions.
 
-## 5. Turn on Claude in Amazon Bedrock (for the AI summary)
-- Console → Amazon Bedrock (region **ap-south-1**) → Model catalog → **Claude Opus 5.5** → request or enable access. Anthropic models ask for a short use-case form the first time; approval is usually immediate.
-- Nothing else to set up: Polly needs no activation. If you skip this step, the site still works and simply hides the summary when Bedrock refuses.
+## 5. Gemini API key (for personal advice)
+- Create a key at https://aistudio.google.com/apikey, then store it (never in chat or the repo):
+  `aws ssm put-parameter --name /saans-compass/gemini-api-key --type SecureString --value <key> --region ap-south-1`
+- Polly and Translate need no activation. Without the key the site still works and hides the advice panel. To use Claude on Bedrock instead, deploy with `AiProvider=bedrock` after enabling model access.
 
 ## 6. Deploy
 ```bash

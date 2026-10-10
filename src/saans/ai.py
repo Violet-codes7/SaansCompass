@@ -1,15 +1,24 @@
-"""Plain-language summary of a plan, written by Claude on Amazon Bedrock,
-and read aloud by Amazon Polly.
+"""Personal advice and reading the "what do you do" box, written by an AI
+model (Google Gemini by default, or Claude on Amazon Bedrock), and read aloud
+by Amazon Polly.
 
-Claude only rephrases. Every rule decision, stage and time window comes from
-the plan, which the page shows unchanged next to the summary. If Bedrock is
-not set up, fails or declines, the page simply shows no summary.
+The model only rephrases. Every rule decision, stage and time window comes
+from the plan, which the page shows unchanged next to the advice. If the
+model is not set up, fails or declines, the page simply shows no advice and
+the work box falls back to keywords.
+
+AI_PROVIDER picks the model: "gemini", "bedrock" or "off". Gemini's API key
+is read from Parameter Store (GEMINI_KEY_PARAM, a SecureString) or, for
+local runs, GEMINI_API_KEY. It is never logged.
 """
 import base64
 import hashlib
 import json
 import logging
 import os
+import time
+
+import requests
 
 log = logging.getLogger(__name__)
 
@@ -42,8 +51,90 @@ HEADINGS = {
 _client = None
 
 
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+DEFAULT_GEMINI_MODEL = "gemini-flash-latest"
+LABELS = {"gemini": "Google Gemini", "bedrock": "Claude on Amazon Bedrock"}
+KEY_CACHE_SECONDS = 300
+
+
+def provider():
+    """"gemini", "bedrock" or None (off)."""
+    chosen = os.environ.get("AI_PROVIDER", "").strip().lower()
+    if chosen in ("gemini", "bedrock"):
+        return chosen
+    if chosen == "off":
+        return None
+    return "bedrock" if os.environ.get("BEDROCK_MODEL") else None
+
+
+def label():
+    return LABELS.get(provider(), "AI")
+
+
+_key_cache = {"at": -1e9, "value": None}
+
+
+def _gemini_key(ssm=None, now=None):
+    if os.environ.get("GEMINI_API_KEY"):
+        return os.environ["GEMINI_API_KEY"]
+    name = os.environ.get("GEMINI_KEY_PARAM")
+    if not name:
+        return None
+    now = now if now is not None else time.time()
+    if ssm is None and now - _key_cache["at"] < KEY_CACHE_SECONDS:
+        return _key_cache["value"]
+    try:
+        if ssm is None:
+            import boto3
+
+            ssm = boto3.client("ssm")
+        value = ssm.get_parameter(Name=name, WithDecryption=True)["Parameter"]["Value"].strip() or None
+    except Exception as exc:  # not created yet, or no permission
+        log.warning("gemini key not available: %s", type(exc).__name__)
+        value = None
+    _key_cache.update(at=now, value=value)
+    return value
+
+
 def enabled():
-    return bool(os.environ.get("BEDROCK_MODEL"))
+    chosen = provider()
+    if chosen == "bedrock":
+        return bool(os.environ.get("BEDROCK_MODEL"))
+    if chosen == "gemini":
+        return bool(_gemini_key())
+    return False
+
+
+def gemini(system, user, max_tokens=4096, schema=None, session=None):
+    """Text from Gemini, or None on any failure or block."""
+    key = _gemini_key()
+    if not key:
+        return None
+    config = {"maxOutputTokens": max_tokens, "temperature": 0.4}
+    if schema:
+        config.update(responseMimeType="application/json", responseSchema=schema)
+    body = {
+        "systemInstruction": {"parts": [{"text": system}]},
+        "contents": [{"role": "user", "parts": [{"text": user}]}],
+        "generationConfig": config,
+    }
+    model = os.environ.get("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
+    try:
+        resp = (session or requests).post(GEMINI_URL.format(model=model), json=body,
+                                          headers={"x-goog-api-key": key}, timeout=20)
+    except requests.RequestException as exc:
+        log.warning("gemini unreachable: %s", type(exc).__name__)
+        return None
+    if resp.status_code != 200:
+        log.warning("gemini returned %s: %s", resp.status_code, resp.text[:300])
+        return None
+    candidates = resp.json().get("candidates") or []
+    if not candidates or candidates[0].get("finishReason") not in (None, "STOP"):
+        log.warning("gemini gave no answer: %s", candidates[0].get("finishReason") if candidates else "blocked")
+        return None
+    parts = candidates[0].get("content", {}).get("parts", [])
+    text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
+    return text or None
 
 
 def _bedrock():
@@ -92,10 +183,14 @@ def cache_key(plan, lang):
     return "AI#" + hashlib.sha256(f"{lang}|{facts}".encode()).hexdigest()
 
 
-def summarize(plan, lang="en", client=None):
+def summarize(plan, lang="en", client=None, session=None):
     """Two-sentence summary, or None when it cannot be produced."""
     if lang not in LANGUAGES:
         raise ValueError("lang must be en or hi")
+    system = SYSTEM.format(language=LANGUAGES[lang], headings=", ".join(HEADINGS[lang]))
+    facts = json.dumps(plan_facts(plan), ensure_ascii=False)
+    if client is None and provider() == "gemini":
+        return gemini(system, facts, session=session)
     import anthropic
 
     client = client or _bedrock()
@@ -104,11 +199,8 @@ def summarize(plan, lang="en", client=None):
             model=os.environ.get("BEDROCK_MODEL") or DEFAULT_MODEL,
             max_tokens=2000,
             output_config={"effort": "low"},
-            system=SYSTEM.format(language=LANGUAGES[lang], headings=", ".join(HEADINGS[lang])),
-            messages=[{
-                "role": "user",
-                "content": json.dumps(plan_facts(plan), ensure_ascii=False),
-            }],
+            system=system,
+            messages=[{"role": "user", "content": facts}],
         )
     except anthropic.RateLimitError:
         log.warning("bedrock rate limited")
@@ -149,12 +241,26 @@ WORK_SCHEMA = {
 }
 
 
-def classify_work(text, client=None):
+GEMINI_WORK_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "persona": {"type": "STRING", "enum": WORK_SCHEMA["properties"]["persona"]["enum"]},
+        "start_hour": {"type": "INTEGER"},
+        "end_hour": {"type": "INTEGER"},
+    },
+    "required": ["persona", "start_hour", "end_hour"],
+}
+
+
+def classify_work(text, client=None, session=None):
     """{"persona", "start_hour", "end_hour"} read from someone's own words by
-    Claude, or None when Bedrock is off or fails (the caller falls back to
+    the AI model, or None when it is off or fails (the caller falls back to
     keywords). Hours are None unless the text gives them."""
-    if not enabled() or not text:
+    if not text or (client is None and not enabled()):
         return None
+    if client is None and provider() == "gemini":
+        raw = gemini(WORK_SYSTEM, text[:200], max_tokens=2048, schema=GEMINI_WORK_SCHEMA, session=session)
+        return _work_reading(raw)
     import anthropic
 
     client = client or _bedrock()
@@ -171,10 +277,19 @@ def classify_work(text, client=None):
         return None
     if message.stop_reason == "refusal":
         return None
-    raw = "".join(b.text for b in message.content if b.type == "text")
+    return _work_reading("".join(b.text for b in message.content if b.type == "text"))
+
+
+def _work_reading(raw):
+    """Check the model's JSON answer; None if it is not a valid reading."""
+    if not raw:
+        return None
+    raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     try:
         out = json.loads(raw)
     except ValueError:
+        return None
+    if not isinstance(out, dict):
         return None
     if out.get("persona") not in WORK_SCHEMA["properties"]["persona"]["enum"]:
         return None
