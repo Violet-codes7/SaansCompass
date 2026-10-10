@@ -40,6 +40,8 @@
   "gemini_max_tokens": 8192,
   "chat_max_chars": 600,
   "chat_max_turns": 6,
+  "chat_follow_ups": 3,
+  "chat_places_max": 3,
   "polly_voice": "Kajal",
   "translate": "off",
   "translate_max_texts": 400,

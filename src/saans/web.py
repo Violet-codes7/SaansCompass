@@ -14,7 +14,7 @@ from .aqi import category as aqi_category
 from .advisor import TEXT as ADVICE_TEXT
 from .explain import GRAP, STAGE_SOURCES, STAGES
 from .profile import COMMUTE_MODES, CONDITION_GROUPS, CONDITIONS, VEHICLE_LABELS, VEHICLES, WORK, clean_job, clean_text, guess_work, parse_profile, tidy_role
-from .service import air_now, official_air
+from .service import air_now, asked_places, official_air
 from .service import get_plan
 from .stage import ROMAN
 from .store import get_store
@@ -430,10 +430,11 @@ def create_app():
             plan = _build_plan(every_stage=True)
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
-        answer = ai.chat(plan, body["question"], body.get("history"), lang)
+        answer = ai.chat(plan, body["question"], body.get("history"), lang, look_up=asked_places)
         if not answer:
             return jsonify({"error": CHAT_TEXT["errors"]["failed"]}), 502
-        return jsonify({"answer": answer, "by": ai.label()})
+        answer, follow_ups = ai.split_follow_ups(answer)
+        return jsonify({"answer": answer, "follow_ups": follow_ups or CHAT_TEXT["follow_ups"], "by": ai.label()})
 
     @app.get("/api/speak")
     def api_speak():

@@ -17,6 +17,11 @@
     "Which mask should I wear?",
     "How will tomorrow compare with today?"
   ],
+  "follow_ups": [
+    "Which hours should I avoid?",
+    "What about tomorrow?",
+    "Do I need a mask?"
+  ],
   "errors": {
     "off": "The chat is not set up here.",
     "empty": "Type a question first.",

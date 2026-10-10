@@ -55,13 +55,14 @@ def test_chat_rejects_empty_question_and_bad_language(plan, gemini_on):
 def test_chat_route(mem_store, monkeypatch, live_fetcher, gemini_on):
     monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
     seen = []
-    monkeypatch.setattr(ai, "chat", lambda plan, q, h, lang: seen.append((plan["area"]["id"], q, lang, bool(plan["stage_table"]))) or "Answer.")
+    monkeypatch.setattr(ai, "chat", lambda plan, q, h, lang, look_up: seen.append((plan["area"]["id"], q, lang, bool(plan["stage_table"]))) or "Answer.\nNEXT: What about tomorrow? | Do I need a mask?")
     web = create_app().test_client()
     resp = web.post("/api/chat?persona=rider&area=okhla", json={"question": "Can I ride now?", "lang": "en"})
-    assert resp.get_json() == {"answer": "Answer.", "by": "Google Gemini"} and seen == [("okhla", "Can I ride now?", "en", True)]
+    assert resp.get_json() == {"answer": "Answer.", "follow_ups": ["What about tomorrow?", "Do I need a mask?"],
+                               "by": "Google Gemini"} and seen == [("okhla", "Can I ride now?", "en", True)]
     assert web.post("/api/chat?persona=rider&area=okhla", json={"question": " "}).status_code == 400
     assert web.post("/api/chat?persona=pilot&area=okhla", json={"question": "x"}).status_code == 400
-    monkeypatch.setattr(ai, "chat", lambda *a: None)
+    monkeypatch.setattr(ai, "chat", lambda *a, **k: None)
     assert web.post("/api/chat?persona=rider&area=okhla", json={"question": "x"}).status_code == 502
 
 
@@ -88,3 +89,48 @@ def test_chat_knows_the_car_rules_at_every_stage(plan):
 def test_page_plans_skip_the_stage_table(mem_store, monkeypatch, live_fetcher):
     monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
     assert get_plan("commuter", "ito")["stage_table"] is None
+
+
+class ScriptedSession(FakeSession):
+    """Answers each call with the next text in turn."""
+    def __init__(self, *texts):
+        super().__init__()
+        self.texts = list(texts)
+
+    def post(self, url, json=None, headers=None, timeout=None):
+        self.text = self.texts.pop(0)
+        return super().post(url, json, headers, timeout)
+
+
+def test_chat_looks_up_places_the_question_names(plan, gemini_on):
+    s = ScriptedSession("PLACES: Noida, Uttar Pradesh; Atlantis", "Leave at 10:00; Noida is about AQI 160.\nNEXT: And coming back?")
+    asked = []
+    look_up = lambda names: asked.append(names) or [{"asked": "Noida, Uttar Pradesh", "found": "Noida", "aqi_now": 160},
+                                                   {"asked": "Atlantis", "found": None}]
+    answer = ai.chat(plan, "Taking my students to Noida by bus", session=s, look_up=look_up)
+    assert asked == [["Noida, Uttar Pradesh", "Atlantis"]] and len(s.calls) == 2
+    second = json.loads(s.calls[1]["contents"][0]["parts"][0]["text"])
+    assert second["plan"]["places_asked"][0]["found"] == "Noida"
+    assert ai.split_follow_ups(answer) == ("Leave at 10:00; Noida is about AQI 160.", ["And coming back?"])
+    # Asking for places twice gives no answer rather than a marker line.
+    assert ai.chat(plan, "Noida?", session=ScriptedSession("PLACES: Noida", "PLACES: Noida"), look_up=look_up) is None
+
+
+def test_follow_ups_are_split_from_the_answer():
+    assert ai.split_follow_ups("Go at 14:00.\n**NEXT:** A? | B? | C? | D?") == ("Go at 14:00.", ["A?", "B?", "C?"])
+    assert ai.split_follow_ups("Just this.") == ("Just this.", [])
+    assert ai.asked_places("Go at 14:00.") is None
+
+
+def test_chat_facts_keep_only_rules_that_restrict(plan):
+    facts = ai.chat_facts(plan)
+    assert facts["rules_today"] and all(r["decision"] != "Allowed" for r in facts["rules_today"])
+    assert facts["allowed_rest"] and facts["places_air"][0]["place"] == "ITO"
+
+
+def test_asked_places_finds_air_without_the_ai(mem_store, monkeypatch, live_fetcher):
+    from saans import service
+    monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
+    out = service.asked_places(["Anand Vihar", "Nowhere at all"], store=mem_store)
+    assert out[0]["found"] == "Anand Vihar" and len(out[0]["hourly_aqi"]["today"]) == 24 and out[0]["aqi_now"]
+    assert out[1] == {"asked": "Nowhere at all", "found": None}

@@ -41,6 +41,18 @@
     log.appendChild(m); log.scrollTop = log.scrollHeight;
     return m;
   }
+  // Tappable follow-up questions under the latest answer only.
+  function next(m, asks) {
+    if (!asks || !asks.length) return;
+    var row = document.createElement("div");
+    row.className = "chat-next"; row.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-top:6px";
+    asks.forEach(function (a) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.dataset.ask = a; b.textContent = a; b.style.cursor = "pointer";
+      row.appendChild(b);
+    });
+    m.appendChild(row); log.scrollTop = log.scrollHeight;
+  }
   function open(question) {
     box.hidden = false; openBtn.setAttribute("aria-expanded", "true"); openBtn.hidden = true;
     if (question) { q.value = question; }
@@ -50,6 +62,7 @@
   function ask(question) {
     question = question.trim();
     if (!question || send.disabled) return;
+    log.querySelectorAll(".chat-next").forEach(function (r) { r.remove(); });
     add("user", question);
     document.getElementById("chat-sugg").hidden = true;
     q.value = ""; send.disabled = true;
@@ -60,7 +73,7 @@
       .then(function (d) {
         wait.remove();
         if (d.answer) {
-          add("bot", d.answer);
+          next(add("bot", d.answer), d.follow_ups);
           history.push({role: "user", text: question}, {role: "assistant", text: d.answer});
         } else { add("bot", d.error || T.failed, "err"); }
       })
@@ -72,8 +85,8 @@
   box.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
   form.addEventListener("submit", function (e) { e.preventDefault(); ask(q.value); });
   q.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(q.value); } });
-  document.getElementById("chat-sugg").addEventListener("click", function (e) {
-    var b = e.target.closest("[data-ask]"); if (b) ask(b.dataset.ask);
+  [document.getElementById("chat-sugg"), log].forEach(function (el) {
+    el.addEventListener("click", function (e) { var b = e.target.closest("[data-ask]"); if (b) ask(b.dataset.ask); });
   });
   // "Ask about …" buttons elsewhere on the page open the chat, with a question if they carry one.
   document.addEventListener("click", function (e) {
