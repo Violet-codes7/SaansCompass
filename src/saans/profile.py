@@ -196,6 +196,10 @@ def clean_job(raw):
 # Keyword fallback for reading the "what do you do" box when the AI model is
 # off. Earlier entries win ties: the most exposed kind of work first.
 WORK_KEYWORDS = tuple((pid, tuple(words)) for pid, words in _CONFIG["work_keywords"].items())
+# Words that settle the answer on their own, e.g. a college student is a
+# commuter, not a school child.
+WORK_OVERRIDES = tuple((pid, tuple(words)) for pid, words in _CONFIG["work_keyword_overrides"].items())
+ROLE = _CONFIG["role"]
 
 
 def guess_work(text):
@@ -211,12 +215,38 @@ def guess_work(text):
         # "marathons" matches "marathon"; short words must match exactly.
         return any(w == k or (len(k) >= 4 and w.startswith(k)) for w in words)
 
+    for persona_id, keywords in WORK_OVERRIDES:
+        if any(has(k) for k in keywords):
+            return persona_id
     best, best_score = None, 0
     for persona_id, keywords in WORK_KEYWORDS:
         score = sum(1 for k in keywords if has(k))
         if score > best_score:
             best, best_score = persona_id, score
     return best
+
+
+def tidy_role(text):
+    """A short role line from someone's own words when the AI is off:
+    'I am a student in nit delhi' -> 'Student in NIT Delhi'."""
+    import re
+
+    text = clean_text(text, ROLE["max_chars"] * 2)
+    if not text:
+        return None
+    low = text.lower()
+    for prefix in ROLE["prefixes"]:
+        if low.startswith(prefix):
+            text = text[len(prefix):]
+            break
+    for word, shown in ROLE["acronyms"].items():
+        text = re.sub(rf"(?<![\w.]){re.escape(word)}(?![\w])", shown, text, flags=re.I)
+    for place in ROLE["places"]:
+        text = re.sub(rf"\b{re.escape(place)}\b", place.title(), text, flags=re.I)
+    text = text.rstrip(" .")
+    if len(text) > ROLE["max_chars"]:
+        text = text[:ROLE["max_chars"]].rsplit(" ", 1)[0] + "…"
+    return (text[:1].upper() + text[1:]) or None
 
 
 def _hour(raw, name):

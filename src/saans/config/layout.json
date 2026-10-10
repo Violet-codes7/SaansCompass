@@ -32,5 +32,23 @@
       "label": "PM2.5 & PM10"
     }
   ],
-  "banner_label": "Pixel-art Delhi skyline with India Gate, Qutub Minar, the Lotus Temple, the Red Fort and Jama Masjid"
+  "banner_label": "Pixel-art Delhi skyline with India Gate, Qutub Minar, the Lotus Temple, the Red Fort and Jama Masjid",
+  "header": {
+    "title_anon": "Your air plan",
+    "read_as": "We read you as",
+    "change": "Change",
+    "how": {
+      "ai": "read by {ai}",
+      "keywords": "matched from your words",
+      "default": "a guess: we could not tell from your words",
+      "picked": "your choice"
+    },
+    "pick": "Pick the closest",
+    "update": "Update",
+    "trip": "Your trip",
+    "edit_profile": "Edit profile",
+    "outdoors": "Outdoors {hours}",
+    "age": "Age {age}",
+    "n95": "Has an N95"
+  }
 }
