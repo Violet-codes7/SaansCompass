@@ -169,14 +169,4 @@ def test_implausible_model_pm10_is_held_and_said(mem_store, monkeypatch):
     monkeypatch.setattr(weather, "fetch_weather", lambda area: dict(WX))
     monkeypatch.setattr(data, "now_ist", lambda: FIXED_NOW)
     html = create_app().test_client().get("/plan?persona=rider&area=dwarka&day=today").get_data(as_text=True)
-    assert "Model said 598; held to 3.0× PM2.5" in html
-
-
-def test_a_severe_model_reading_is_marked_unconfirmed(mem_store, monkeypatch):
-    from conftest import FIXED_NOW
-    rows = [{"time": f"2026-10-{d:02d}T{h:02d}:00", "pm25": 300.0, "pm10": 450.0} for d in (9, 10, 11) for h in range(24)]
-    monkeypatch.setattr(data, "fetch_open_meteo", lambda area: rows)
-    monkeypatch.setattr(weather, "fetch_weather", lambda area: dict(WX))
-    monkeypatch.setattr(data, "now_ist", lambda: FIXED_NOW)
-    html = create_app().test_client().get("/plan?persona=rider&area=dwarka&day=today").get_data(as_text=True)
-    assert "Forecast model, not confirmed by a station" in html
+    assert "Model said" not in html and "Severe" not in html.split('id="air"')[1].split("</figure>")[0]

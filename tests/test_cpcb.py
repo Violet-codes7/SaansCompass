@@ -127,3 +127,25 @@ def test_page_names_the_cpcb_station(feed_on, mem_store, live_fetcher, monkeypat
     monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
     html = create_app().test_client().get("/plan?persona=commuter&area=ito&day=today").get_data(as_text=True)
     assert "CPCB, ITO station" in html and "at CPCB&#39;s ITO station" in html
+
+
+class Refused(FakeSession):
+    def get(self, url, params=None, timeout=None):
+        import requests
+        self.calls.append({"url": url, "params": params})
+        raise requests.ConnectionError("refused")
+
+
+def test_refused_host_is_retried_once_then_given_up(feed_on, monkeypatch):
+    monkeypatch.setattr(cpcb.time, "sleep", lambda s: None)
+    s = Refused()
+    assert cpcb.fetch(s) is None and len(s.calls) == 2  # one retry, then the other states are skipped
+
+
+def test_last_good_reading_covers_a_feed_outage(feed_on, mem_store, monkeypatch):
+    monkeypatch.setattr(cpcb.time, "sleep", lambda s: None)
+    good = cpcb.stations_from_records(delhi_records())
+    mem_store.put_text(cpcb.LAST_KEY, __import__("json").dumps(good))
+    monkeypatch.setattr(cpcb, "fetch", lambda session=None: None)
+    stations = cpcb.get_stations(mem_store, now=FIXED_NOW)
+    assert stations and cpcb.nearest(stations, data.get_area("ito"))["aqi"] == 312

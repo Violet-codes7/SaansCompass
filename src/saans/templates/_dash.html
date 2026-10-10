@@ -11,7 +11,7 @@
       {% else %}
       <figure>{{ aqi_gauge(pt.aqi, 'AQI, 24-hour average') }}
         <figcaption><b>{{ 'Last 24 hours' if pt.basis == 'last24' else 'Today' }}</b><span class="cat-chip {{ (pt.category or 'no data')|lower|replace(' ', '-') }}">{{ pt.category or 'No data' }}</span>
-          <small>{% if pt.aqi is not none and pt.aqi >= model_unconfirmed_from %}{{ layout.model_unconfirmed }}{% elif cpcb_on and pt.basis == 'last24' %}{{ layout.no_station.format(area=area_name) }}{% else %}{{ '24-hour average, forecast model' if pt.basis == 'last24' else 'Forecast average for today' }}{% endif %}</small></figcaption></figure>
+          <small>{% if cpcb_on and pt.basis == 'last24' %}{{ layout.no_station.format(area=area_name) }}{% else %}{{ '24-hour average, forecast model' if pt.basis == 'last24' else 'Forecast average for today' }}{% endif %}</small></figcaption></figure>
       <figure>{{ aqi_gauge(air_now.aqi, 'AQI this hour') }}
         <figcaption><b>This hour</b><span class="cat-chip {{ (air_now.category if air_now.aqi is not none else 'no data')|lower|replace(' ', '-') }}">{{ air_now.category if air_now.aqi is not none else 'No data' }}</span>
           <small>{{ air_now.time[11:] }} IST, forecast{% if air_now.dominant %} · mostly {{ air_now.dominant }}{% endif %}</small></figcaption></figure>
@@ -24,8 +24,7 @@
       {% for p in particles.particles %}{% set v = pt[p.key] %}
       <div class="pm-tile"><span class="g-k">{{ p.id }}</span>
         <b>{{ v if v is not none else '–' }} <small>µg/m³</small></b>
-        {% if v is not none %}<span class="{{ 'over' if v > p.limits.cpcb_24h else 'ok' }}">{{ (v / p.limits.who_24h)|round(1) }}× WHO</span>{% endif %}
-        {% if p.key == 'pm10' and pt.pm10_model %}<small class="muted">{{ particles.labels.pm10_held.format(raw=pt.pm10_model, ratio=pm10_ratio) }}</small>{% endif %}</div>
+        {% if v is not none %}<span class="{{ 'over' if v > p.limits.cpcb_24h else 'ok' }}">{{ (v / p.limits.who_24h)|round(1) }}× WHO</span>{% endif %}</div>
       {% endfor %}
     </div>
     {% if is_stale %}<p class="small"><b>The live forecast is unreachable: this is the last one, fetched {{ fetched_at[:16]|replace('T', ' ') }} IST.</b></p>{% endif %}

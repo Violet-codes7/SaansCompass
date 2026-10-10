@@ -202,7 +202,7 @@ def create_app():
                 "weather_dials": weather.DIALS, "weather_text": weather.TEXT["explain"], "weather_place": weather.city_place().name, "particles": PARTICLES,
                 "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "glance_text": guide.TEXT, "chat_text": CHAT_TEXT, "layout": LAYOUT, "chat_max_chars": settings.get("chat_max_chars"), "aqi_category": aqi_category, "vehicles": VEHICLES, "vehicle_labels": VEHICLE_LABELS,
                 "hour_labels": ADVICE_TEXT["hour_verdict_labels"], "hour_tags": ADVICE_TEXT["hour_tags"],
-                "source_links": settings.get("source_links"), "cpcb_on": cpcb.enabled(), "pm10_ratio": settings.get("model_pm10_pm25_ratio_max"), "model_unconfirmed_from": settings.get("model_unconfirmed_from_aqi"), "route_messages": route.TEXT["messages"],
+                "source_links": settings.get("source_links"), "cpcb_on": cpcb.enabled(), "route_messages": route.TEXT["messages"],
                 "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision")}
 
     @app.errorhandler(data.ForecastUnavailable)

@@ -94,6 +94,5 @@
     "today_to": "Where you're going today",
     "today_go": "Show today's plan"
   },
-  "no_station": "No CPCB station near {area}: 24-hour average, forecast model",
-  "model_unconfirmed": "Forecast model, not confirmed by a station"
+  "no_station": "No CPCB station near {area}: 24-hour average, forecast model"
 }

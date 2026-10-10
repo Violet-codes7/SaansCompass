@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 _key_cache = {"at": -1e18, "value": None}
 _memo = {"at": -1e18, "value": None}
 CACHE_KEY = "CPCB#STATIONS"
+LAST_KEY = "CPCB#LAST"
 
 
 def _api_key(ssm=None, now=None):
@@ -92,14 +93,32 @@ def stations_from_records(records):
     return out
 
 
+def _get(session, params):
+    """One request to the feed: a refused or timed-out connection is tried
+    again cpcb_retries times after cpcb_retry_seconds. Raises on failure."""
+    import requests
+
+    for attempt in range(settings.get("cpcb_retries") + 1):
+        try:
+            resp = (session or requests).get(settings.get("cpcb_url"), params=params,
+                                             timeout=settings.get("cpcb_timeout_seconds"))
+            resp.raise_for_status()
+            return resp.json().get("records")
+        except (requests.ConnectionError, requests.Timeout):
+            if attempt == settings.get("cpcb_retries"):
+                raise
+            time.sleep(settings.get("cpcb_retry_seconds"))
+
+
 def fetch(session=None):
     """The feed's records for the configured states (Delhi and the NCR states
-    around it), or None when the key is missing or every request fails."""
+    around it), or None when the key is missing or the feed cannot be read.
+    When the host cannot be reached at all, the other states are not tried."""
+    import requests
+
     key = _api_key()
     if not key:
         return None
-    import requests
-
     states = settings.get("cpcb_filter_value")
     states = [states] if isinstance(states, str) else states
     records, ok = [], False
@@ -107,11 +126,11 @@ def fetch(session=None):
         params = {"api-key": key, "format": "json", "limit": settings.get("cpcb_limit"),
                   f"filters[{settings.get('cpcb_filter_field')}]": state}
         try:
-            resp = (session or requests).get(settings.get("cpcb_url"), params=params,
-                                             timeout=settings.get("cpcb_timeout_seconds"))
-            resp.raise_for_status()
-            got = resp.json().get("records")
-        except Exception as exc:  # network, HTTP or JSON error; the message may carry the URL, so log the type only
+            got = _get(session, params)
+        except (requests.ConnectionError, requests.Timeout) as exc:
+            log.warning("cpcb feed failed: %s", type(exc).__name__)
+            break
+        except Exception as exc:  # HTTP or JSON error; the message may carry the URL, so log the type only
             log.warning("cpcb feed failed: %s", type(exc).__name__)
             continue
         if isinstance(got, list):
@@ -146,6 +165,12 @@ def get_stations(store=None, now=None, session=None):
                 stations = stations_from_records(records)
                 if store is not None and stations:
                     store.put_text(CACHE_KEY, json.dumps(stations), ttl_seconds=ttl)
+                    # The last good reading, for when the feed is down: still
+                    # dropped below once it is older than cpcb_stale_hours.
+                    store.put_text(LAST_KEY, json.dumps(stations), ttl_seconds=settings.get("cpcb_stale_hours") * 3600)
+            elif store is not None and session is None:
+                last = store.get_text(LAST_KEY)
+                stations = json.loads(last) if last else None
         _memo.update(at=now_s, value=stations)
     if not stations or now is None:
         return stations
