@@ -39,6 +39,27 @@
       <button type="submit" class="ghost">Update</button>
     </form>
     {% endif %}
+  {% set unplaced_from = route_texts.from and not request.args.get('area') and not using_saved %}
+  {% set unplaced_to = route_texts.to and not request.args.get('to_area') and not using_saved %}
+  {% if plan.route or unplaced_from or unplaced_to %}
+  {% set r = plan.route %}
+  {% if using_saved %}
+  <p class="readas saved-note">Your trip: <b>{{ r.from.name }}</b> → <b>{{ r.to.name }}</b>{% if r.mode_labels %} by {{ r.mode_labels|join(' + ') }}{% endif %}. <a href="{{ url_for('account_profile') }}">Edit profile</a></p>
+  {% else %}
+  <form class="readas trip-read" method="get" action="{{ url_for('plan_page') }}">
+    {% for k, vs in request.args.lists() if k not in ('area', 'to_area', 'commute', 'modes', 'route_read') %}{% for v in vs %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endfor %}
+    <input type="hidden" name="route_read" value="picked">
+    {% if r %}<p><span>Your trip:</span> <b>{{ r.from.name }}</b> → <b>{{ r.to.name }}</b>{% if r.mode_labels %} by {{ r.mode_labels|join(' + ') }}{% endif %}
+      <small class="muted">{{ {'ai': '(places read by ' ~ ai_label ~ ')', 'keywords': '(matched from your words)', 'picked': '(your choice)'}.get(request.args.get('route_read'), '') }}</small></p>{% endif %}
+    {% if unplaced_from %}<p class="note err">{{ route_text.messages.not_found.format(text=route_texts.from) }}</p>{% endif %}
+    {% if unplaced_to %}<p class="note err">{{ route_text.messages.not_found.format(text=route_texts.to) }}</p>{% endif %}
+    <label>Start <select name="area">{% for a in areas.values() %}<option value="{{ a.id }}" {% if r and a.id == r.from.id or (not r and a.id == plan.area.id) %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></label>
+    <label>Day spent at <select name="to_area">{% for a in areas.values() %}<option value="{{ a.id }}" {% if r and a.id == r.to.id or (not r and a.id == plan.area.id) %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></label>
+    <label>Travel <select name="commute"><option value="">Not given</option>{% for id, label in commute_modes.items() %}<option value="{{ id }}" {% if r and r.modes and id == r.modes[0] %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <button type="submit" class="ghost">Update</button>
+  </form>
+  {% endif %}
+  {% endif %}
   </div>
   <div class="stage-box s{{ plan.stage.stage or 0 }}">
     <span class="eyebrow">GRAP stage</span>
@@ -52,6 +73,25 @@
 </section>
 
 {% with area_name=plan.area.name, air_now=plan.air_now, air_tomorrow=plan.air_tomorrow, is_stale=plan.is_stale, fetched_at=plan.fetched_at %}{% include "_dash.html" %}{% endwith %}
+
+{% if plan.route %}
+<section class="panel trips">
+  <div class="dp-head">
+    <h2>Your trips</h2>
+    <p class="small">{{ plan.route.from.name }} → {{ plan.route.to.name }}{% if plan.route.km %}, about {{ plan.route.km }} km{% endif %}{% if plan.route.mode_labels %} · {{ plan.route.mode_labels|join(' + ') }}{% endif %}</p>
+  </div>
+  {% for leg in plan.route.legs %}
+  <div class="leg">
+    <p class="leg-head"><b>{{ leg.label }}</b> <span class="t">{{ leg.time }}</span>
+      {% if leg.worst %}<span class="small">Worst air on the way: {{ leg.worst.name }}, AQI {{ leg.worst.aqi }} ({{ leg.worst.category }})</span>{% endif %}</p>
+    <ol class="stops">
+      {% for st in leg.stops %}<li class="{{ st.slug }}{% if leg.worst and st.id == leg.worst.id %} is-worst{% endif %}"><span>{{ st.name }}</span><b>{{ st.aqi if st.aqi is not none else '–' }}</b></li>{% endfor %}
+    </ol>
+  </div>
+  {% endfor %}
+  <p class="small">{{ route_text.messages.day_area.format(area=plan.route.to.name) }} Stops are the areas we cover near a straight line between the two places, not the exact road.</p>
+</section>
+{% endif %}
 
 {% if plan.stage.stage is not none and plan.stage.stage < 3 %}
 <p class="try">Air is not bad enough for most GRAP rules today. See what changes on a bad-air day:

@@ -96,7 +96,8 @@ def client(mem_store, monkeypatch, live_fetcher, cognito):
 
 
 PROFILE = {"name": "Asha", "job": "I deliver food on a scooter", "age": "66", "cond": ["asthma", "heart"],
-           "commute": "two_wheeler", "start": "", "end": "", "area": "rohini", "persona": "",
+           "from": "Rohini Sector 9", "to": "Connaught Place", "travel": "scooter", "area": "",
+           "start": "", "end": "", "persona": "",
            "about": "I look after my grandson after school and ride past the Rohini landfill."}
 
 
@@ -151,8 +152,10 @@ def test_saved_profile_drives_plan_and_poster_without_link_details(client, mem_s
     assert resp.status_code == 302 and resp.headers["Location"].endswith("/plan")
     saved = mem_store.get_user_profile("sub-0")
     assert saved["persona"] == "rider" and saved["read"] == "keywords" and saved["area"] == "rohini"
+    assert saved["to_area"] == "ito" and saved["commute"] == "two_wheeler"
     html = client.get("/plan").get_data(as_text=True)
-    assert "From your saved profile, Asha" in html and "Rohini" in html
+    assert "From your saved profile, Asha" in html and "Your trips" in html and "Rohini" in html
+    assert "Air quality at ITO" in html  # the day is spent at the destination
     assert "Asthma" in html and "Age 66" in html
     poster = client.get("/poster").get_data(as_text=True)
     assert "Asha" in poster and "Your health" in poster
@@ -161,7 +164,7 @@ def test_saved_profile_drives_plan_and_poster_without_link_details(client, mem_s
     assert "grandson" not in poster  # About me is for the AI only
     # The profile page shows what was saved.
     form = client.get("/account/profile").get_data(as_text=True)
-    assert 'value="asthma" checked' in form and "grandson" in form and 'value="rohini" selected' in form
+    assert 'value="asthma" checked' in form and "grandson" in form and 'value="Rohini Sector 9"' in form and 'name="area" value="rohini"' in form
     # A link that names someone else still works as before.
     other = client.get("/plan?persona=school&area=ito").get_data(as_text=True)
     assert "From your saved profile" not in other

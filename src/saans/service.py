@@ -3,7 +3,8 @@ forecast -> AQI -> stage -> Cedar rules -> plan and dose."""
 from datetime import timedelta
 
 from . import aqi as aqi_mod
-from . import data, settings
+from . import data, route, settings
+from .advisor import TEXT as ADVICE
 from .advisor import build_plan
 from .personas import get_persona
 from .profile import Profile
@@ -38,14 +39,18 @@ def air_now(forecast, now):
 
 
 def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None, rulebook=None, fetcher=None,
-             profile: Profile | None = None):
+             profile: Profile | None = None, to_area_id=None, modes=()):
     """Raises ValueError with a user-facing message for bad input.
-    `profile` personalises hours, thresholds and the sensitive-group rules;
-    it is used for this request only and never stored."""
+    `profile` personalises hours, thresholds and the sensitive-group rules.
+    `area_id` is where the person starts; with `to_area_id` (where they spend
+    the day) the hour-by-hour plan uses the destination's air and the trips
+    between the two are checked too."""
     persona = get_persona(persona_id)
     if profile is not None:
         persona = profile.apply(persona)
-    area = data.get_area(area_id)
+    start = data.get_area(area_id)
+    dest = data.get_area(to_area_id) if to_area_id else None
+    area = dest or start
     official = parse_stage(stage)
     now = now or data.now_ist()
     day = parse_day(day, now)
@@ -63,6 +68,17 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
     rule_results = rulebook.evaluate_persona(persona, area.id, stage_info["stage"], sensitive)
     plan = build_plan(persona, area, forecast, date, stage_info, rule_results, profile)
     plan["day"] = day
+    plan["route"] = (route.trips(persona, start, dest, date, store, now, fetcher, modes=modes)
+                     if dest and not (profile and profile.commute == "none") else None)
+    trip_actions = [
+        ADVICE["actions"]["trip_bad"].format(trip=leg["label"], time=leg["time"], area=leg["worst"]["name"],
+                                             aqi=leg["worst"]["aqi"])
+        for leg in (plan["route"] or {}).get("legs", [])
+        if leg["worst"] and leg["worst"]["aqi"] > persona.limit_max
+    ]
+    if trip_actions:  # a bad trip matters more than the general tips
+        plan["day_actions"] = trip_actions + plan["day_actions"]
+        plan["actions"] = [a for a in plan["actions"] if a not in plan["day_actions"]] + plan["day_actions"]
     plan["air_now"] = air_now(forecast, now)
     tomorrow_aqi = data.day_aqi(forecast, now.astimezone(data.IST).date() + timedelta(days=1))
     plan["air_tomorrow"] = {"aqi": tomorrow_aqi, "category": aqi_mod.category(tomorrow_aqi)}

@@ -28,8 +28,8 @@
   "form_errors": {
     "name": "Tell us your name.",
     "job": "Tell us what you do most days.",
-    "area": "Pick an area from the list.",
     "persona": "Pick a kind of day from the list.",
-    "commute": "Pick how you travel from the list."
+    "from": "Tell us where you start your day, or use your live location.",
+    "place": "We could not place \"{text}\" on our map of Delhi. Try a nearby locality, landmark or metro station."
   }
 }

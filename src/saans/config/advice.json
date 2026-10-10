@@ -22,7 +22,8 @@
     "mask_have": "Wear your N95 outdoors; it only works if it fits tightly with no gaps.",
     "mask_advice": "A well-fitted N95 cuts what you breathe in outdoors; cloth and surgical masks do little.",
     "windows": "Keep windows shut at the worst hours and air rooms out at the cleanest one.",
-    "watch_symptoms": "Watch for cough, wheeze, chest tightness or breathlessness, and go indoors if they start."
+    "watch_symptoms": "Watch for cough, wheeze, chest tightness or breathlessness, and go indoors if they start.",
+    "trip_bad": "{trip} at {time}: the air near {area} is about AQI {aqi}, above your limit. Wear a well-fitted N95 for that part of the trip and keep vehicle windows shut."
   },
   "suggestions": {
     "not_allowed": "Restricted at the GRAP stage in force. The rule says what applies instead.",

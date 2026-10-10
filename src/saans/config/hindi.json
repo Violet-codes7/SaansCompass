@@ -201,6 +201,18 @@
     "About me": "मेरे बारे में",
     "Save my profile": "मेरी प्रोफ़ाइल सहेजें",
     "Delete my account": "मेरा खाता हटाएँ",
-    "Your plan uses your saved profile.": "आपकी योजना आपकी सहेजी गई प्रोफ़ाइल से बनती है।"
+    "Your plan uses your saved profile.": "आपकी योजना आपकी सहेजी गई प्रोफ़ाइल से बनती है।",
+    "Your daily trip": "आपका रोज़ का सफ़र",
+    "Where you start": "आप कहाँ से शुरू करते हैं",
+    "Where you go most days": "आप ज़्यादातर दिन कहाँ जाते हैं",
+    "📍 Use my live location": "📍 मेरी लाइव लोकेशन लें",
+    "Your trips": "आपके सफ़र",
+    "Going": "जाते समय",
+    "Coming back": "लौटते समय",
+    "Your trip:": "आपका सफ़र:",
+    "Start": "शुरुआत",
+    "Day spent at": "दिन यहाँ बीतता है",
+    "Travel": "सफ़र",
+    "Not given": "नहीं बताया"
   }
 }

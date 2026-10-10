@@ -14,16 +14,27 @@
   <p class="small">{% if ai_enabled %}{{ ai_label }} reads this to work out how much outdoor air your day involves.{% else %}We match your words to the closest kind of day.{% endif %}{% if show_examples %} You can correct it on the next page.{% endif %}</p>
 </fieldset>
 
+<fieldset class="trip">
+  <legend>Your daily trip</legend>
+  <div class="trip-grid">
+    <label>Where you start
+      <span class="with-button">
+        <input name="from" required maxlength="120" autocomplete="off" placeholder="e.g. Mayur Vihar Phase 1, or your metro station" value="{{ p.from or '' }}">
+        <button type="button" class="ghost locate" data-api="{{ url_for('api_locate') }}"
+          {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>
+      </span></label>
+    <input type="hidden" name="area" value="{{ p.area or '' }}">
+    <label>Where you go most days <input name="to" maxlength="120" autocomplete="off" placeholder="e.g. Connaught Place, or DPS R K Puram" value="{{ p.to or '' }}"></label>
+    <label>How you travel <input name="travel" maxlength="120" autocomplete="off" placeholder="e.g. Metro, then an e-rickshaw from the station" value="{{ p.travel or '' }}"></label>
+  </div>
+  <p class="small locate-status" aria-live="polite"></p>
+  <p class="small">{% if ai_enabled %}{{ ai_label }} works out the places and how you travel from what you write.{% else %}We match your words to the nearest area we cover.{% endif %} Your live location is only used to find the nearest area: it is never saved or put in the link.</p>
+</fieldset>
+
 <fieldset>
   <legend>About you</legend>
   <div class="row">
     <label>Age <input type="number" name="age" min="1" max="110" inputmode="numeric" placeholder="e.g. 34" value="{{ p.age or '' }}"></label>
-    <label>Area
-      <select name="area">{% for a in areas.values() %}<option value="{{ a.id }}" {% if a.id == p.area %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select>
-    </label>
-    <label>How you travel
-      <select name="commute">{% for id, label in commute_modes.items() %}<option value="{{ id }}" {% if id == (p.commute or 'metro') %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
-    </label>
   </div>
   <p class="small">Health conditions (tick any that apply)</p>
   <div class="cond-groups">
@@ -43,3 +54,27 @@
     <label class="check"><input type="checkbox" name="mask" value="1" {% if p.mask %}checked{% endif %}> I have an N95 mask</label>
   </div>
 </fieldset>
+<script>
+(function () {
+  var btn = document.querySelector("button.locate");
+  if (!btn || btn.dataset.bound) return;
+  btn.dataset.bound = "1";
+  var form = btn.closest("form"), from = form.querySelector("input[name=from]"),
+      area = form.querySelector("input[name=area]"), status = form.querySelector(".locate-status");
+  from.addEventListener("input", function () { area.value = ""; });
+  btn.addEventListener("click", function () {
+    if (!navigator.geolocation) { status.textContent = btn.dataset.msgUnsupported; return; }
+    status.textContent = btn.dataset.msgLocating;
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      fetch(btn.dataset.api, {method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({lat: pos.coords.latitude, lon: pos.coords.longitude})})
+        .then(function (r) { return r.json().then(function (d) { return {ok: r.ok, d: d}; }); })
+        .then(function (res) {
+          if (!res.ok) { status.textContent = res.d.error || btn.dataset.msgOutside; return; }
+          area.value = res.d.area; from.value = res.d.label; status.textContent = "";
+        })
+        .catch(function () { status.textContent = btn.dataset.msgDenied; });
+    }, function () { status.textContent = btn.dataset.msgDenied; }, {timeout: 10000, maximumAge: 300000});
+  });
+})();
+</script>

@@ -6,14 +6,14 @@ from urllib.parse import urlencode
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 
-from . import ai, data, i18n, settings, web_accounts
+from . import ai, data, i18n, route, settings, web_accounts
 from .alerts import subscribe as sns_subscribe
 from .personas import PERSONAS
 from . import gauges, weather
 from .aqi import category as aqi_category
 from .advisor import TEXT as ADVICE_TEXT
 from .explain import STAGE_SOURCES, STAGES
-from .profile import COMMUTE_MODES, CONDITION_GROUPS, CONDITIONS, WORK, clean_job, guess_work, parse_profile
+from .profile import COMMUTE_MODES, CONDITION_GROUPS, CONDITIONS, WORK, clean_job, clean_text, guess_work, parse_profile
 from .service import air_now
 from .service import get_plan
 from .stage import ROMAN
@@ -55,6 +55,53 @@ def _read_work(job):
     return out
 
 
+_route_cache = {}
+
+
+def _read_route(start, destination, travel):
+    """Areas and travel modes from typed places, cached in this Lambda's
+    memory only (never stored or logged)."""
+    key = (start, destination, travel)
+    hit = _route_cache.get(key)
+    if hit:
+        return hit
+    out = route.read_route(start, destination, travel)
+    if len(_route_cache) >= settings.get("work_cache_size"):
+        _route_cache.pop(next(iter(_route_cache)))
+    _route_cache[key] = out
+    return out
+
+
+def route_texts(args):
+    """The typed start, destination and travel, trimmed."""
+    limit = settings.get("place_max_chars")
+    return {k: clean_text(args.get(k), limit) for k in ("from", "to", "travel")}
+
+
+def resolve_route(args):
+    """Fill in area, to_area, commute and modes from the typed route where the
+    link or form does not already give them (a live location sets area)."""
+    texts = route_texts(args)
+    need = {"start": texts["from"] if not args.get("area") else None,
+            "destination": texts["to"] if not args.get("to_area") else None,
+            "travel": texts["travel"] if not args.get("commute") else None}
+    if not any(need.values()):
+        return {}
+    reading = _read_route(need["start"], need["destination"], need["travel"])
+    out = {"route_read": reading["how"]}
+    if need["start"] and reading["area"]:
+        out["area"] = reading["area"]
+    if need["destination"] and reading["to_area"]:
+        out["to_area"] = reading["to_area"]
+    if need["travel"] and reading["commute"]:
+        out.update(commute=reading["commute"], modes=",".join(reading["modes"]))
+    return out
+
+
+def _modes(raw):
+    return [m for m in str(raw or "").split(",") if m in COMMUTE_MODES]
+
+
 def _saved():
     """The signed-in person's saved profile when this link names no one else."""
     if request.args.get("persona") or request.args.get("job"):
@@ -74,9 +121,16 @@ def _persona_id():
 
 def _plan_args():
     saved = _saved()
+    source = saved if saved else request.args
+    modes = _modes(request.args.get("modes") or source.get("modes"))
+    commute = request.args.get("commute") or source.get("commute")
+    if commute in COMMUTE_MODES and commute not in modes:  # picked by hand on the plan page
+        modes = [commute]
     return {
         "persona_id": _persona_id(),
         "area_id": request.args.get("area") or (saved and saved.get("area")) or settings.get("default_area"),
+        "to_area_id": request.args.get("to_area") or source.get("to_area") or None,
+        "modes": modes,
         "stage": request.args.get("stage"),
         "day": request.args.get("day") or None,  # empty means pick today/tomorrow from the clock
     }
@@ -119,7 +173,7 @@ def _plan_link(**changes):
 def create_app():
     app = Flask(__name__)
     app.json.sort_keys = False
-    web_accounts.register(app, _read_work)
+    web_accounts.register(app, _read_work, resolve_route)
 
     @app.context_processor
     def globals_():
@@ -128,7 +182,7 @@ def create_app():
                 "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge,
                 "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES,
                 "hour_labels": ADVICE_TEXT["hour_verdict_labels"], "hour_tags": ADVICE_TEXT["hour_tags"],
-                "source_links": settings.get("source_links"),
+                "source_links": settings.get("source_links"), "route_messages": route.TEXT["messages"],
                 "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision")}
 
     @app.errorhandler(data.ForecastUnavailable)
@@ -164,14 +218,18 @@ def create_app():
 
     @app.get("/plan")
     def plan_page():
+        # Read the work description and the typed route once, then keep the
+        # answers in the link so the summary, poster and voice all use them.
+        changes = {}
         job = clean_job(request.args.get("job"))
         if job and not request.args.get("persona"):
-            # Read the description once, then keep the answer in the link so
-            # the summary, poster and voice all use the same reading.
             reading = _read_work(job)
             changes = {"persona": reading["persona"], "read": reading["how"]}
             if reading["start_hour"] is not None and not (request.args.get("start") or request.args.get("end")):
                 changes.update(start=str(reading["start_hour"]), end=str(reading["end_hour"]))
+        if not request.args.get("route_read"):
+            changes.update(resolve_route(request.args))
+        if changes:
             return redirect(_plan_link(**changes))
         args = _plan_args()
         try:
@@ -180,7 +238,10 @@ def create_app():
             return render_template("error.html", message=str(exc)), 400
         _log_plan(plan)
         wx = weather.get_weather(data.get_area(plan["area"]["id"]), get_store())
-        return render_template("plan.html", plan=plan, args=args, weather=wx, using_saved=bool(_saved()))
+        saved = _saved()
+        texts = route_texts(saved or request.args)
+        return render_template("plan.html", plan=plan, args=args, weather=wx, using_saved=bool(saved),
+                               route_texts=texts, route_text=route.TEXT)
 
     @app.get("/poster")
     def poster():
@@ -199,6 +260,23 @@ def create_app():
                                name=saved.get("name") if saved else None,
                                qr=gauges.qr_code(public, "QR code for the live plan"),
                                date_label=day.strftime("%A %d %B %Y"))
+
+    @app.post("/api/locate")
+    def api_locate():
+        """The nearest area to the browser's location. The coordinates are
+        used for this answer only: never stored, logged or put in a link."""
+        body = request.get_json(silent=True) or {}
+        try:
+            lat, lon = float(body["lat"]), float(body["lon"])
+            if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                raise ValueError
+        except (KeyError, TypeError, ValueError):
+            return jsonify({"error": "send lat and lon"}), 400
+        area, km = route.nearest_area(lat, lon)
+        if area is None:
+            return jsonify({"error": route.TEXT["messages"]["outside"], "km": km}), 404
+        return jsonify({"area": area.id, "name": area.name, "km": km,
+                        "label": route.TEXT["messages"]["located"].format(name=area.name)})
 
     @app.get("/api/plan")
     def api_plan():

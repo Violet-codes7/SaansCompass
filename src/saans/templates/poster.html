@@ -76,6 +76,19 @@
       {% endif %}
     </section>
 
+    {% if plan.route %}
+    <section class="trip">
+      <h2>Your trips <span>{{ plan.route.from.name }} → {{ plan.route.to.name }}{% if plan.route.mode_labels %} · {{ plan.route.mode_labels|join(' + ') }}{% endif %}</span></h2>
+      <div class="legs">
+        {% for leg in plan.route.legs %}
+        <div class="leg"><p class="k">{{ leg.label }} · {{ leg.time }}</p>
+          <p class="stops">{% for st in leg.stops %}<span class="stop {{ st.slug }}{% if leg.worst and st.id == leg.worst.id %} is-worst{% endif %}">{{ st.name }} <b>{{ st.aqi if st.aqi is not none else '–' }}</b></span>{% if not loop.last %}<i aria-hidden="true">→</i>{% endif %}{% endfor %}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
     {% if plan.hours %}
     <section class="day">
       <h2>Your day, hour by hour</h2>

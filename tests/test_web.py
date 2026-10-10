@@ -16,9 +16,12 @@ def client(mem_store, monkeypatch, live_fetcher):
     return create_app().test_client()
 
 
-def test_index_lists_personas_and_areas(client):
+def test_index_asks_for_the_daily_trip(client):
     html = client.get("/").get_data(as_text=True)
-    assert 'name="job"' in html and "Anand Vihar" in html and 'name="persona"' not in html
+    assert 'name="job"' in html and 'name="persona"' not in html
+    for part in ('name="from"', 'name="to"', 'name="travel"', "Use my live location", 'name="area" value=""'):
+        assert part in html
+    assert 'name="commute"' not in html
 
 
 @pytest.mark.parametrize("persona", ["school", "rider", "older"])

@@ -226,3 +226,22 @@ form.stack{display:grid;gap:12px;margin:12px 0}
 .panel.danger{border:1px solid var(--no-bg);margin-top:16px}
 button.danger{background:var(--no);border-color:var(--no)}
 .readas.saved-note{display:block;margin-top:10px}
+/* daily trip */
+.trip-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px}
+.trip-grid input{width:100%}
+.with-button{display:flex;gap:6px}
+.with-button input{flex:1;min-width:0}
+button.locate{white-space:nowrap;padding:6px 10px;font-size:14px;background:transparent;color:var(--accent)}
+.locate-status:empty{display:none}
+@media (max-width:720px){.trip-grid{grid-template-columns:1fr}}
+.trips .leg{margin:10px 0}
+.leg-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:0 0 6px}
+.leg-head .t{font-weight:700;font-variant-numeric:tabular-nums}
+.stops{list-style:none;margin:0;padding:0;display:flex;gap:0;align-items:stretch;overflow-x:auto}
+.stops li{flex:1 1 0;min-width:96px;padding:8px 10px;border-radius:8px;display:grid;gap:2px;position:relative;margin-right:18px}
+.stops li:not(:last-child)::after{content:"→";position:absolute;right:-15px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700}
+.stops li span{font-size:13px}
+.stops li b{font-size:20px}
+.stops li.is-worst{outline:3px solid var(--ink);outline-offset:1px}
+.trip-read label{display:flex;gap:6px;align-items:center}
+.stops li.good,.stops li.very-poor,.stops li.severe,.stops li.no-data{color:#fff}

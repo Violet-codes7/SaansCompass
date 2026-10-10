@@ -4,6 +4,7 @@ Saans Compass tells a Delhi resident two things on a bad-air day: what the offic
 
 - **Rules first.** The GRAP stage (the stage CAQM declared, the one you set, or an estimate from AQI) is checked against rules written as [Cedar](https://www.cedarpolicy.com/) policies. Every answer names the policy behind it. An activity no verified rule covers says **"Check the official order"**, never "Allowed".
 - **Your profile, in your own words.** Write what you do ("I deliver food on a scooter at night"). Google Gemini reads it into the closest kind of day (school, delivery rider, outdoor or construction worker, office commuter, retired, runner) and any hours it mentions; without an AI key a keyword match does the same. The plan says "We read you as: …" and lets you correct it. Then add age, 16 air-related health conditions (asthma, COPD, bronchitis, TB, COVID, allergies, sinusitis, sore eyes, heart, stroke, anaemia, diabetes, kidney disease, weak immunity, pregnancy, smoking), how you travel, your outdoor hours and whether you have an N95. Each condition sets how much stricter your thresholds are, whether GRAP's Stage IV charter for sensitive groups applies to you, and its own "why, what to do, watch for" advice. Without an account the profile lives in the page link only and nothing is stored.
+- **Your daily trip.** Instead of one area, say where you start, where you go and how you travel, in your own words ("Mayur Vihar Phase 1", "DPS R K Puram", "Metro, then an e-rickshaw"). Gemini turns the places into approximate coordinates and the words into ways of travelling; without an AI key, area names, well-known localities and travel words are matched instead. "Use my live location" asks the browser for your position and picks the nearest area we cover; the coordinates are used for that one answer and never saved, logged or put in a link. The hour-by-hour plan uses the air where you spend the day, and "Your trips" shows the air at the start, at the areas near the way, and at the destination, when you leave and when you come back, with a warning when a trip is above your limit.
 - **Accounts (optional).** Sign up with email and password (Amazon Cognito, with an email code), save your name, age, work, health conditions, area, travel and an "About me" note once, and the plan, poster and home page open with them every time. Gemini reads "About me" to fit the advice to your life. The saved profile is stored in DynamoDB under your account only, never put in a link, QR code or log, and is deleted with your account from the profile page.
 - **Automatic day and stage.** The plan opens on today, or on tomorrow after 8 PM IST, with both as tabs. The GRAP stage is the one CAQM declared (Parameter Store) or else an estimate from the PM2.5/PM10 forecast; "Try Stage III / IV" shows a bad-air day for demos.
 - **Rules in plain words.** Each GRAP answer says what it means for you, why the rule exists and what to do instead, with a ladder showing where today's stage sits. The official clause and Cedar policy id stay one click away.
@@ -48,13 +49,14 @@ src/saans/
   explain.py    plain-language text for every GRAP rule, stage and AQI category
   i18n.py       English to Hindi: built-in dictionary, then Amazon Translate
   web.py        routes; lambda_handler.py and alert_handler.py are the entry points
+  route.py      start, destination and travel: AI or keyword reading, nearest area, trips
   accounts.py   Amazon Cognito sign-up and sign-in; web_accounts.py has the account pages
   settings.py   reads config/; any setting can be overridden by an environment variable
   config/       settings.json plus the content: areas, AQI bands, personas, conditions,
                 rule explanations, plan sentences, AI prompts, Hindi words
 ```
 
-Routes: `/`, `/plan`, `/api/plan`, `/api/summary`, `/api/speak`, `POST /api/translate`, `/poster`, `POST /subscribe`, `/healthz`, and `/account` (sign up, confirm, sign in, reset) and `/account/profile`. Query: `job` (your own words) or `persona` (school, rider, worker, commuter, older, athlete), `area`, `stage` (0, I–IV, optional), `day` (today, tomorrow); `lang` (en, hi) for the summary routes.
+Routes: `/`, `/plan`, `/api/plan`, `/api/summary`, `/api/speak`, `POST /api/translate`, `/poster`, `POST /subscribe`, `/healthz`, and `/account` (sign up, confirm, sign in, reset) and `/account/profile`. Trip: `from`, `to`, `travel` (typed words, read once into `area`, `to_area`, `commute`, `modes`); `POST /api/locate` maps a browser location to the nearest area. Query: `job` (your own words) or `persona` (school, rider, worker, commuter, older, athlete), `area`, `stage` (0, I–IV, optional), `day` (today, tomorrow); `lang` (en, hi) for the summary routes.
 
 ## Which GRAP stage is used
 

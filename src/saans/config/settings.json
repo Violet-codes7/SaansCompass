@@ -49,5 +49,8 @@
   "user_cache_seconds": 300,
   "sign_in_days": 30,
   "name_max_chars": 60,
-  "about_me_max_chars": 600
+  "about_me_max_chars": 600,
+  "max_area_distance_km": 40,
+  "route_corridor_km": 5,
+  "place_max_chars": 120
 }

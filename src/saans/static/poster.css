@@ -125,3 +125,12 @@ svg.gauge .g-val{fill:var(--ink);font-size:20px;font-weight:800}
 }
 .tile .unit{font-size:16px;font-weight:700}
 .masthead .who small{font-size:13px;opacity:.9}
+.trip h2 span{text-transform:none;letter-spacing:0;font-weight:600;color:var(--ink);margin-left:6px}
+.legs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.leg .k{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin-bottom:4px}
+.leg .stops{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.leg .stop{padding:3px 8px;border-radius:999px;font-size:13px}
+.leg .stop.is-worst{outline:2px solid var(--ink)}
+.leg i{font-style:normal;color:var(--muted)}
+@media (max-width:600px){.legs{grid-template-columns:1fr}}
+.leg .stop.good,.leg .stop.very-poor,.leg .stop.severe{color:#fff}

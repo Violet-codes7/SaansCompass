@@ -152,8 +152,19 @@ def plan_facts(plan):
         "commute": plan.get("commute"),
         "actions": plan.get("actions", []),
         "profile": plan.get("profile"),
+        "trips": _trip_facts(plan.get("route")),
         "stale_forecast": plan["is_stale"],
     }
+
+
+def _trip_facts(route):
+    """Where the person goes and the worst air on each trip, without coordinates."""
+    if not route:
+        return None
+    return {"from": route["from"]["name"], "to": route["to"]["name"], "travel": route["modes"],
+            "legs": [{"trip": leg["label"], "time": leg["time"],
+                      "worst": {"area": leg["worst"]["name"], "aqi": leg["worst"]["aqi"]} if leg["worst"] else None}
+                     for leg in route["legs"]]}
 
 
 def cache_key(plan, lang):
@@ -221,15 +232,12 @@ GEMINI_WORK_SCHEMA = {
 }
 
 
-def classify_work(text, client=None, session=None):
-    """{"persona", "start_hour", "end_hour"} read from someone's own words by
-    the AI model, or None when it is off or fails (the caller falls back to
-    keywords). Hours are None unless the text gives them."""
-    if not text or (client is None and not enabled()):
+def _structured(system, user, schema, gemini_schema, client=None, session=None):
+    """The model's JSON answer as text, or None when the model is off or fails."""
+    if client is None and not enabled():
         return None
     if client is None and provider() == "gemini":
-        raw = gemini(WORK_SYSTEM, text[:200], max_tokens=2048, schema=GEMINI_WORK_SCHEMA, session=session)
-        return _work_reading(raw)
+        return gemini(system, user, max_tokens=2048, schema=gemini_schema, session=session)
     import anthropic
 
     client = client or _bedrock()
@@ -237,20 +245,20 @@ def classify_work(text, client=None, session=None):
         message = client.messages.create(
             model=settings.get("bedrock_model"),
             max_tokens=1000,
-            output_config={"effort": "low", "format": {"type": "json_schema", "schema": WORK_SCHEMA}},
-            system=WORK_SYSTEM,
-            messages=[{"role": "user", "content": text[:200]}],
+            output_config={"effort": "low", "format": {"type": "json_schema", "schema": schema}},
+            system=system,
+            messages=[{"role": "user", "content": user}],
         )
     except anthropic.APIError as exc:
-        log.warning("bedrock could not read the work description: %s", type(exc).__name__)
+        log.warning("bedrock could not read the form: %s", type(exc).__name__)
         return None
     if message.stop_reason == "refusal":
         return None
-    return _work_reading("".join(b.text for b in message.content if b.type == "text"))
+    return "".join(b.text for b in message.content if b.type == "text")
 
 
-def _work_reading(raw):
-    """Check the model's JSON answer; None if it is not a valid reading."""
+def _json(raw):
+    """A JSON object from the model's answer, or None."""
     if not raw:
         return None
     raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
@@ -258,14 +266,75 @@ def _work_reading(raw):
         out = json.loads(raw)
     except ValueError:
         return None
-    if not isinstance(out, dict):
+    return out if isinstance(out, dict) else None
+
+
+def classify_work(text, client=None, session=None):
+    """{"persona", "start_hour", "end_hour"} read from someone's own words by
+    the AI model, or None when it is off or fails (the caller falls back to
+    keywords). Hours are None unless the text gives them."""
+    if not text:
         return None
-    if out.get("persona") not in WORK_SCHEMA["properties"]["persona"]["enum"]:
+    return _work_reading(_structured(WORK_SYSTEM, text[:200], WORK_SCHEMA, GEMINI_WORK_SCHEMA, client, session))
+
+
+def _work_reading(raw):
+    """Check the model's JSON answer; None if it is not a valid reading."""
+    out = _json(raw)
+    if not out or out.get("persona") not in WORK_SCHEMA["properties"]["persona"]["enum"]:
         return None
     hours = [out.get("start_hour"), out.get("end_hour")]
     if not all(isinstance(h, int) and 0 <= h <= 23 for h in hours) or hours[0] == hours[1]:
         hours = [None, None]
     return {"persona": out["persona"], "start_hour": hours[0], "end_hour": hours[1]}
+
+
+ROUTE_SYSTEM = _PROMPTS["route_system"]
+TRAVEL_MODES = list(settings.load("profile")["commute_modes"])
+_PLACE = {"type": "object", "properties": {"found": {"type": "boolean"}, "lat": {"type": "number"},
+                                           "lon": {"type": "number"}},
+          "required": ["found", "lat", "lon"], "additionalProperties": False}
+ROUTE_SCHEMA = {
+    "type": "object",
+    "properties": {"start": _PLACE, "destination": _PLACE,
+                   "modes": {"type": "array", "items": {"type": "string", "enum": TRAVEL_MODES}}},
+    "required": ["start", "destination", "modes"],
+    "additionalProperties": False,
+}
+_GEMINI_PLACE = {"type": "OBJECT", "properties": {"found": {"type": "BOOLEAN"}, "lat": {"type": "NUMBER"},
+                                                  "lon": {"type": "NUMBER"}},
+                 "required": ["found", "lat", "lon"]}
+GEMINI_ROUTE_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {"start": _GEMINI_PLACE, "destination": _GEMINI_PLACE,
+                   "modes": {"type": "ARRAY", "items": {"type": "STRING", "enum": TRAVEL_MODES}}},
+    "required": ["start", "destination", "modes"],
+}
+
+
+def read_route(start, destination, travel, client=None, session=None):
+    """{"start": (lat, lon) | None, "destination": ..., "modes": [...]} read
+    from what someone typed, or None when the model is off or fails."""
+    if not (start or destination or travel):
+        return None
+    user = json.dumps({"start": start or "", "destination": destination or "", "travel": travel or ""},
+                      ensure_ascii=False)
+    out = _json(_structured(ROUTE_SYSTEM, user, ROUTE_SCHEMA, GEMINI_ROUTE_SCHEMA, client, session))
+    if not out:
+        return None
+
+    def place(key, text):
+        p = out.get(key)
+        if not text or not isinstance(p, dict) or not p.get("found"):
+            return None
+        lat, lon = p.get("lat"), p.get("lon")
+        if not all(isinstance(v, (int, float)) for v in (lat, lon)) or not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            return None
+        return (float(lat), float(lon))
+
+    modes = [m for m in out.get("modes") or [] if m in TRAVEL_MODES] if travel else []
+    return {"start": place("start", start), "destination": place("destination", destination),
+            "modes": list(dict.fromkeys(modes))}
 
 
 _polly = None

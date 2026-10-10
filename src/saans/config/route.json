@@ -1,0 +1,220 @@
+{
+  "_about": "Reading where people start, where they go and how they travel. Aliases are well-known localities matched to the nearest area we cover, used when the AI model is off.",
+  "aliases": {
+    "anand-vihar": [
+      "mayur vihar",
+      "preet vihar",
+      "laxmi nagar",
+      "patparganj",
+      "shahdara",
+      "vivek vihar",
+      "karkardooma",
+      "ghaziabad",
+      "kaushambi",
+      "vaishali",
+      "indirapuram",
+      "noida",
+      "akshardham",
+      "geeta colony",
+      "krishna nagar"
+    ],
+    "ito": [
+      "connaught place",
+      "cp",
+      "mandi house",
+      "pragati maidan",
+      "daryaganj",
+      "delhi gate",
+      "barakhamba",
+      "india gate",
+      "rajiv chowk",
+      "new delhi railway station",
+      "new delhi",
+      "chandni chowk",
+      "old delhi",
+      "karol bagh",
+      "paharganj",
+      "kashmere gate",
+      "red fort"
+    ],
+    "punjabi-bagh": [
+      "rajouri garden",
+      "paschim vihar",
+      "tilak nagar",
+      "janakpuri",
+      "moti nagar",
+      "kirti nagar",
+      "patel nagar",
+      "shalimar bagh",
+      "pitampura",
+      "subhash nagar",
+      "uttam nagar"
+    ],
+    "rk-puram": [
+      "vasant vihar",
+      "munirka",
+      "saket",
+      "hauz khas",
+      "green park",
+      "iit delhi",
+      "jnu",
+      "malviya nagar",
+      "vasant kunj",
+      "safdarjung",
+      "sarojini nagar",
+      "chanakyapuri",
+      "dhaula kuan",
+      "mehrauli",
+      "chhatarpur",
+      "aiims"
+    ],
+    "dwarka": [
+      "gurugram",
+      "gurgaon",
+      "palam",
+      "airport",
+      "igi airport",
+      "najafgarh",
+      "mahipalpur",
+      "dwarka sector",
+      "cyber city",
+      "dlf"
+    ],
+    "rohini": [
+      "prashant vihar",
+      "sector 24 rohini",
+      "bawana",
+      "narela",
+      "rithala",
+      "mangolpuri",
+      "sultanpuri",
+      "budh vihar"
+    ],
+    "okhla": [
+      "nehru place",
+      "kalkaji",
+      "govindpuri",
+      "jasola",
+      "sarita vihar",
+      "badarpur",
+      "faridabad",
+      "sangam vihar",
+      "greater kailash",
+      "gk",
+      "lajpat nagar",
+      "jamia",
+      "okhla phase"
+    ],
+    "lodhi-road": [
+      "lodhi colony",
+      "jor bagh",
+      "khan market",
+      "nizamuddin",
+      "defence colony",
+      "jangpura",
+      "bhogal",
+      "sunder nagar",
+      "golf links",
+      "lodhi garden"
+    ],
+    "jahangirpuri": [
+      "azadpur",
+      "adarsh nagar",
+      "model town",
+      "burari",
+      "mukherjee nagar",
+      "gtb nagar",
+      "delhi university",
+      "north campus",
+      "alipur",
+      "kingsway camp",
+      "wazirpur"
+    ]
+  },
+  "commute_keywords": {
+    "walk": [
+      "walk",
+      "walking",
+      "on foot",
+      "by foot",
+      "paidal"
+    ],
+    "cycle": [
+      "cycle",
+      "cycling",
+      "bicycle"
+    ],
+    "two_wheeler": [
+      "scooter",
+      "scooty",
+      "bike",
+      "motorbike",
+      "motorcycle",
+      "two wheeler",
+      "two-wheeler",
+      "activa"
+    ],
+    "auto": [
+      "auto",
+      "autorickshaw",
+      "auto-rickshaw",
+      "e-rickshaw",
+      "erickshaw",
+      "rickshaw",
+      "tuk tuk"
+    ],
+    "bus": [
+      "bus",
+      "dtc",
+      "cluster bus",
+      "school bus",
+      "van"
+    ],
+    "metro": [
+      "metro",
+      "local train",
+      "rapid rail",
+      "rrts"
+    ],
+    "car": [
+      "car",
+      "cab",
+      "taxi",
+      "uber",
+      "ola",
+      "drive",
+      "driving"
+    ],
+    "none": [
+      "work from home",
+      "wfh",
+      "stay home",
+      "stay at home",
+      "don't travel",
+      "do not travel"
+    ]
+  },
+  "exposure_order": [
+    "walk",
+    "cycle",
+    "two_wheeler",
+    "auto",
+    "bus",
+    "metro",
+    "car",
+    "none"
+  ],
+  "trip_labels": {
+    "go": "Going",
+    "back": "Coming back"
+  },
+  "messages": {
+    "locating": "Finding where you are…",
+    "located": "Near {name} (your location)",
+    "denied": "Location is off. Type where you start instead.",
+    "outside": "You seem to be outside the Delhi areas we cover. Type the nearest place instead.",
+    "unsupported": "This browser cannot share your location. Type where you start instead.",
+    "not_found": "We could not place \"{text}\" on our map of Delhi. Pick the closest area below.",
+    "day_area": "Your hour-by-hour plan uses the air at {area}, where you spend the day."
+  }
+}

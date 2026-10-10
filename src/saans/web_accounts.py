@@ -10,7 +10,7 @@ from flask import g, make_response, redirect, render_template, request, url_for
 from werkzeug.datastructures import MultiDict
 
 from . import accounts, data, settings
-from .profile import COMMUTE_MODES, WORK, clean_job, clean_text, parse_profile
+from .profile import WORK, clean_job, clean_text, parse_profile
 from .store import get_store
 
 ACCESS_COOKIE = "saans_at"
@@ -50,7 +50,7 @@ def _page(mode, status=200, **kw):
     return render_template("account.html", mode=mode, **kw), status
 
 
-def register(app, read_work):
+def register(app, read_work, resolve_route):
     @app.before_request
     def load_user():
         g.user = None
@@ -167,23 +167,36 @@ def register(app, read_work):
             "job": clean_job(form.get("job")),
             "age": form.get("age") or None,
             "cond": [c for c in form.getlist("cond") if c],
-            "commute": form.get("commute") or None,
             "start": form.get("start") or None,
             "end": form.get("end") or None,
             "mask": form.get("mask") == "1",
-            "area": form.get("area") or settings.get("default_area"),
+            "from": clean_text(form.get("from"), settings.get("place_max_chars")),
+            "to": clean_text(form.get("to"), settings.get("place_max_chars")),
+            "travel": clean_text(form.get("travel"), settings.get("place_max_chars")),
             "about": clean_text(form.get("about"), settings.get("about_me_max_chars")),
             "persona": form.get("persona") or "",
         }
+        # Reuse what was read before for text that has not changed; a live
+        # location (the form's area) replaces the typed start.
+        live = form.get("area") if form.get("area") in data.AREAS else None
+        known = {"area": live or (saved.get("area") if p["from"] == saved.get("from") else None),
+                 "to_area": saved.get("to_area") if p["to"] == saved.get("to") else None,
+                 "commute": saved.get("commute") if p["travel"] == saved.get("travel") else None}
+        args = {**{k: v for k, v in known.items() if v}, "from": p["from"], "to": p["to"], "travel": p["travel"]}
+        reading = resolve_route(args)
+        p["area"] = live or reading.get("area") or known["area"]
+        p["to_area"] = reading.get("to_area") or known["to_area"]
+        p["commute"] = reading.get("commute") or known["commute"]
+        p["modes"] = reading.get("modes") or (saved.get("modes") if p["commute"] == saved.get("commute") else p["commute"])
         error = None
         if not p["job"]:
             error = FORM_ERRORS["job"]
-        elif p["area"] not in data.AREAS:
-            error = FORM_ERRORS["area"]
+        elif not p["area"]:
+            error = FORM_ERRORS["place"].format(text=p["from"]) if p["from"] else FORM_ERRORS["from"]
+        elif p["to"] and not p["to_area"]:
+            error = FORM_ERRORS["place"].format(text=p["to"])
         elif p["persona"] and p["persona"] not in WORK:
             error = FORM_ERRORS["persona"]
-        elif p["commute"] and p["commute"] not in COMMUTE_MODES:
-            error = FORM_ERRORS["commute"]
         if not error:
             if not p["persona"]:  # read the work description, as the home page does
                 reading = read_work(p["job"])
