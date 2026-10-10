@@ -5,9 +5,9 @@ import os
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
-from flask import Flask, jsonify, redirect, render_template, request, url_for
+from flask import Flask, g, jsonify, redirect, render_template, request, url_for
 
-from . import ai, cpcb, data, guide, i18n, route, settings, web_accounts
+from . import ai, cpcb, data, guide, i18n, route, saving, settings, web_accounts
 from .alerts import subscribe as sns_subscribe
 from .personas import PERSONAS
 from . import gauges, waqi, weather
@@ -214,6 +214,13 @@ def _over_limit(kind):
         return False
 
 
+def _diary_week(plan, saved):
+    """The signed-in person's last seven days, for their own plan of today only."""
+    if not (settings.get("diary_enabled") and saved and g.get("user") and plan["day"] == "today"):
+        return None
+    return saving.week(get_store().get_diary(g.user["sub"]), plan["date"])
+
+
 def locate_near(area_id):
     """False when a saved place is too far from Delhi's areas for live
     location, which only finds those areas, to be any use."""
@@ -260,7 +267,7 @@ def create_app():
                 "grap_on": grap_on, "suggest_min_chars": settings.get("suggest_min_chars"),
                 "region_only": bool(settings.get("place_region_km")), "brand": LAYOUT["brand"]["grap" if grap_on else "plain"], "cpcb_on": cpcb.enabled() or waqi.enabled(), "route_messages": route.TEXT["messages"],
                 "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision"),
-                "locate_near": locate_near}
+                "locate_near": locate_near, "diary_on": settings.get("diary_enabled")}
 
     @app.errorhandler(data.ForecastUnavailable)
     def no_forecast(exc):
@@ -341,12 +348,31 @@ def create_app():
             data.get_area(plan["area"]["id"])).id else weather.get_weather(air_wx_place, store)
         typed = _typed_trip()
         texts = route_texts(request.args if typed or not saved else saved)
+        diary = _diary_week(plan, saved)
         return render_template("plan.html", plan=plan, args=args, weather=air_wx, air=air,
                                air_nf=request.args.get("air_nf"), using_saved=bool(saved),
                                saved_trip=bool(saved) and not typed,
                                route_texts=texts, route_text=route.TEXT, role=_role(saved),
                                display_name=saved.get("name") if saved else None, weather_place=air_wx_place.name,
-                               stay="none" in args["modes"])
+                               stay="none" in args["modes"], diary=diary, diary_saved=request.args.get("diary"))
+
+    @app.post("/diary")
+    def diary():
+        """Today's answer to "did you follow the plan?", kept under the account only."""
+        saved = _saved()
+        followed = request.form.get("followed")
+        if not (settings.get("diary_enabled") and saved and g.user) or followed not in settings.get("diary_followed_share"):
+            return redirect(url_for("plan_page", **request.args))
+        try:
+            plan = _build_plan()
+        except ValueError as exc:
+            return render_template("error.html", message=str(exc)), 400
+        if plan["day"] != "today":  # only today can be answered
+            return redirect(_plan_link())
+        store = get_store()
+        entries = saving.add_to_diary(store.get_diary(g.user["sub"]), plan["date"], saving.diary_entry(plan, followed))
+        store.put_diary(g.user["sub"], entries)
+        return redirect(_plan_link(diary=plan["date"]) + "#health")
 
     @app.get("/poster")
     def poster():

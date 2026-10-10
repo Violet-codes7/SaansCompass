@@ -57,6 +57,16 @@
   "personal_cache_size": 128,
   "work_cache_size": 256,
   "glance_activity_lines": 4,
+  "dose_saved_enabled": true,
+  "indoor_pm25_ratio": 0.7,
+  "dose_saved_min_pct": 5,
+  "diary_enabled": true,
+  "diary_days": 28,
+  "diary_followed_share": {"yes": 1, "partly": 0.5, "no": 0},
+  "window_planner_enabled": true,
+  "window_open_aqi_max": 100,
+  "window_airing_minutes": 10,
+  "sleep_hours": [22, 7],
   "grap_revision": "29.09.2026",
   "source_links": [
     {

@@ -385,6 +385,8 @@ def chat_facts(plan):
                       "why": (a.get("explain") or {}).get("why")}
                      for a in plan["activities"] if a["rule"] and a.get("restricts")],
         places_air=[{"place": p["name"], "aqi_now": p["aqi"]} for p in plan.get("places_air") or []],
+        windows_plan=(plan.get("windows") or {}).get("lines"),
+        plan_saves_pct_vs_worst_hours=(plan.get("dose_saved") or {}).get("vs_worst_pct"),
         rules_at_every_stage=plan.get("stage_table"),
     )
     return facts

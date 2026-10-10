@@ -6,6 +6,7 @@ One DynamoDB table with a generic pk/sk holds both item types:
     pk AREA#<area>  sk FCST#LAST           the last real forecast, kept longer
     pk AREA#<area>  sk LAST#today|tomorrow verdict_hash, summary, sent_at
     pk USER#<sub>   sk PROFILE             a signed-in person's saved profile (JSON)
+    pk USER#<sub>   sk DIARY               their daily "did you follow the plan" diary (JSON)
     pk RATE#<kind>#<hashed address>#<window start>  sk HITS   requests in that window, ttl
 
 When the TABLE environment variable is not set (local runs and tests without
@@ -115,7 +116,16 @@ class MemoryStore:
                    "updated_at": int(now)})
 
     def delete_user_profile(self, sub):
-        self.items.pop((f"USER#{sub}", "PROFILE"), None)
+        """Deletes everything kept for the account: the profile and the diary."""
+        for sk in ("PROFILE", "DIARY"):
+            self.items.pop((f"USER#{sub}", sk), None)
+
+    def get_diary(self, sub):
+        item = self._get(f"USER#{sub}", "DIARY")
+        return json.loads(item["diary"]) if item else {}
+
+    def put_diary(self, sub, diary):
+        self._put({"pk": f"USER#{sub}", "sk": "DIARY", "diary": json.dumps(diary, ensure_ascii=False)})
 
 
 class DynamoStore(MemoryStore):
@@ -132,7 +142,8 @@ class DynamoStore(MemoryStore):
         self.table.put_item(Item=item)
 
     def delete_user_profile(self, sub):
-        self.table.delete_item(Key={"pk": f"USER#{sub}", "sk": "PROFILE"})
+        for sk in ("PROFILE", "DIARY"):
+            self.table.delete_item(Key={"pk": f"USER#{sub}", "sk": sk})
 
     def count_hit(self, key, window_seconds, now=None):
         now = now if now is not None else time.time()

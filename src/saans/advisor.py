@@ -234,21 +234,21 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
         rule = rules_by_activity.get(a.id)
         at = _reading_at(readings, a.hour) if a.hour is not None else None
         at_aqi = at["aqi"] if at else None
-        suggestion = None
+        key, fmt = None, {}
         if rule and rule.decision == NOT_ALLOWED:
-            suggestion = TEXT["suggestions"]["not_allowed"]
+            key = "not_allowed"
         elif rule and rule.decision == ADVISED_AGAINST:
-            suggestion = TEXT["suggestions"]["advised_against"]
+            key = "advised_against"
         elif a.id == flex.id and window and persona.flex_prefers == "cleanest" and verdict == "stay_in":
-            suggestion = TEXT["suggestions"]["too_poor"].format(start=window["start"], aqi=window["avg_aqi"])
+            key, fmt = "too_poor", {"start": window["start"], "aqi": window["avg_aqi"]}
         elif a.id == flex.id and window and at_aqi is not None and window["start_hour"] != a.hour:
             if persona.flex_prefers == "cleanest" and window["avg_aqi"] < at_aqi:
-                suggestion = TEXT["suggestions"]["cleaner_at"].format(start=window["start"], aqi=window["avg_aqi"],
-                                                                      hour=f"{a.hour:02d}:00")
+                key, fmt = "cleaner_at", {"start": window["start"], "aqi": window["avg_aqi"], "hour": f"{a.hour:02d}:00"}
             elif persona.flex_prefers == "worst" and window["avg_aqi"] > at_aqi:
-                suggestion = TEXT["suggestions"]["take_break_at"].format(start=window["start"], aqi=window["avg_aqi"])
+                key, fmt = "take_break_at", {"start": window["start"], "aqi": window["avg_aqi"]}
         elif a.outdoor and at_aqi is not None and verdict_for(persona, at_aqi) == "stay_in":
-            suggestion = TEXT["suggestions"]["very_poor_movable" if a.movable else "very_poor_fixed"]
+            key = "very_poor_movable" if a.movable else "very_poor_fixed"
+        suggestion = TEXT["suggestions"][key].format(**fmt) if key else None
         activities.append({
             "id": a.id,
             "label": a.label,
@@ -259,6 +259,7 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
             "rule": rule.to_dict() if rule else None,
             "explain": rule_text(a.rules_action or a.id, rule.to_dict()) if rule else None,
             "suggestion": suggestion,
+            "suggestion_key": key,
             "rank": RULE_ORDER.get(rule.decision, 3) if rule else 4,
         })
         allowed = not (rule and rule.decision == NOT_ALLOWED)
