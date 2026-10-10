@@ -155,6 +155,7 @@ def test_saved_profile_drives_plan_and_poster_without_link_details(client, mem_s
     assert saved["to_area"] == "ito" and saved["commute"] == "two_wheeler"
     html = client.get("/plan").get_data(as_text=True)
     assert "From your saved profile, Asha" in html and "Your trips" in html and "Rohini" in html
+    assert '<h1 translate="no">Asha</h1>' in html  # the person's name, not the persona
     assert "Air quality at ITO" in html  # the day is spent at the destination
     assert "Asthma" in html and "Age 66" in html
     poster = client.get("/poster").get_data(as_text=True)

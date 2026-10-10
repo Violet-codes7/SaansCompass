@@ -200,6 +200,12 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
     # Riders are out all shift, so the verdict follows the shift average.
     if persona.flex_prefers == "cleanest":
         verdict = verdict_for(persona, window["avg_aqi"] if window else None)
+        # Fixed outdoor parts of the day (a commute) cannot move to the clean
+        # hour: if any is above the person's limit, the day is not a normal one.
+        fixed = [_reading_at(readings, a.hour) for a in persona.activities
+                 if a.outdoor and not a.movable and a.hour is not None]
+        if verdict == "go" and any(r and r["aqi"] is not None and r["aqi"] > persona.go_max for r in fixed):
+            verdict = "limit"
     else:
         verdict = verdict_for(persona, _average_aqi(readings))
 

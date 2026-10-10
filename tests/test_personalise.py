@@ -86,7 +86,7 @@ def test_plan_page_explains_rules_and_glance(client):
     assert "What it means for you:" in html and "Dusty construction work" in html
     assert "Official source" in html and "worker.dusty_cnd.stage3" in html
     assert "You are here" in html and "Stage III: Severe air" in html
-    for label in ("Air, last 24 hours", "Worst time to be outside", "Your limits", "Like smoking"):
+    for label in ("At a glance in ITO", "AQI in ITO", "Worst time", "Your limits", "like smoking", "What to do today"):
         assert label in html
     html0 = client.get("/plan?persona=commuter&area=ito&stage=0").get_data(as_text=True)
     assert "No GRAP stage today" in html0 and ">None<" not in html0
@@ -95,7 +95,7 @@ def test_plan_page_explains_rules_and_glance(client):
 def test_health_panel_lists_each_condition(client):
     html = client.get("/plan?persona=commuter&area=ito&cond=kidney&cond=eyes&age=64").get_data(as_text=True)
     assert "Kidney disease" in html and "Eye irritation" in html and "Age 64: over 60" in html
-    assert "Watch for:" in html and "Call <b>112</b>" in html
+    assert "Watch for:" in html and "Call 112 now." in html and "If you feel unwell" in html
 
 
 # What do you do: own words
@@ -225,3 +225,28 @@ def test_translate_api(client, monkeypatch):
 def test_pages_have_the_language_switch(client):
     html = client.get("/").get_data(as_text=True)
     assert 'data-setlang="hi"' in html and "i18n.js" in html
+
+
+def test_glance_is_about_the_area_and_groups_what_to_do(mem_store, live_fetcher):
+    from saans.profile import parse_profile
+    from werkzeug.datastructures import MultiDict
+    p = parse_profile(MultiDict({"cond": "asthma", "age": "45", "commute": "auto"}), "commuter")
+    plan = get_plan("commuter", "ito", now=FIXED_NOW, fetcher=live_fetcher, profile=p, modes=["auto"])
+    g = plan["glance"]
+    assert g["title"] == "At a glance in ITO" and g["area"]["aqi"] == plan["air"]["day_aqi"]
+    assert g["area"]["note"] and "Delhi's average" in g["area"]["vs_delhi"]
+    keys = [grp["key"] for grp in g["todo"]]
+    assert keys[0] == "rules" and {"timing", "travel", "protect", "home", "health"} <= set(keys)
+    health = next(grp for grp in g["todo"] if grp["key"] == "health")["items"]
+    assert any("inhaler" in item for item in health)
+    assert {m["key"] for m in g["moments"]} >= {"best", "worst", "set_out"}
+    assert g["health"]["today"].startswith("ITO's AQI")
+
+
+def test_commute_over_the_limit_is_not_a_normal_day(mem_store):
+    from conftest import make_hours
+    # Clean all day except the 09:00 and 18:00 commutes.
+    hours = [30] * 24
+    hours[9] = hours[18] = 90
+    plan = get_plan("commuter", "ito", now=FIXED_NOW, fetcher=lambda a: make_hours(hours))
+    assert plan["verdict"] == "limit"

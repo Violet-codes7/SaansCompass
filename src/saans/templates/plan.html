@@ -14,7 +14,10 @@
   <div>
     <p class="eyebrow">{{ plan.area.name }} · {{ plan.date }}</p>
     {% set own = plan.profile.own_words if plan.profile else None %}
-    <h1 {% if own %}translate="no"{% endif %}>{{ (own[0]|upper ~ own[1:]) if own else (plan.profile.work if plan.profile else plan.persona.label) }}</h1>
+    {% set work_line = (own[0]|upper ~ own[1:]) if own else (plan.profile.work if plan.profile else plan.persona.label) %}
+    {% if display_name %}<h1 translate="no">{{ display_name }}</h1>
+    <p class="work-line" {% if own %}translate="no"{% endif %}>{{ work_line }}</p>
+    {% else %}<h1 {% if own %}translate="no"{% endif %}>{{ work_line }}</h1>{% endif %}
     {% if plan.profile %}
     <p class="question">
       {%- set bits = [] -%}
@@ -103,7 +106,6 @@
   <a href="{{ plan_link(stage='IV') }}">Try Stage IV</a></p>
 {% endif %}
 
-<div class="two">
   <section class="panel rules" id="grap">
     <h2>GRAP rules for you</h2>
     <p class="lead">{{ grap.intro }}</p>
@@ -147,7 +149,7 @@
     </div>
     <h3 class="rules-for-you">{{ 'Today' if plan.day == 'today' else 'Tomorrow' }}, for you</h3>
     {% set pf = plan.profile %}
-    {% set fitted = [plan.persona.label] + ([route_modes_label] if route_modes_label else ([pf.commute] if pf and pf.commute else [])) + ([pf.vehicle] if pf and pf.vehicle else []) + (pf.conditions if pf else []) + (['Age ' ~ pf.age] if pf and pf.age else []) %}
+    {% set fitted = ([display_name ~ ', ' ~ plan.persona.label|lower] if display_name else [plan.persona.label]) + ([route_modes_label] if route_modes_label else ([pf.commute] if pf and pf.commute else [])) + ([pf.vehicle] if pf and pf.vehicle else []) + (pf.conditions if pf else []) + (['Age ' ~ pf.age] if pf and pf.age else []) %}
     <p class="fitted small"><b>{{ grap.fitted_title }}:</b> {{ fitted|join(' · ') }}{% if not pf or not (pf.vehicle or pf.commute or route_modes_label) %}. {{ grap.fitted_none }}{% endif %}</p>
     {% if plan.health and plan.health.charter and plan.health.reasons %}<p class="fitted small">{{ grap.charter_you.format(reasons=plan.health.reasons|join(', ')) }}</p>{% endif %}
     {% set no_stage = plan.stage.stage == 0 %}
@@ -180,94 +182,62 @@
     <p class="small">{{ grap.sources_label }}: {% for src in grap.sources %}<a href="{{ src.url }}" rel="noopener" target="_blank">{{ src.label }}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>
   </section>
 
-  <section class="panel glance">
-  <h2>At a glance</h2>
-  <div class="verdict v-{{ plan.verdict or 'none' }}">{{ plan.verdict_label }}</div>
-  {% if plan.verdict_meaning %}<p class="vmeaning">{{ plan.verdict_meaning }}</p>{% endif %}
-  {% if plan.verdict_note %}<p class="small vnote">{{ plan.verdict_note }}</p>{% endif %}
-  <dl class="facts">
-    {% if plan.air.day_aqi is not none %}<div><dt>{{ 'Air, last 24 hours' if plan.day == 'today' else 'Air tomorrow' }}</dt>
-      <dd><b>AQI {{ plan.air.day_aqi }} · {{ plan.air.category }}</b><small>{{ plan.air.impact }} (CPCB)</small></dd></div>{% endif %}
-    {% if plan.air.pollutant %}<div><dt>Main pollutant</dt><dd>{{ plan.air.pollutant }}</dd></div>{% endif %}
-    {% if plan.best_window %}<div><dt>{{ 'No clean window: least-bad time' if plan.best_window.clean == false else plan.best_window_title }}</dt>
-      <dd><b>{{ plan.best_window.start }}–{{ plan.best_window.end }}</b> · AQI about {{ plan.best_window.avg_aqi }}</dd></div>{% endif %}
-    {% if plan.air.worst %}<div><dt>Worst time to be outside</dt><dd><b>{{ plan.air.worst.time }}</b> · AQI about {{ plan.air.worst.aqi }} ({{ plan.air.worst.category }})<small>Stay indoors or off busy roads around then.</small></dd></div>{% endif %}
-    {% if plan.commute %}<div><dt>When you set out ({{ plan.commute.time }})</dt><dd>AQI {{ plan.commute.aqi if plan.commute.aqi is not none else 'not known' }} · {{ plan.commute.category }}</dd></div>{% endif %}
-    {% if plan.day == 'today' and plan.air_tomorrow.aqi is not none and plan.air.day_aqi is not none %}
-    {% set diff = plan.air_tomorrow.aqi - plan.air.day_aqi %}
-    <div><dt>Tomorrow</dt><dd>AQI {{ plan.air_tomorrow.aqi }} · {{ plan.air_tomorrow.category }}<small>{{ 'Cleaner than today.' if diff <= -20 else ('Worse than today: plan ahead.' if diff >= 20 else 'About the same as today.') }}</small></dd></div>{% endif %}
-    <div><dt>Your limits</dt><dd>Fine up to AQI {{ plan.thresholds.go_max }}, keep it short up to {{ plan.thresholds.limit_max }}, stay in above that.
-      <small>{% if plan.health.shift %}{{ plan.health.shift }} points lower than usual because of your health or age.{% else %}The usual levels for your kind of day.{% endif %} Our estimate, not an official limit.</small></dd></div>
-    <div><dt>Rough breath dose (estimate)</dt>
-      <dd>{% if plan.dose.ratio is not none %}<b>{{ plan.dose.ratio }}×</b> clean air<small>{{ plan.dose.ug }} µg of PM2.5 over {{ plan.dose.minutes }} min outdoors, against sitting still in air at the WHO limit.</small>{% else %}Not enough data{% endif %}</dd></div>
-    {% if plan.air.cigarettes %}<div><dt>Like smoking</dt><dd><b>about {{ plan.air.cigarettes }} cigarette{{ '' if plan.air.cigarettes == 1 else 's' }}</b> if you breathed this air all day<small>Average PM2.5 {{ plan.air.pm25_day }} µg/m³. Berkeley Earth's rule of thumb: a day at 22 µg/m³ is about one cigarette.</small></dd></div>{% endif %}
-  </dl>
-</section>
-
-</div>
-
-<div class="two">
-<section class="panel todo">
-  <h2>What to do</h2>
-  <ol class="todo-list">{% for a in plan.actions %}<li>{{ a }}</li>{% else %}<li>Nothing special today: go about your day as usual.</li>{% endfor %}</ol>
-</section>
-
-  <section class="panel health">
-    <h2>Your health</h2>
-    {% set h = plan.health %}
-    <p class="level level-{{ h.level }}">Sensitivity to polluted air: <b>{{ {'usual': 'Usual sensitivity', 'higher': 'Higher', 'highest': 'Highest'}[h.level] }}</b></p>
-    {% if h.details %}
-    <p>{% if h.shift >= 100 %}Your lungs, heart or blood vessels react sooner to polluted air, so your limits are {{ h.shift }} AQI points lower than usual.{% elif h.shift %}You feel polluted air sooner than most, so your limits are {{ h.shift }} AQI points lower than usual.{% else %}Polluted air bothers you, but it does not change your limits.{% endif %}
-      {% if h.charter %}At Stage IV, GRAP's citizen charter names you among the people who should stay indoors as much as possible{% if plan.stage.stage == 4 %}, and Stage IV is in force{% endif %}.{% endif %}</p>
-    <div class="conds">
-      {% for it in h.details %}
-      <details class="cond" {% if loop.index <= 2 %}open{% endif %}><summary>{{ it.title }}</summary>
-        <p><b>Why air matters:</b> {{ it.why }}</p>
-        <p><b>Do this:</b> {{ it.tip }}</p>
-        <p><b>Watch for:</b> {{ it.watch }}</p>
-      </details>
-      {% endfor %}
+{% set g = plan.glance %}{% set gt = glance_text %}
+<section class="panel glance" id="glance">
+  <h2>{{ g.title }}</h2>
+  <div class="g-top">
+    <div class="g-aqi {{ g.area.slug }}">
+      <span class="g-k">{{ gt.area_now.format(area=g.area.name) }}</span>
+      <b class="g-v">{{ g.area.aqi if g.area.aqi is not none else '–' }}</b>
+      <span class="g-cat">{{ g.area.category or 'No data' }}</span>
+      <small>{{ g.area.basis }}</small>
     </div>
-    {% elif plan.profile %}
-    <p>Nothing in your details adds extra sensitivity, so the plan uses the usual limits for your kind of day. Polluted air still harms healthy people over time, especially at Poor and worse.</p>
-    {% elif plan.persona.id in ('school', 'older') %}
-    <p>Children and older adults are among the groups GRAP's citizen charter protects, so this plan already uses lower limits. Add age and health details on the <a href="{{ url_for('index') }}">first page</a> for advice that fits one person.</p>
-    {% else %}
-    <p>Add your age and any health conditions on the <a href="{{ url_for('index') }}">first page</a> for advice that fits you.</p>
-    {% endif %}
-
-    <h3>Protect yourself every day</h3>
-    <ul class="tips">
-      <li>{% if plan.profile and plan.profile.has_n95_mask %}Wear your N95 outdoors on Poor or worse days. It only works if it seals: pinch the nose clip and check for gaps.{% else %}A well-fitted N95 or FFP2 mask filters most fine particles; cloth and surgical masks do little.{% endif %}</li>
-      <li>Keep windows shut at the worst hours and air rooms out at the cleanest one.</li>
-      <li>Indoors, avoid incense, mosquito coils, frying smoke and sweeping dry dust; wet-mop instead. A HEPA air purifier sized for the room helps most in the bedroom.</li>
-      <li>Drink water and keep your usual medicines with you.</li>
-    </ul>
-    <h3>Get help now if</h3>
-    <p class="small">You have severe breathlessness, chest pain or pressure, blue lips, confusion or fainting. Call <b>112</b>. This page is general advice, not a diagnosis.</p>
-
-    <h3>Your activities</h3>
-    <ul class="acts">
-      {% for a in plan.activities if a.time %}
-      <li><span class="t">{{ a.time }}</span> {{ a.label }}{% if a.aqi is not none %} <span class="aqi {{ a.slug }}">AQI {{ a.aqi }}</span>{% endif %}
-        {% if a.suggestion %}<div class="sugg">{{ a.suggestion }}</div>{% endif %}</li>
-      {% else %}<li class="small">Your whole outdoor window counts; see hour by hour below.</li>
-      {% endfor %}
-    </ul>
-  </section>
-</div>
-
-{% if ai_enabled %}
-<section class="panel ai" id="ai" data-query="{{ request.query_string.decode() }}">
-  <div class="ai-head">
-    <h2>Personal advice</h2>
-    <div class="ai-tools"><button type="button" id="ai-listen">Listen</button></div>
+    <div class="g-verdict v-{{ plan.verdict or 'none' }}">
+      <span class="g-k">{{ display_name or plan.persona.label }}</span>
+      <b>{{ plan.verdict_label }}</b>
+      {% if plan.verdict_meaning %}<span>{{ plan.verdict_meaning }}</span>{% endif %}
+      {% if g.health.today %}<span class="small">{{ g.health.today }}</span>{% endif %}
+      {% if plan.verdict_note %}<span class="small">{{ plan.verdict_note }}</span>{% endif %}
+    </div>
+    <div class="g-local">
+      <span class="g-k">{{ gt.local_title }}</span>
+      {% if g.area.note %}<p>{{ g.area.note }}</p>{% endif %}
+      {% if g.area.vs_delhi %}<p class="small">{{ g.area.vs_delhi }}{% if g.area.rank %} {{ g.area.rank }}{% endif %}</p>{% endif %}
+      {% if g.area.pollutant %}<p class="small"><b>Main pollutant:</b> {{ g.area.pollutant }}</p>{% endif %}
+    </div>
   </div>
-  <div id="ai-text" class="ai-text" aria-live="polite" translate="no"></div>
-  <audio id="ai-audio" controls hidden></audio>
-  <p class="small">Written by {{ ai_label }} from your plan and details, in the language you pick at the top of the page. It explains and personalises; it never changes a GRAP rule. General advice, not a diagnosis.</p>
-</section>
-<script>
+  {% if g.moments %}
+  <h3>{{ gt.moments_title }}</h3>
+  <div class="g-moments">
+    {% for m in g.moments %}
+    <div class="g-m m-{{ m.key }}">
+      <span class="g-k">{{ m.label }}</span>
+      {% if m.time %}<b>{{ m.time }}</b>{% endif %}
+      {% if m.aqi is not none %}<span class="aqi {{ m.slug }}">AQI {{ m.aqi }}</span>{% endif %}
+      <small class="{{ 'over' if m.over else 'ok' }}">{{ gt.over_limit if m.over else gt.within_limit }}</small>
+      {% if m.sub %}<small>{{ m.sub }}</small>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <h3>{{ gt.todo_title if plan.day == 'today' else gt.todo_title_tomorrow }}</h3>
+  <div class="g-todo">
+    {% for grp in g.todo %}
+    <div class="g-group g-{{ grp.key }}"><p class="g-gt"><span aria-hidden="true">{{ grp.icon }}</span> {{ grp.title }}</p>
+      <ul>{% for item in grp['items'] %}<li>{{ item }}</li>{% endfor %}</ul></div>
+    {% endfor %}
+  </div>
+  {% if ai_enabled %}
+  <div class="g-ai" id="ai" data-query="{{ request.query_string.decode() }}">
+    <div class="ai-head">
+      <h3>✨ {{ gt.ai_title }}</h3>
+      <div class="ai-tools"><button type="button" id="ai-listen">Listen</button></div>
+    </div>
+    <div id="ai-text" class="ai-text" aria-live="polite" translate="no"></div>
+    <audio id="ai-audio" controls hidden></audio>
+    <p class="small">{{ gt.ai_from.format(ai=ai_label) }}</p>
+  </div>
+  <script>
 (function () {
   var box = document.getElementById("ai"), text = document.getElementById("ai-text");
   var audio = document.getElementById("ai-audio"), listen = document.getElementById("ai-listen");
@@ -309,7 +279,65 @@
   load();
 })();
 </script>
-{% endif %}
+  {% endif %}
+</section>
+
+  <section class="panel health" id="health">
+    <h2>Your health</h2>
+    {% set h = plan.health %}{% set gh = plan.glance.health %}{% set ht = glance_text.health %}
+    <p class="level level-{{ h.level }}">Sensitivity to polluted air: <b>{{ {'usual': 'Usual sensitivity', 'higher': 'Higher', 'highest': 'Highest'}[h.level] }}</b></p>
+    {% if gh.today %}<h3>{{ ht.today_title }}</h3>
+    <p class="h-today v-{{ gh.verdict }}">{{ gh.today }}</p>{% if gh.impact %}<p class="small">{{ gh.impact }} (CPCB)</p>{% endif %}{% endif %}
+    <h3>{{ ht.limits_title }}</h3>
+    {% set L = gh.limits %}
+    <div class="limits" role="img" aria-label="{{ ht.limits_fine }} {{ L.go }}, {{ ht.limits_short }} {{ L.limit }}">
+      <div class="lbar"><span class="lgo" style="width: {{ L.go_pct }}%">{{ ht.limits_fine }}</span><span class="lshort" style="width: {{ L.limit_pct - L.go_pct }}%">{{ ht.limits_short }}</span><span class="lstay">{{ ht.limits_stay }}</span></div>
+      {% if L.aqi is not none %}<span class="lmark" style="left: {{ L.aqi_pct }}%"><b>{{ plan.area.name }} {{ L.aqi }}</b></span>{% endif %}
+      <div class="lticks"><span style="left: {{ L.go_pct }}%">{{ L.go }}</span><span style="left: {{ L.limit_pct }}%">{{ L.limit }}</span></div>
+    </div>
+    <p class="small">{{ L.note }} {{ ht.limits_note }}</p>
+    {% if h.details %}
+    <p>{% if h.shift >= 100 %}Your lungs, heart or blood vessels react sooner to polluted air, so your limits are {{ h.shift }} AQI points lower than usual.{% elif h.shift %}You feel polluted air sooner than most, so your limits are {{ h.shift }} AQI points lower than usual.{% else %}Polluted air bothers you, but it does not change your limits.{% endif %}
+      {% if h.charter %}At Stage IV, GRAP's citizen charter names you among the people who should stay indoors as much as possible{% if plan.stage.stage == 4 %}, and Stage IV is in force{% endif %}.{% endif %}</p>
+    <h3>{{ ht.conditions_title }}</h3>
+    <div class="conds">
+      {% for it in h.details %}
+      <div class="cond"><p class="cond-title">{{ it.title }}</p>
+        <p><b>{{ ht.why }}:</b> {{ it.why }}</p>
+        <p><b>{{ ht.do }}:</b> {{ it.tip }}</p>
+        <p><b>{{ ht.watch }}:</b> {{ it.watch }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% elif plan.profile %}
+    <p>Nothing in your details adds extra sensitivity, so the plan uses the usual limits for your kind of day. Polluted air still harms healthy people over time, especially at Poor and worse.</p>
+    {% elif plan.persona.id in ('school', 'older') %}
+    <p>Children and older adults are among the groups GRAP's citizen charter protects, so this plan already uses lower limits. Add age and health details on the <a href="{{ url_for('index') }}">first page</a> for advice that fits one person.</p>
+    {% else %}
+    <p>Add your age and any health conditions on the <a href="{{ url_for('index') }}">first page</a> for advice that fits you.</p>
+    {% endif %}
+    <h3>{{ ht.exposure_title }}</h3>
+    <div class="dose-tiles">
+      {% if plan.dose.ratio is not none %}<div><b>{{ plan.dose.ratio }}×</b><span>{{ ht.dose.format(ratio=plan.dose.ratio, minutes=plan.dose.minutes) }}</span></div>{% endif %}
+      {% if plan.air.cigarettes %}<div><b>🚬 {{ plan.air.cigarettes }}</b><span>{{ ht.cigarettes.format(n=plan.air.cigarettes, pm25=plan.air.pm25_day) }}</span></div>{% endif %}
+    </div>
+    <h3>{{ ht.ladder_title }}</h3>
+    <ol class="ladder-h">{% for step in ht.ladder %}<li class="lv-{{ step.level }}"><p>{{ step.signs }}</p><p><b>{{ step.do }}</b></p></li>{% endfor %}</ol>
+    <h3>{{ ht.protect_title }}</h3>
+    <ul class="tips">
+      <li>{{ ht.mask_have if plan.profile and plan.profile.has_n95_mask else ht.mask_advice }}</li>
+      {% for tip in ht.protect %}<li>{{ tip }}</li>{% endfor %}
+    </ul>
+    <h3>{{ ht.activities_title }}</h3>
+    <ul class="acts">
+      {% for a in plan.activities if a.time %}
+      <li><span class="t">{{ a.time }}</span> {{ a.label }}{% if a.aqi is not none %} <span class="aqi {{ a.slug }}">AQI {{ a.aqi }}</span>{% endif %}
+        {% if a.suggestion %}<div class="sugg">{{ a.suggestion }}</div>{% endif %}</li>
+      {% else %}<li class="small">{{ ht.activities_none }}</li>
+      {% endfor %}
+    </ul>
+    <p class="small">{{ ht.general }}</p>
+  </section>
 
 <section class="panel dayplan">
   <div class="dp-head">

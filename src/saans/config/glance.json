@@ -1,0 +1,132 @@
+{
+  "_about": "Text for the plan page's \"At a glance\" (with what to do and the AI advice merged in) and \"Your health\" panels.",
+  "title": "At a glance in {area}",
+  "title_tomorrow": "Tomorrow at a glance in {area}",
+  "area_now": "AQI in {area}",
+  "area_basis_today": "last 24 hours",
+  "area_basis_tomorrow": "forecast day average",
+  "vs_delhi_above": "{diff} points worse than Delhi's average ({delhi}).",
+  "vs_delhi_below": "{diff} points cleaner than Delhi's average ({delhi}).",
+  "vs_delhi_same": "About the same as Delhi's average ({delhi}).",
+  "rank": "{rank} of {count} areas we cover, cleanest first.",
+  "local_title": "What shapes the air here",
+  "moments_title": "Your key times",
+  "best": "Best time",
+  "least_bad": "Least-bad time",
+  "break": "Break time",
+  "worst": "Worst time",
+  "set_out": "When you set out",
+  "tomorrow": "Tomorrow",
+  "tomorrow_better": "Cleaner than today",
+  "tomorrow_worse": "Worse than today: plan ahead",
+  "tomorrow_same": "About the same as today",
+  "over_limit": "above your limit",
+  "within_limit": "within your limit",
+  "todo_title": "What to do today",
+  "todo_title_tomorrow": "What to do tomorrow",
+  "groups": {
+    "rules": {
+      "icon": "⚖️",
+      "title": "GRAP rules"
+    },
+    "timing": {
+      "icon": "🕒",
+      "title": "Timing"
+    },
+    "travel": {
+      "icon": "🚇",
+      "title": "Getting around"
+    },
+    "protect": {
+      "icon": "😷",
+      "title": "Protect your lungs"
+    },
+    "home": {
+      "icon": "🏠",
+      "title": "At home"
+    },
+    "health": {
+      "icon": "❤️",
+      "title": "Your health"
+    }
+  },
+  "todo": {
+    "no_rules": "No GRAP rule changes your plans {day} ({stage}).",
+    "hours_over": "{over} of your {total} outdoor hours are above your limit of AQI {limit}: {times}.",
+    "hours_over_none": "All {total} of your outdoor hours stay within your limit of AQI {limit}.",
+    "avoid_worst": "Avoid being outside around {time}, the worst hour (AQI {aqi}).",
+    "tomorrow_worse": "Tomorrow looks worse (AQI {aqi}): do errands and outdoor jobs today if you can.",
+    "tomorrow_better": "Tomorrow looks cleaner (AQI {aqi}): move what you can to tomorrow.",
+    "set_out_over": "When you set out at {time} the AQI is {aqi}, above your limit of {limit}.",
+    "travel_default": "Take the metro or a bus where you can: you breathe less traffic smoke than on a two-wheeler or on foot by a busy road.",
+    "exercise": "Keep hard exercise indoors or at the cleanest hour: you breathe in several times more air when you exert yourself.",
+    "exercise_ok": "The air is fine for exercise at your best time; still keep away from busy roads.",
+    "home_sources": "Indoors, avoid incense, mosquito coils and frying smoke, and wet-mop instead of sweeping dry dust.",
+    "purifier": "If you have an air purifier, run it in the room you sleep in, with doors and windows shut.",
+    "water": "Drink water through the day; it soothes a dry throat and eyes.",
+    "medicines": "Keep your usual medicines with you, and follow your doctor's plan if symptoms start.",
+    "symptoms_general": "If your eyes sting or you start to cough, move indoors and rest."
+  },
+  "ai_title": "Personal advice",
+  "ai_from": "Written by {ai} from your plan and details. It explains and personalises; it never changes a GRAP rule.",
+  "health": {
+    "today_title": "What today's air means for you",
+    "today_go": "{area}'s AQI {aqi} ({basis}) is within your \"fine\" limit of {go}. Normal activity is fine for you.",
+    "today_limit": "{area}'s AQI {aqi} ({basis}) is above your \"fine\" limit of {go}, but below {limit}: keep time outside short and gentle, and use your cleanest hours.",
+    "today_stay_in": "{area}'s AQI {aqi} ({basis}) is above your \"keep it short\" limit of {limit}: keep time outside to what you must do, and use your cleanest hours.",
+    "limits_title": "Your limits",
+    "limits_fine": "Fine",
+    "limits_short": "Keep it short",
+    "limits_stay": "Stay in",
+    "limits_shift": "{shift} points lower than usual because of {reasons}.",
+    "limits_usual": "The usual levels for your kind of day.",
+    "limits_note": "Our estimate, not an official limit.",
+    "exposure_title": "Today's dose",
+    "dose": "{ratio}× the PM2.5 you would breathe sitting still in air at the WHO limit, over {minutes} minutes outdoors.",
+    "cigarettes": "Breathing this air all day is like smoking about {n} cigarettes (24-hour PM2.5 {pm25} µg/m³; Berkeley Earth's rule of thumb).",
+    "conditions_title": "Your conditions, one by one",
+    "why": "Why air matters",
+    "do": "Do this",
+    "watch": "Watch for",
+    "ladder_title": "If you feel unwell",
+    "ladder": [
+      {
+        "level": "mild",
+        "signs": "Itchy eyes, a scratchy throat, a mild cough.",
+        "do": "Go indoors, rest, drink water and keep windows shut."
+      },
+      {
+        "level": "worse",
+        "signs": "Wheeze, a tight chest, needing your inhaler more, unusual breathlessness or tiredness.",
+        "do": "Stop what you are doing, use your reliever or usual medicine, and call your doctor if it does not settle."
+      },
+      {
+        "level": "urgent",
+        "signs": "Severe breathlessness, chest pain or pressure, blue lips, confusion or fainting.",
+        "do": "Call 112 now."
+      }
+    ],
+    "protect_title": "Protect yourself every day",
+    "mask_have": "Wear your N95 outdoors on Poor or worse days. It only works if it seals: pinch the nose clip and check for gaps.",
+    "mask_advice": "A well-fitted N95 or FFP2 mask filters most fine particles; cloth and surgical masks do little.",
+    "protect": [
+      "Keep windows shut at the worst hours and air rooms out at the cleanest one.",
+      "Indoors, avoid incense, mosquito coils, frying smoke and sweeping dry dust; wet-mop instead. A HEPA air purifier sized for the room helps most in the bedroom.",
+      "Drink water and keep your usual medicines with you."
+    ],
+    "activities_title": "Your activities today",
+    "activities_none": "Your whole outdoor window counts; see hour by hour below.",
+    "general": "General advice, not a diagnosis. Talk to your doctor about what is right for you."
+  },
+  "area_notes": {
+    "anand-vihar": "East Delhi on the Uttar Pradesh border, beside a big inter-state bus terminal and a railway station. Heavy traffic and road dust often make it one of Delhi's worst readings.",
+    "ito": "Central Delhi at one of the city's busiest traffic junctions, near the Yamuna. Traffic smoke is the main local source.",
+    "punjabi-bagh": "West Delhi along the Ring Road, with heavy traffic and industrial areas nearby.",
+    "rk-puram": "South Delhi, residential and green, close to busy Ring Road and Outer Ring Road traffic.",
+    "dwarka": "South-west Delhi near the airport, where open land and new construction add dust.",
+    "rohini": "North-west Delhi, mostly residential, with industrial areas to the north and west. North-west winds in October and November reach it early.",
+    "okhla": "South-east Delhi around a large industrial area, with a waste-to-energy plant and heavy goods traffic.",
+    "lodhi-road": "Central Delhi among large gardens and government housing. It is usually one of the cleaner readings.",
+    "jahangirpuri": "North Delhi beside an industrial area and the Bhalswa landfill, with heavy truck traffic. It is often one of the worst readings."
+  }
+}

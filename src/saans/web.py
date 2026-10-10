@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 
-from . import ai, data, i18n, route, settings, web_accounts
+from . import ai, data, guide, i18n, route, settings, web_accounts
 from .alerts import subscribe as sns_subscribe
 from .personas import PERSONAS
 from . import gauges, weather
@@ -183,7 +183,7 @@ def create_app():
                 "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link,
                 "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge, "band_gauge": gauges.band_gauge,
                 "weather_dials": weather.DIALS, "weather_text": weather.TEXT["explain"], "particles": PARTICLES,
-                "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "aqi_category": aqi_category, "vehicles": VEHICLES, "vehicle_labels": VEHICLE_LABELS,
+                "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "glance_text": guide.TEXT, "aqi_category": aqi_category, "vehicles": VEHICLES, "vehicle_labels": VEHICLE_LABELS,
                 "hour_labels": ADVICE_TEXT["hour_verdict_labels"], "hour_tags": ADVICE_TEXT["hour_tags"],
                 "source_links": settings.get("source_links"), "route_messages": route.TEXT["messages"],
                 "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision")}
@@ -244,7 +244,8 @@ def create_app():
         saved = _saved()
         texts = route_texts(saved or request.args)
         return render_template("plan.html", plan=plan, args=args, weather=wx, using_saved=bool(saved),
-                               route_texts=texts, route_text=route.TEXT)
+                               route_texts=texts, route_text=route.TEXT,
+                               display_name=saved.get("name") if saved else None)
 
     @app.get("/poster")
     def poster():
