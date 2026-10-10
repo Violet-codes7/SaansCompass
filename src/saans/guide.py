@@ -5,7 +5,7 @@ from . import aqi as aqi_mod
 from . import settings
 from .advisor import TEXT as ADVICE
 from .advisor import verdict_for
-from .profile import COMMUTE_TIPS
+from .profile import COMMUTE_ACTIVITIES, COMMUTE_TIPS
 
 TEXT = settings.load("glance")
 WHO_PM25_24H = next(p for p in settings.load("particles")["particles"] if p["key"] == "pm25")["limits"]["who_24h"]
@@ -80,6 +80,13 @@ def _moments(plan, persona):
     return out
 
 
+def _outdoor_at(a, persona):
+    """An outdoor part of the day (not the trip) with a time and an AQI, that the rules allow."""
+    act = next((x for x in persona.activities if x.id == a["id"]), None)
+    return (act is not None and act.outdoor and a["id"] not in COMMUTE_ACTIVITIES and a["time"]
+            and a["aqi"] is not None and not (a["rule"] and a["rule"]["decision"] == "not_allowed"))
+
+
 def _todo(plan, persona, profile, modes):
     t, day = TEXT["todo"], plan["day"]
     limit, go = plan["thresholds"]["limit_max"], plan["thresholds"]["go_max"]
@@ -94,11 +101,18 @@ def _todo(plan, persona, profile, modes):
     if not groups["rules"] and plan["stage"]["source"] != "outside":
         groups["rules"].append(t["no_rules"].format(day=day, stage=plan["stage"]["headline"]["title"]))
 
-    # Timing
+    # Timing: each outdoor part of the day at its own hour, then the best window
+    timed = [a for a in plan["activities"] if _outdoor_at(a, persona)][:settings.get("glance_activity_lines")]
+    for a in timed:
+        advice = persona.hour_advice.get(verdict_for(persona, a["aqi"])) or ""
+        groups["timing"].append(" ".join(filter(None, [t["activity_at"].format(
+            activity=a["label"], time=a["time"], aqi=a["aqi"], advice=advice), a["suggestion"]])))
     w = plan["best_window"]
     flex = persona.activity(persona.flex_activity)
     if w and w.get("clean") is False:
         groups["timing"].append(ADVICE["actions"]["no_clean_window"].format(start=w["start"], aqi=w["avg_aqi"]))
+    elif any(a["id"] == flex.id and a["suggestion"] for a in timed):
+        pass  # its own line above already says when it is cleaner
     elif w and persona.flex_prefers == "cleanest":
         groups["timing"].append(ADVICE["actions"]["best_time"].format(activity=flex.label, start=w["start"],
                                                                       end=w["end"], aqi=w["avg_aqi"]))

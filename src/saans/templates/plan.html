@@ -23,11 +23,11 @@
     <ul class="chips">
       {%- if pf.age %}<li>{{ hd.age.format(age=pf.age) }}</li>{% endif -%}
       {%- for c in plan.health.condition_names %}<li class="c-health">{{ c[:1]|upper ~ c[1:] }}</li>{% endfor -%}
-      {%- if not plan.route and pf.commute %}<li>{{ pf.commute }}</li>{% endif -%}
+      {%- if stay %}<li>{{ hd.stay_here.format(place=plan.area.name) }}</li>{% elif not plan.route and pf.commute %}<li>{{ pf.commute }}</li>{% endif -%}
       {%- if pf.hours %}<li>{{ hd.outdoors.format(hours=pf.hours) }}</li>{% endif -%}
       {%- if pf.has_n95_mask %}<li>{{ hd.n95 }}</li>{% endif -%}
     </ul>
-    {% else %}<p class="question">{{ plan.persona.question }}</p>{% endif %}
+    {% else %}<p class="question">{{ plan.persona.question }}</p>{% if stay %}<ul class="chips"><li>{{ hd.stay_here.format(place=plan.area.name) }}</li></ul>{% endif %}{% endif %}
     {% set unplaced_from = route_texts.from and not request.args.get('area') and not saved_trip %}
     {% set unplaced_to = route_texts.to and not request.args.get('to_area') and not saved_trip %}
     {% set r = plan.route %}
@@ -150,13 +150,14 @@
     </div>
     <h3 class="rules-for-you">{{ 'Today' if plan.day == 'today' else 'Tomorrow' }}, for you</h3>
     {% set pf = plan.profile %}
-    {% set fitted = ([display_name ~ ', ' ~ plan.persona.label|lower] if display_name else [plan.persona.label]) + ([route_modes_label] if route_modes_label else ([pf.commute] if pf and pf.commute else [])) + ([pf.vehicle] if pf and pf.vehicle else []) + (pf.conditions if pf else []) + (['Age ' ~ pf.age] if pf and pf.age else []) %}
-    <p class="fitted small"><b>{{ grap.fitted_title }}:</b> {{ fitted|join(' · ') }}{% if not pf or not (pf.vehicle or pf.commute or route_modes_label) %}. {{ grap.fitted_none }}{% endif %}</p>
+    {% set fitted = ([display_name] if display_name else []) + ([route_modes_label] if route_modes_label else ([pf.commute] if pf and pf.commute else [])) + ([pf.vehicle] if pf and pf.vehicle else []) + (pf.conditions if pf else []) + (['Age ' ~ pf.age] if pf and pf.age else []) %}
+    {% set fit_none = not pf or not (pf.vehicle or pf.commute or route_modes_label) %}
+    {% if fitted %}<p class="fitted small"><b>{{ grap.fitted_title }}:</b> {{ fitted|join(' · ') }}{% if fit_none %}. {{ grap.fitted_none }}{% endif %}</p>
+    {% elif fit_none %}<p class="fitted small">{{ grap.fitted_none }}</p>{% endif %}
     {% if plan.health and plan.health.charter and plan.health.reasons %}<p class="fitted small">{{ grap.charter_you.format(reasons=plan.health.reasons|join(', ')) }}</p>{% endif %}
-    {% set no_stage = plan.stage.stage == 0 %}
-    <ul class="rule-list">
-      {% for a in plan.activities|selectattr('rule')|sort(attribute='rank') %}{% set r = a.rule %}{% set x = a.explain %}
-      {% if not (no_stage and r.decision == 'check_official_order') %}
+    {% set cards = plan.activities|selectattr('restricts')|sort(attribute='rank')|list %}
+    {% if cards %}<ul class="rule-list">
+      {% for a in cards %}{% set r = a.rule %}{% set x = a.explain %}
       <li class="rule {{ r.decision }}">
         <div class="rule-head"><span>{{ a.label }}</span><b class="pill {{ r.decision }}">{{ r.label }}</b></div>
         {% if x.means %}<p><b>What it means for you:</b> {{ x.means }}</p>{% endif %}
@@ -167,11 +168,9 @@
           {% if r.note %}<span class="note">{{ r.note }}</span>{% endif %}
         </details>
       </li>
-      {% endif %}
       {% endfor %}
-    </ul>
-    {% if no_stage %}{% set uncovered = plan.activities|selectattr('rule')|selectattr('rule.decision', 'equalto', 'check_official_order')|map(attribute='label')|list %}
-    {% if uncovered %}<p class="small">Not covered by GRAP at any stage: {{ uncovered|join(', ') }}.</p>{% endif %}{% endif %}
+    </ul>{% endif %}
+    {% if plan.rules_rest %}<p class="rules-rest">{{ plan.rules_rest }}</p>{% endif %}
     {% if plan.places_air %}<details class="grap-more" open><summary>{{ grap.places_title }}</summary>
       <ol class="stops sites">{% for st in plan.places_air %}<li class="{{ st.slug }}"><span>{{ st.name }}</span><b>{{ st.aqi if st.aqi is not none else '–' }}</b></li>{% endfor %}</ol>
     </details>{% endif %}
@@ -446,12 +445,14 @@
 
 <section class="panel actions">
   <a class="button" href="{{ url_for('poster') }}?{{ request.query_string.decode() }}">Daily poster</a>
+  {% if plan.area.id in areas %}{# the alert run checks Delhi's areas only #}
   <form method="post" action="{{ url_for('subscribe') }}" class="sub">
     <input type="hidden" name="area" value="{{ plan.area.id }}">
-    <label>Email alerts for {{ plan.area.name }} at {{ '%02d:00'|format(alert_hours[0]) }} and {{ '%02d:00'|format(alert_hours[1]) }} when the plan changes
+    <label>{{ layout.alerts.label.format(area=plan.area.name, morning='%02d:00'|format(alert_hours[0]), evening='%02d:00'|format(alert_hours[1])) }}
       <input type="email" name="email" required maxlength="254" placeholder="you@example.com"></label>
-    <button type="submit">Subscribe</button>
+    <button type="submit">{{ layout.alerts.button }}</button>
   </form>
+  {% endif %}
 </section>
 <script>
 (function () {

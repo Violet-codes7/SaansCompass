@@ -6,6 +6,7 @@ One DynamoDB table with a generic pk/sk holds both item types:
     pk AREA#<area>  sk FCST#LAST           the last real forecast, kept longer
     pk AREA#<area>  sk LAST#today|tomorrow verdict_hash, summary, sent_at
     pk USER#<sub>   sk PROFILE             a signed-in person's saved profile (JSON)
+    pk RATE#<kind>#<hashed address>#<window start>  sk HITS   requests in that window, ttl
 
 When the TABLE environment variable is not set (local runs and tests without
 moto), an in-memory store with the same interface is used.
@@ -88,6 +89,21 @@ class MemoryStore:
             "sent_at": sent_at,
         })
 
+    # requests per visitor in a fixed window, for rate limits; gone when the window ends
+    @staticmethod
+    def _window(key, window_seconds, now):
+        start = int(now // window_seconds) * window_seconds
+        return f"RATE#{key}#{start}", start + window_seconds
+
+    def count_hit(self, key, window_seconds, now=None):
+        """Adds one request to `key` in the current window; returns the window's count."""
+        now = now if now is not None else time.time()
+        pk, ttl = self._window(key, window_seconds, now)
+        item = self._get(pk, "HITS")
+        hits = (int(item["hits"]) if item and int(item["ttl"]) > now else 0) + 1
+        self._put({"pk": pk, "sk": "HITS", "hits": hits, "ttl": ttl})
+        return hits
+
     # saved profiles of signed-in people (Cognito sub); kept until they delete them
     def get_user_profile(self, sub):
         item = self._get(f"USER#{sub}", "PROFILE")
@@ -117,6 +133,15 @@ class DynamoStore(MemoryStore):
 
     def delete_user_profile(self, sub):
         self.table.delete_item(Key={"pk": f"USER#{sub}", "sk": "PROFILE"})
+
+    def count_hit(self, key, window_seconds, now=None):
+        now = now if now is not None else time.time()
+        pk, ttl = self._window(key, window_seconds, now)
+        resp = self.table.update_item(
+            Key={"pk": pk, "sk": "HITS"}, UpdateExpression="ADD hits :one SET #ttl = :ttl",
+            ExpressionAttributeNames={"#ttl": "ttl"}, ExpressionAttributeValues={":one": 1, ":ttl": ttl},
+            ReturnValues="UPDATED_NEW")
+        return int(resp["Attributes"]["hits"])
 
 
 _store = None

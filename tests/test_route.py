@@ -256,3 +256,15 @@ def test_grap_section_shows_start_and_destination_air(client):
                       ).get_data(as_text=True)
     part = html.split("AQI at your start and destination")[1].split("</details>")[0]
     assert "Rohini" in part and "Okhla" in part and "Anand Vihar" not in part
+
+
+def test_typed_places_get_no_alert_form_or_live_location(client, monkeypatch, all_india):
+    monkeypatch.setattr(data, "geocode", lambda text, session=None: (26.85, 80.95, "Lucknow"))
+    loc = client.get("/plan?persona=commuter&from=Lucknow&area=&day=today").headers["Location"]
+    html = client.get(loc).get_data(as_text=True)
+    assert 'action="/subscribe"' not in html
+    delhi = client.get("/plan?persona=commuter&area=ito&day=today").get_data(as_text=True)
+    assert 'action="/subscribe"' in delhi and "Email alerts for ITO at" in delhi
+    from saans.web import locate_near
+    lucknow = route.place_for(26.85, 80.95, "Lucknow")
+    assert not locate_near(lucknow.id) and locate_near("ito") and locate_near(None)

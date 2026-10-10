@@ -102,6 +102,20 @@ def _place_name(text):
     return ", ".join(title(p) for p in parts)
 
 
+def find_place(text):
+    """The area for a place name without the AI model: "Town, State" through
+    the geocoder, then one of our areas or a known town, then the geocoder."""
+    text = " ".join(str(text or "").split())[:settings.get("place_max_chars")]
+    if not text:
+        return None
+    hit = data.geocode(text) if "," in text else None
+    area = place_for(*hit) if hit else match_place(text)
+    if area is None:
+        hit = match_town(text) or data.geocode(text)
+        area = place_for(hit[0], hit[1], hit[2]) if hit else None
+    return area
+
+
 def read_route(start, destination, travel):
     """{"area", "to_area", "commute", "modes", "how"} from typed text. Areas
     are ids (one of ours, or a typed place's) or None when a place could not

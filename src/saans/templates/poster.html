@@ -118,10 +118,11 @@
       <section class="rules">
         <h2>{{ 'Rules today' if not no_stage else 'Rules' }}</h2>
         <ul>
-          {% for a in (plan.activities|selectattr('rule')|rejectattr('rule.decision', 'equalto', 'check_official_order' if no_stage else '')|sort(attribute='rank')|list)[:4] %}
+          {% for a in (plan.activities|selectattr('restricts')|sort(attribute='rank')|list)[:4] %}
           <li class="{{ a.rule.decision }}"><span class="pill">{{ a.rule.label }}</span> <b>{{ a.label }}</b>{% if a.explain and a.explain.means %}<small>{{ a.explain.means }}</small>{% endif %}</li>
           {% else %}<li class="allowed"><b>{{ plan.stage.headline.sub }}</b></li>
           {% endfor %}
+          {% if plan.rules_rest %}<li class="allowed"><small>{{ plan.rules_rest }}</small></li>{% endif %}
         </ul>
       </section>
       {% endif %}

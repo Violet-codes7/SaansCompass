@@ -5,7 +5,7 @@ only adds what it means for the person, why the rule exists, and what to do.
 It never changes a decision. The text lives in config/explain.json.
 """
 from . import settings
-from .rules import CHECK
+from .rules import ADVISED_AGAINST, CHECK, NOT_ALLOWED
 
 _CONFIG = settings.load("explain")
 
@@ -64,3 +64,34 @@ def rule_text(activity_id, rule):
             return {**_CONFIG["draft_rule"], "do": _CONFIG["uncovered_default"]["do"]}
         return UNCOVERED.get(activity_id, _CONFIG["uncovered_default"])
     return POLICY.get(rule["policy_id"]) or {"means": rule.get("clause"), "why": None, "do": None}
+
+
+def _restricts(rule, stage):
+    """True when a rule answer changes something in the day: an order or
+    advice against it, or "check the official order" where it may (a draft
+    rule matched, or Stage III and up, when states add their own orders)."""
+    if rule["decision"] in (NOT_ALLOWED, ADVISED_AGAINST):
+        return True
+    return rule["decision"] == CHECK and bool(stage) and (bool(rule.get("policy_id")) or stage >= GRAP["check_from_stage"])
+
+
+def rules_for_you(activities, stage, day="today"):
+    """Marks each activity whose rule changes something in the day (`restricts`,
+    shown as its own card) and returns one line for all the rest, or None:
+    what is allowed, and what GRAP has no rule on. With no stage on, GRAP
+    restricts nothing."""
+    allowed, uncovered = [], []
+    for a in activities:
+        a["restricts"] = bool(a["rule"]) and _restricts(a["rule"], stage)
+        if a["rule"] and not a["restricts"]:
+            (uncovered if stage and a["rule"]["decision"] == CHECK else allowed).append(a["label"])
+    if not (allowed or uncovered):
+        return None
+    words, join = GRAP["day_words"][day], GRAP["list_joiner"].join
+    cards = any(a["restricts"] for a in activities)
+    if not stage:
+        return GRAP["rest_free" if cards else "all_free"].format(day=words, activities=join(allowed))
+    parts = [GRAP["no_rule"].format(activities=join(uncovered))] if uncovered else []
+    if allowed:
+        parts.append(GRAP["rest_allowed" if cards or uncovered else "all_allowed"].format(day=words, activities=join(allowed)))
+    return " ".join(parts)

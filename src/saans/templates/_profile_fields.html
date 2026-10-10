@@ -16,20 +16,21 @@
 <fieldset class="trip">
   <legend>Your daily trip</legend>
   <div class="trip-grid">
-    <label>Where you start
+    <label><span data-from-label data-trip="{{ layout.home.trip_from }}" data-stay="{{ layout.home.stay_from }}">{{ layout.home.stay_from if p.stay else layout.home.trip_from }}</span>
       <span class="with-button">
         <input name="from" data-clears="area" required maxlength="120" autocomplete="off" placeholder="e.g. Mayur Vihar Phase 1, or your metro station" value="{{ p.from or '' }}">
-        <button type="button" class="ghost locate" data-api="{{ url_for('api_locate') }}"
-          {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>
+        {% if locate_near(p.area) %}<button type="button" class="ghost locate" data-api="{{ url_for('api_locate') }}"
+          {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>{% endif %}
       </span></label>
     <input type="hidden" name="area" value="{{ p.area or '' }}">
-    <label>Where you go most days <input name="to" maxlength="120" autocomplete="off" placeholder="e.g. Connaught Place, or DPS R K Puram" value="{{ p.to or '' }}"></label>
-    <label>How you travel <input name="travel" maxlength="120" autocomplete="off" placeholder="e.g. Metro, then an e-rickshaw from the station" value="{{ p.travel or '' }}"></label>
+    <label data-trip-only>Where you go most days <input name="to" maxlength="120" autocomplete="off" placeholder="e.g. Connaught Place, or DPS R K Puram" value="{{ p.to or '' }}"></label>
+    <label data-trip-only>{{ layout.home.travel }} <input name="travel" maxlength="120" autocomplete="off" placeholder="e.g. Metro, then an e-rickshaw from the station" value="{{ p.travel or '' }}"></label>
     {% if grap_on %}
     <label>{{ vehicle_labels.question }} <select name="vehicle"><option value="">{{ vehicle_labels.unknown }}</option>{% for id, v in vehicles.items() %}<option value="{{ id }}" {% if p.vehicle == id %}selected{% endif %}>{{ v.label }}</option>{% endfor %}</select>
       <small class="small">{{ vehicle_labels.help }}</small></label>
     {% endif %}
   </div>
+  <label class="check"><input type="checkbox" name="stay" value="1" {% if p.stay %}checked{% endif %}> {{ layout.home.stay_profile }}</label>
   <p class="small locate-status" aria-live="polite"></p>
 </fieldset>
 

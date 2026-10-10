@@ -251,10 +251,11 @@ def plan_facts(plan):
              "to": plan["best_window"]["end"], "aqi": plan["best_window"]["avg_aqi"]}
             if plan["best_window"] else None
         ),
-        "rules": [
+        "rules": [  # only what restricts something; "allowed_rest" names the rest
             {"activity": a["label"], "decision": a["rule"]["label"]}
-            for a in plan["activities"] if a["rule"]
+            for a in plan["activities"] if a["rule"] and a.get("restricts")
         ],
+        "allowed_rest": plan.get("rules_rest"),
         "breath_dose_vs_clean_air": plan["dose"]["ratio"],
         "main_pollutant": plan.get("dominant"),
         "commute": plan.get("commute"),
@@ -264,7 +265,7 @@ def plan_facts(plan):
         "stale_forecast": plan["is_stale"],
     }
     if not facts["grap_applies"]:
-        for key in ("grap_stage", "stage_source", "delhi_aqi", "stage_outlook_tomorrow"):
+        for key in ("grap_stage", "stage_source", "delhi_aqi", "stage_outlook_tomorrow", "allowed_rest"):
             del facts[key]
     return facts
 
@@ -327,6 +328,41 @@ def summarize(plan, lang="en", client=None, session=None, runtime=None):
 
 
 CHAT_SYSTEM = _PROMPTS["chat_system"]
+MARKS = _PROMPTS["chat_markers"]
+
+
+def chat_system(lang):
+    return CHAT_SYSTEM.format(language=LANGUAGES[lang], places=MARKS["places"], next=MARKS["next"],
+                              separator=MARKS["separator"], follow_ups=settings.get("chat_follow_ups"))
+
+
+def _after_mark(line, mark):
+    """The rest of a line that starts with `mark` (any case, markdown stars
+    ignored), or None."""
+    line = line.strip().strip("*_ ").replace("**", "")
+    return line[len(mark):].strip() if line.upper().startswith(mark.upper()) else None
+
+
+def asked_places(answer):
+    """The places the model asked the air for ("PLACES: Noida, Uttar Pradesh;
+    Agra"), or None when it answered."""
+    rest = _after_mark((answer or "").strip().split("\n")[0], MARKS["places"])
+    if rest is None:
+        return None
+    return [n.strip(" .") for n in rest.split(";") if n.strip(" .")][:settings.get("chat_places_max")]
+
+
+def split_follow_ups(answer):
+    """(answer, follow-up questions): the model's last "NEXT: a | b" line
+    becomes tappable questions and leaves the answer."""
+    lines = (answer or "").rstrip().split("\n")
+    for i in range(len(lines) - 1, -1, -1):
+        rest = _after_mark(lines[i], MARKS["next"])
+        if rest is not None:
+            limit = settings.get("chat_max_chars")
+            asks = [q.strip()[:limit] for q in rest.split(MARKS["separator"]) if q.strip()]
+            return "\n".join(lines[:i] + lines[i + 1:]).strip(), asks[:settings.get("chat_follow_ups")]
+    return (answer or "").strip(), []
 
 
 def chat_facts(plan):
@@ -346,7 +382,8 @@ def chat_facts(plan):
         hourly_aqi=plan.get("hourly_aqi"),
         rules_today=[{"activity": a["label"], "time": a["time"], "decision": a["rule"]["label"],
                       "why": (a.get("explain") or {}).get("why")}
-                     for a in plan["activities"] if a["rule"]],
+                     for a in plan["activities"] if a["rule"] and a.get("restricts")],
+        places_air=[{"place": p["name"], "aqi_now": p["aqi"]} for p in plan.get("places_air") or []],
         rules_at_every_stage=plan.get("stage_table"),
     )
     return facts
@@ -362,18 +399,31 @@ def clean_history(history):
     return turns[-settings.get("chat_max_turns"):]
 
 
-def chat(plan, question, history=(), lang="en", client=None, session=None, runtime=None):
+def chat(plan, question, history=(), lang="en", client=None, session=None, runtime=None, look_up=None):
     """An answer to one question about this plan, or None when it cannot be
-    produced. The question and history are data for the model, never logged."""
+    produced. The question and history are data for the model, never logged.
+    When the model asks for the air at places the plan does not have,
+    `look_up(names)` finds it and the question is asked once more."""
     if lang not in LANGUAGES:
         raise ValueError("lang must be en or hi")
     question = (question or "").strip()[:settings.get("chat_max_chars")]
     if not question:
         raise ValueError("question is empty")
-    system = CHAT_SYSTEM.format(language=LANGUAGES[lang])
-    user = json.dumps({"plan": chat_facts(plan), "conversation": clean_history(history), "question": question},
-                      ensure_ascii=False)
-    return _ask(system, user, client, session, runtime, what="chat answer")
+    system = chat_system(lang)
+    facts = chat_facts(plan)
+    conversation = clean_history(history)
+
+    def ask(extra=""):
+        user = json.dumps({"plan": facts, "conversation": conversation, "question": question}, ensure_ascii=False)
+        return _ask(system + extra, user, client, session, runtime, what="chat answer")
+
+    answer = ask()
+    names = asked_places(answer)
+    if names is None:
+        return answer
+    facts["places_asked"] = look_up(names) if look_up else [{"asked": n, "found": None} for n in names]
+    answer = ask("\n\n" + _PROMPTS["chat_places_again"])
+    return None if asked_places(answer) is not None else answer
 
 
 _PERSONA_LIST = settings.load("personas")["personas"]

@@ -133,7 +133,7 @@ def test_lambda_handler_serves_http_api_v2_event(mem_store, monkeypatch, live_fe
 
 def test_stage_links_poster_order_and_favicon(client):
     html = client.get("/plan?persona=school&area=ito&stage=0&day=today").get_data(as_text=True)
-    assert "Try Stage" not in html and "Not covered by GRAP at any stage" in html
+    assert "Try Stage" not in html and "No GRAP stage is on today, so nothing" in html
     assert 'class="pill check_official_order"' not in html
     hard = client.get("/plan?persona=school&area=ito&stage=IV&day=today").get_data(as_text=True)
     assert "Set by the GRAP rules at Stage IV" in hard
@@ -184,3 +184,55 @@ def test_plan_sections_follow_the_layout_order(client):
     order = [m for m in re.findall(r'<section class="panel [^"]*" id="(\w+)"', html)]
     wanted = [s["id"] for s in settings.load("layout")["sections"] if s["id"] in order]
     assert order == wanted and order.index("glance") < order.index("grap")
+
+
+def _rules_part(html):
+    i = html.index('class="rules-for-you"')
+    return html[i:html.index("</section>", i)]
+
+
+def test_rules_show_only_what_changes_your_day(client):
+    calm = _rules_part(client.get("/plan?persona=school&area=ito&stage=0&day=today").get_data(as_text=True))
+    assert 'class="rule ' not in calm and "nothing in your day is restricted" in calm
+    hard = client.get("/plan?persona=rider&area=ito&stage=IV&day=today").get_data(as_text=True)
+    part = _rules_part(hard)
+    assert 'class="pill not_allowed"' in part or 'class="pill advised_against"' in part
+    assert 'class="pill allowed"' not in part  # allowed things are one line, not cards
+    for label in ("school student", "School student", "delivery rider", "Delivery rider"):
+        assert label not in part[:part.index("</p>")]  # "Fitted to you" leaves out the kind of day
+
+
+def test_one_place_all_day_plans_the_outdoor_parts(client):
+    html = client.get("/plan?persona=school&from=GTB+Nagar&area=ito&to=Noida&to_area=okhla&travel=metro"
+                      "&stay=1&route_read=picked&day=today").get_data(as_text=True)
+    assert "All day at ITO" in html and "Your trips" not in html and "When you set out" not in html
+    assert "Morning commute" not in html  # no trip, so no commute rule or hour
+    assert "Outdoor recess at 11:00 (AQI" in html and "Outdoor PE / sports at 12:00 (AQI" in html
+    assert "Air quality at Okhla" not in html  # the day is spent where the person is
+
+
+def test_chat_and_hindi_are_limited_per_visitor(client, monkeypatch):
+    from saans import ai
+    monkeypatch.setenv("AI_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "k")
+    monkeypatch.setenv("CHAT_PER_IP", "2")
+    monkeypatch.setenv("TRANSLATE_PER_IP", "1")
+    monkeypatch.setattr(ai, "chat", lambda *a, **k: "Answer.")
+    codes = [client.post("/api/chat?persona=rider&area=ito", json={"question": "x"}).status_code for _ in range(3)]
+    assert codes == [200, 200, 429]
+    big = client.post("/api/translate", json={"to": "hi", "texts": ["a" * 1500] * 15})
+    assert big.status_code == 400  # 22,500 characters in one go
+    assert client.post("/api/translate", json={"to": "hi", "texts": ["Show"]}).status_code == 200
+    assert client.post("/api/translate", json={"to": "hi", "texts": ["Show"]}).status_code == 429
+
+
+def test_tagline_is_for_all_of_india(client):
+    html = client.get("/").get_data(as_text=True)
+    assert "Your air and your day, in one plan" in html and "Delhi's air rules" not in html
+
+
+def test_rules_line_names_what_grap_has_no_rule_on(client):
+    part = _rules_part(client.get("/plan?persona=school&area=ito&stage=II&day=today").get_data(as_text=True))
+    assert 'class="rule ' not in part  # nothing restricts a school day at Stage II
+    assert "Everything else in your day is allowed today: Outdoor assembly" in part
+    assert "GRAP has no rule on: Morning commute." in part

@@ -176,7 +176,10 @@ def register(app, read_work, resolve_route):
             "travel": clean_text(form.get("travel"), settings.get("place_max_chars")),
             "about": clean_text(form.get("about"), settings.get("about_me_max_chars")),
             "persona": form.get("persona") or "",
+            "stay": form.get("stay") == "1",
         }
+        if p["stay"]:  # the whole day in one place: no destination and no travel
+            p["to"] = p["travel"] = None
         # Reuse what was read before for text that has not changed; a live
         # location (the form's area) replaces the typed start.
         live = form.get("area") if form.get("area") in data.AREAS else None
@@ -189,6 +192,8 @@ def register(app, read_work, resolve_route):
         p["to_area"] = reading.get("to_area") or known["to_area"]
         p["commute"] = reading.get("commute") or known["commute"]
         p["modes"] = reading.get("modes") or (saved.get("modes") if p["commute"] == saved.get("commute") else p["commute"])
+        if p["stay"]:
+            p["to_area"], p["commute"], p["modes"] = None, "none", "none"
         error = None
         if not p["job"]:
             error = FORM_ERRORS["job"]

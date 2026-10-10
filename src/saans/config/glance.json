@@ -51,6 +51,7 @@
     }
   },
   "todo": {
+    "activity_at": "{activity} at {time} (AQI {aqi}): {advice}",
     "no_rules": "No GRAP rule changes your plans {day} ({stage}).",
     "hours_over": "{over} of your {total} outdoor hours are above your limit of AQI {limit}: {times}.",
     "hours_over_none": "All {total} of your outdoor hours stay within your limit of AQI {limit}.",

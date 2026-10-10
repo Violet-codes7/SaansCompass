@@ -121,6 +121,8 @@ def subscribe(sns, topic_arn, email, area_id):
     if len(email) > 254 or not EMAIL_RE.match(email):
         raise ValueError("Enter a valid email address.")
     area = data.get_area(area_id)
+    if area.id not in data.AREAS:  # the alert run checks Delhi's areas only
+        raise ValueError(settings.load("layout")["alerts"]["areas_only"])
     sns.subscribe(
         TopicArn=topic_arn,
         Protocol="email",

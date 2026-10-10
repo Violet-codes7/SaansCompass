@@ -1,4 +1,5 @@
 """Flask routes: picker, plan page, JSON API, poster, subscribe, health check."""
+import hashlib
 import logging
 import os
 from datetime import datetime, timedelta
@@ -14,7 +15,7 @@ from .aqi import category as aqi_category
 from .advisor import TEXT as ADVICE_TEXT
 from .explain import GRAP, STAGE_SOURCES, STAGES
 from .profile import COMMUTE_MODES, CONDITION_GROUPS, CONDITIONS, VEHICLE_LABELS, VEHICLES, WORK, clean_job, clean_text, guess_work, parse_profile, tidy_role
-from .service import air_now, official_air
+from .service import air_now, asked_places, official_air
 from .service import get_plan
 from .stage import ROMAN
 from .store import get_store
@@ -87,9 +88,10 @@ def resolve_route(args):
     """Fill in area, to_area, commute and modes from the typed route where the
     link or form does not already give them (a live location sets area)."""
     texts = route_texts(args)
+    stay = args.get("stay") == "1"  # the whole day in one place: no destination, no travel
     need = {"start": texts["from"] if not args.get("area") else None,
-            "destination": texts["to"] if not args.get("to_area") else None,
-            "travel": texts["travel"] if not args.get("commute") else None}
+            "destination": texts["to"] if not (args.get("to_area") or stay) else None,
+            "travel": texts["travel"] if not (args.get("commute") or stay) else None}
     if not any(need.values()):
         return {}
     reading = _read_route(need["start"], need["destination"], need["travel"])
@@ -134,7 +136,12 @@ def _persona_id():
 def _typed_trip():
     """True when the link gives today's trip (the home page's "Today's trip"
     or a typed route): then it is used as given, never the saved one."""
-    return any(request.args.get(k) for k in ("from", "to", "area", "to_area"))
+    return any(request.args.get(k) for k in ("from", "to", "area", "to_area", "stay"))
+
+
+def _staying(source):
+    """True when the day is spent in one place: no trip and no travel."""
+    return str(source.get("stay") or "") in ("1", "True", "true")
 
 
 def _plan_args():
@@ -144,12 +151,13 @@ def _plan_args():
     commute = request.args.get("commute") or source.get("commute")
     if commute in COMMUTE_MODES and commute not in modes:  # picked by hand on the plan page
         modes = [commute]
+    stay = _staying(source)
     return {
         "persona_id": _persona_id(),
         # A start that could not be found keeps the saved one (the page says so).
         "area_id": request.args.get("area") or (saved and saved.get("area")) or settings.get("default_area"),
-        "to_area_id": request.args.get("to_area") or source.get("to_area") or None,
-        "modes": modes,
+        "to_area_id": None if stay else request.args.get("to_area") or source.get("to_area") or None,
+        "modes": ["none"] if stay else modes,
         "stage": request.args.get("stage"),
         "day": request.args.get("day") or None,  # empty means pick today/tomorrow from the clock
     }
@@ -191,6 +199,33 @@ def _air_panel(area, store, now):
             "fetched_at": forecast["fetched_at"], "air_tomorrow": {"aqi": tomorrow, "category": aqi_category(tomorrow)}}
 
 
+def _over_limit(kind):
+    """True when this visitor has used up their `kind` requests (chat,
+    translate) for the current window. The address is kept only as a hash,
+    and only until the window ends; if counting fails, the request goes ahead."""
+    limit = settings.get(f"{kind}_per_ip")
+    if not limit:
+        return False
+    who = hashlib.sha256((request.remote_addr or "-").encode()).hexdigest()[:16]
+    try:
+        return get_store().count_hit(f"{kind}#{who}", settings.get("rate_window_minutes") * 60) > limit
+    except Exception as exc:
+        log.warning("rate count failed: %s", type(exc).__name__)
+        return False
+
+
+def locate_near(area_id):
+    """False when a saved place is too far from Delhi's areas for live
+    location, which only finds those areas, to be any use."""
+    if not area_id:
+        return True
+    try:
+        area = data.get_area(area_id)
+    except ValueError:
+        return True
+    return route.nearest_area(area.lat, area.lon)[0] is not None
+
+
 def _weather_place(area):
     """A typed town has its own weather; Delhi's areas share the city's."""
     return area if data.is_place(area) else weather.city_place()
@@ -224,7 +259,8 @@ def create_app():
                 "source_links": [l for l in settings.get("source_links") if grap_on or not l.get("grap")],
                 "grap_on": grap_on, "suggest_min_chars": settings.get("suggest_min_chars"),
                 "region_only": bool(settings.get("place_region_km")), "brand": LAYOUT["brand"]["grap" if grap_on else "plain"], "cpcb_on": cpcb.enabled() or waqi.enabled(), "route_messages": route.TEXT["messages"],
-                "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision")}
+                "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision"),
+                "locate_near": locate_near}
 
     @app.errorhandler(data.ForecastUnavailable)
     def no_forecast(exc):
@@ -309,7 +345,8 @@ def create_app():
                                air_nf=request.args.get("air_nf"), using_saved=bool(saved),
                                saved_trip=bool(saved) and not typed,
                                route_texts=texts, route_text=route.TEXT, role=_role(saved),
-                               display_name=saved.get("name") if saved else None, weather_place=air_wx_place.name)
+                               display_name=saved.get("name") if saved else None, weather_place=air_wx_place.name,
+                               stay="none" in args["modes"])
 
     @app.get("/poster")
     def poster():
@@ -412,6 +449,8 @@ def create_app():
         far and the answer are sent to the model only: never logged or stored."""
         if not ai.enabled():
             return jsonify({"error": CHAT_TEXT["errors"]["off"]}), 503
+        if _over_limit("chat"):
+            return jsonify({"error": CHAT_TEXT["errors"]["busy"]}), 429
         body = request.get_json(silent=True) or {}
         lang = body.get("lang", "en")
         try:
@@ -422,10 +461,11 @@ def create_app():
             plan = _build_plan(every_stage=True)
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
-        answer = ai.chat(plan, body["question"], body.get("history"), lang)
+        answer = ai.chat(plan, body["question"], body.get("history"), lang, look_up=asked_places)
         if not answer:
             return jsonify({"error": CHAT_TEXT["errors"]["failed"]}), 502
-        return jsonify({"answer": answer, "by": ai.label()})
+        answer, follow_ups = ai.split_follow_ups(answer)
+        return jsonify({"answer": answer, "follow_ups": follow_ups or CHAT_TEXT["follow_ups"], "by": ai.label()})
 
     @app.get("/api/speak")
     def api_speak():
@@ -449,8 +489,11 @@ def create_app():
         body = request.get_json(silent=True) or {}
         texts = body.get("texts")
         if body.get("to") != "hi" or not isinstance(texts, list) or len(texts) > i18n.MAX_TEXTS \
-                or not all(isinstance(t, str) and len(t) <= i18n.MAX_CHARS for t in texts):
+                or not all(isinstance(t, str) and len(t) <= i18n.MAX_CHARS for t in texts) \
+                or sum(map(len, texts)) > settings.get("translate_max_total_chars"):
             return jsonify({"error": f"send to=hi and up to {i18n.MAX_TEXTS} strings"}), 400
+        if _over_limit("translate"):
+            return jsonify({"error": CHAT_TEXT["errors"]["busy"]}), 429
         out, complete = i18n.to_hindi(texts)
         return jsonify({"texts": out, "complete": complete})
 

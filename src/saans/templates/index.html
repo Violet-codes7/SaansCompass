@@ -20,19 +20,20 @@
     <fieldset class="trip">
       <legend>{{ hm.today_trip }} <small class="small">{{ hm.today_help }}</small></legend>
       <div class="trip-grid">
-        <label>Where you start
+        <label><span data-from-label data-trip="{{ hm.trip_from }}" data-stay="{{ hm.stay_from }}">{{ hm.stay_from if saved.stay else hm.trip_from }}</span>
           <span class="with-button">
             <input name="from" data-clears="area" required maxlength="120" autocomplete="off" value="{{ saved['from'] or '' }}">
-            <button type="button" class="ghost locate" data-api="{{ url_for('api_locate') }}"
-              {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>
+            {% if locate_near(saved.area) %}<button type="button" class="ghost locate" data-api="{{ url_for('api_locate') }}"
+              {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>{% endif %}
           </span></label>
         <input type="hidden" name="area" value="{{ saved.area or '' }}">
-        <label>{{ hm.today_to }} <input name="to" data-clears="to_area" maxlength="120" autocomplete="off" value="{{ saved.to or '' }}"></label>
-        <input type="hidden" name="to_area" value="{{ saved.to_area or '' }}">
-        <label>How you travel <input name="travel" data-clears="commute,modes" maxlength="120" autocomplete="off" value="{{ saved.travel or '' }}"></label>
-        <input type="hidden" name="commute" value="{{ saved.commute or '' }}">
-        <input type="hidden" name="modes" {% set m = saved.modes or '' %}value="{{ m if m is string else m|join(',') }}">
+        <label data-trip-only>{{ hm.today_to }} <input name="to" data-clears="to_area" maxlength="120" autocomplete="off" value="{{ saved.to or '' }}"></label>
+        <input type="hidden" name="to_area" value="{{ saved.to_area or '' }}" data-trip-only>
+        <label data-trip-only>{{ hm.travel }} <input name="travel" data-clears="commute,modes" maxlength="120" autocomplete="off" value="{{ saved.travel or '' }}"></label>
+        <input type="hidden" name="commute" value="{{ '' if saved.stay else saved.commute or '' }}" data-trip-only>
+        <input type="hidden" name="modes" {% set m = '' if saved.stay else saved.modes or '' %}value="{{ m if m is string else m|join(',') }}" data-trip-only>
       </div>
+      <label class="check"><input type="checkbox" name="stay" value="1" {% if saved.stay %}checked{% endif %}> {{ hm.stay_today }}</label>
       <p class="small locate-status" aria-live="polite"></p>
     </fieldset>
     <p><button type="submit">{{ hm.today_go }}</button> <a class="button ghost" href="{{ url_for('poster') }}">My daily poster</a> <a class="button ghost" href="{{ url_for('account_profile') }}">Edit profile</a></p>

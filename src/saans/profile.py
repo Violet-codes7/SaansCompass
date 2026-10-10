@@ -146,10 +146,16 @@ class Profile:
             changes["end_hour"] = self.end_hour
             if persona.commute_hour is not None:
                 changes["commute_hour"] = self.start_hour
+        if persona.commute_hour is not None and self.travel_mode(modes) == "none":  # no trip, so no time to set out
+            changes["commute_hour"] = None
         activities = self._personal_activities(persona, modes)
         if activities != persona.activities:
             changes["activities"] = activities
         return replace(persona, **changes) if changes else persona
+
+    def travel_mode(self, modes=()):
+        """How the person travels: today's modes first, else their profile's."""
+        return next((m for m in modes if m in COMMUTE_MODES), None) or self.commute
 
     def _personal_activities(self, persona, modes):
         """Only the vehicle rules that fit this person's own vehicle, and the
@@ -166,7 +172,7 @@ class Profile:
                 car = replace(template, label=VEHICLE_LABELS["driving"].format(vehicle=vehicle["short"]),
                               rules_as=vehicle["rules_as"])
                 out.append(car)
-        mode = next((m for m in modes if m in COMMUTE_MODES), None) or self.commute
+        mode = self.travel_mode(modes)
         if mode == "none":
             out = [a for a in out if a.id not in COMMUTE_ACTIVITIES]
         elif mode:

@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Saans Compass: GRAP rules and a personal air-quality plan for Delhi.
+  Saans Compass: a personal air-quality plan for anywhere in India, with GRAP rules in Delhi-NCR.
   Web Lambda (Flask) behind an HTTP API, and a scheduled Alert Lambda that
   emails area subscribers through SNS when the plan changes.
 
@@ -16,7 +16,7 @@ Parameters:
     Description: Optional. Email to notify when the Alert Lambda errors. Leave empty to skip.
   AiProvider:
     Type: String
-    Default: bedrock
+    Default: gemini
     AllowedValues: [gemini, bedrock, "off"]
     Description: >
       Model for personal advice and reading the "What do you do?" box. gemini reads its API key

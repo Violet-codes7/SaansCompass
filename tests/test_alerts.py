@@ -143,3 +143,21 @@ def test_alert_handler_raises_when_an_area_fails(aws, live_fetcher, monkeypatch)
         assert ddb_store.get_alert_state("ito", "today") is not None
     finally:
         store.set_store(None)
+
+
+def test_alerts_cover_delhis_areas_only(aws, monkeypatch):
+    _, sns, topic = aws
+    monkeypatch.setenv("PLACE_REGION_KM", "0")
+    from saans import route
+    lucknow = route.place_for(26.85, 80.95, "Lucknow")
+    with pytest.raises(ValueError, match="Delhi's areas"):
+        subscribe(sns, topic, "a@example.com", lucknow.id)
+    assert subscribe(sns, topic, "a@example.com", "ito").id == "ito"
+
+
+def test_rate_counts_are_atomic_and_end_with_the_window(aws):
+    table, _, _ = aws
+    assert [table.count_hit("chat#abc", 3600, now=7200 + i) for i in range(3)] == [1, 2, 3]
+    assert table.count_hit("chat#abc", 3600, now=10800) == 1  # a new window
+    item = table.table.get_item(Key={"pk": "RATE#chat#abc#7200", "sk": "HITS"})["Item"]
+    assert int(item["ttl"]) == 10800 and int(item["hits"]) == 3

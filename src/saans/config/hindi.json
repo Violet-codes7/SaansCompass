@@ -2,7 +2,7 @@
   "_about": "Built-in English to Hindi for headings and labels; Amazon Translate handles the rest.",
   "phrases": {
     "Saans Compass": "साँस कम्पास",
-    "Delhi's air rules and your day, in one plan": "दिल्ली के हवा के नियम और आपका दिन, एक योजना में",
+    "Your air and your day, in one plan": "आपकी हवा और आपका दिन, एक योजना में",
     "English": "English",
     "हिंदी": "हिंदी",
     "Advisory only. Not medical advice and not an official order; CAQM declares the GRAP stage.": "केवल सलाह। यह चिकित्सा सलाह या सरकारी आदेश नहीं है; GRAP स्टेज CAQM घोषित करता है।",
@@ -366,11 +366,16 @@
     "GRAP rules apply only in Delhi-NCR.": "GRAP के नियम सिर्फ़ दिल्ली-NCR में लागू होते हैं।",
     "Outside Delhi-NCR": "दिल्ली-NCR से बाहर",
     "Ask about your plan, when to go out, what a rule means for you, or anything else.": "अपनी योजना, बाहर कब जाएँ, कोई नियम आपके लिए क्या मायने रखता है, या कुछ और भी पूछें।",
-    "Your air and your day, in one plan": "आपकी हवा और आपका दिन, एक योजना में",
     "Tell us a little about you. We check today's and tomorrow's forecast for your area and plan your day around the cleanest air.": "अपने बारे में थोड़ा बताइए। हम आपके इलाके का आज और कल का पूर्वानुमान देखते हैं और सबसे साफ़ हवा के हिसाब से आपका दिन तय करते हैं।",
     "Change place": "जगह बदलें",
     "Where are you today?": "आज आप कहाँ हैं?",
     "Show": "दिखाएँ",
-    "AQI at your start and destination": "आपकी शुरुआत और मंज़िल पर AQI"
+    "AQI at your start and destination": "आपकी शुरुआत और मंज़िल पर AQI",
+    "Where you are all day": "आप दिन भर कहाँ हैं",
+    "I'm in one place all day today (no trip)": "आज मैं दिन भर एक ही जगह पर हूँ (कोई यात्रा नहीं)",
+    "I spend most days in one place (no daily trip)": "मैं ज़्यादातर दिन एक ही जगह पर रहता/रहती हूँ (रोज़ की यात्रा नहीं)",
+    "Which hours should I avoid?": "मुझे किन घंटों से बचना चाहिए?",
+    "What about tomorrow?": "कल कैसा रहेगा?",
+    "Do I need a mask?": "क्या मुझे मास्क चाहिए?"
   }
 }
