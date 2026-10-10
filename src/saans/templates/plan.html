@@ -242,13 +242,12 @@
   function lang() { return document.documentElement.lang === "hi" ? "hi" : "en"; }
   function url(path) { return path + "?" + base + (base ? "&" : "") + "lang=" + lang(); }
   function say(key) { text.textContent = MSG[lang()][key]; }
-  function failed(reason) {
+  function failed() {
     say("none");
     var again = document.createElement("button");
     again.type = "button"; again.className = "ask"; again.textContent = MSG[lang()].again;
     again.addEventListener("click", load);
     var p = document.createElement("p"); p.appendChild(again);
-    if (reason) { var why = document.createElement("small"); why.className = "muted"; why.textContent = " " + reason; p.appendChild(why); }
     text.appendChild(p);
   }
   function show(summary) {
@@ -267,7 +266,7 @@
     say("wait");
     audio.hidden = true;
     fetch(url("{{ url_for('api_summary') }}")).then(function (r) { return r.json(); }).then(function (d) {
-      if (d.summary) show(d.summary); else failed(d.reason);
+      if (d.summary) show(d.summary); else failed();
     }).catch(function () { failed(null); });
   }
   listen.addEventListener("click", function () {

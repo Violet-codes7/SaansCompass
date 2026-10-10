@@ -120,5 +120,6 @@ def test_failure_reason_is_reported_without_the_key(mem_store, monkeypatch, live
     body = {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "message": "Quota exceeded"}}
     monkeypatch.setattr(ai.requests, "post", lambda *a, **k: SimpleNamespace(status_code=429, json=lambda: body, text=""))
     resp = create_app().test_client().get("/api/summary?persona=rider&area=ito")
-    reason = resp.get_json()["reason"]
-    assert resp.status_code == 502 and "429" in reason and "RESOURCE_EXHAUSTED" in reason and "test-key" not in reason
+    assert resp.status_code == 502 and "reason" not in resp.get_json()  # shown in the logs only
+    reason = ai.last_error()
+    assert "429" in reason and "RESOURCE_EXHAUSTED" in reason and "test-key" not in reason

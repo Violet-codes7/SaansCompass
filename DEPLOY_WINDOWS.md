@@ -42,7 +42,23 @@ aws sts get-caller-identity
 ```
 It should print your account number. If your CLI says `login` is not a command, update the CLI (step 1.1), or use `aws configure sso`.
 
-## 4. Turn on Gemini (once, about 3 minutes)
+## 4. Amazon Bedrock with Amazon Nova (the default, about 2 minutes)
+Personal advice, the Ask Saans chat and reading the "What do you do?" box run on Amazon Nova Lite through Amazon Bedrock, paid from your AWS credits. There is no API key: the Lambda uses its own IAM role, and Nova needs no Anthropic form, so it works on the Free plan.
+
+1. Console → **Amazon Bedrock**, region **Asia Pacific (Mumbai)** → **Model catalog** → search "Nova" → open **Amazon Nova Lite** → **Open in playground**, type `hello` and send. A reply means your account can use it.
+2. Deploy (step 5). The defaults are `AiProvider=bedrock` and `BedrockModel=apac.amazon.nova-lite-v1:0`.
+3. Test: open `<SiteUrl>api/summary?persona=rider&area=ito`. You should see `"by": "Amazon Nova on Bedrock"`.
+
+For longer, richer advice use **Amazon Nova Pro**: try it in the playground, then deploy with `sam deploy --parameter-overrides BedrockModel=apac.amazon.nova-pro-v1:0`. To use Claude instead, your account needs a paid plan and Anthropic's use-case form; then pass its model ID the same way.
+
+**If it says not available**, run `sam logs -n WebFunction --stack-name saans-compass --start-time "10min ago"` and look for:
+- `AccessDeniedException`: the account cannot use that model yet. Open it in the playground once (step 1).
+- `ValidationException` or `ResourceNotFoundException`: the model ID is wrong or not offered in Mumbai. Copy the ID from the model page's **Cross-region inference** tab.
+- `ThrottlingException`: wait a minute; answers are cached after the first one.
+
+What is sent: the plan's decisions, the age and health conditions picked, and the "What do you do?" text. No names or emails. Bedrock does not use it to train models.
+
+## 4b. Or use Google Gemini (optional)
 Google Gemini powers the Personal advice panel and reads the "What do you do?" box. The site works without it: a keyword match reads the box and the advice panel stays hidden.
 
 1. Open https://aistudio.google.com/apikey and sign in with any Google account.
@@ -54,7 +70,7 @@ Google Gemini powers the Personal advice panel and reads the "What do you do?" b
    Remove-Variable k
    ```
    It prints a `Version` number when it worked.
-4. Deploy (step 5). The site reads the key from that parameter; there is nothing else to set.
+4. Deploy (step 5) with `sam deploy --parameter-overrides AiProvider=gemini`. The site reads the key from that parameter.
 5. Test it: open `<SiteUrl>api/summary?persona=rider&area=ito`. You should see `{"summary": ..., "by": "Google Gemini"}`. If the site was already running, allow 5 minutes for it to pick up a new key.
 
 **If it says not available**, run `sam logs -n WebFunction --stack-name saans-compass --start-time "10min ago"` and look for:
@@ -64,28 +80,6 @@ Google Gemini powers the Personal advice panel and reads the "What do you do?" b
 - `gemini returned 429`: the free tier's per-minute limit. Wait a minute; answers are cached after the first one.
 
 Gemini's free tier lets Google use what is sent to improve its products. The app sends no names or emails, only the plan, the age and health conditions picked, and the "What do you do?" text.
-
-## 4b. Or use Amazon Bedrock instead (optional)
-Skip this if Gemini works. Bedrock needs no API key: the Lambda signs in with its own IAM role.
-
-You can use **Claude** (the default) or **Amazon Nova**. Claude needs a one-time form from Anthropic and a paid AWS plan; Nova needs neither.
-
-1. **Check your AWS plan.** Billing and Cost Management → look for the plan banner. If it says **Free plan**, click **Upgrade plan** and confirm. Your credits still apply after upgrading. Claude on Bedrock is not available on the Free plan.
-2. **Open Claude in Bedrock.** Console → Amazon Bedrock (region **Asia Pacific (Mumbai)**) → **Model catalog** → search "Claude" → open the Claude model you want (for example Claude Opus 5.5).
-3. **Fill in the use-case form** if Bedrock asks for it. This happens once per account. A short description is enough, for example "Hackathon prototype giving air-quality advice to Delhi residents".
-4. **Try it in the playground.** On the model page click **Open in playground**, type `hello` and send it. A reply means your account can use it. Copy the **model ID** shown on the model page.
-5. **If the form says your account is not authorized,** open Support Center → **Create case** → **Account and billing** (free), and ask AWS to enable Anthropic models on Amazon Bedrock for your account. While you wait, use Amazon Nova:
-   - Model catalog → search "Nova" → open **Amazon Nova Lite** (or Nova Pro) → **Open in playground** → send `hello`.
-   - Copy its ID from the **Cross-region inference** tab. In Mumbai it is usually `apac.amazon.nova-lite-v1:0`.
-6. Deploy (step 5) with **Parameter AiProvider** set to `bedrock` and that ID as **Parameter BedrockModel**.
-7. Test it: open `<SiteUrl>api/summary?persona=rider&area=ito`. You should see `{"summary": ..., "by": "Claude on Amazon Bedrock"}` (or `"Amazon Nova on Bedrock"`).
-
-**If it says not available**, run `sam logs -n WebFunction --stack-name saans-compass --start-time "10min ago"` and look for:
-- `bedrock returned 403` or `AccessDeniedException`: the account cannot use that model yet. Repeat steps 1 to 5, or switch to Nova.
-- `bedrock returned 404`, `ValidationException` or `ResourceNotFoundException`: the model ID is wrong or not offered in Mumbai. Copy the ID again from the model page, or set **Parameter BedrockRegion** to the region where the playground worked.
-- `bedrock rate limited` or `ThrottlingException`: wait a minute; answers are cached after the first one.
-
-What is sent: the plan's decisions, the age and health conditions picked, and the "What do you do?" text. No names or emails. Bedrock does not use it to train models.
 
 ## 4c. Turn on CPCB's official AQI (once, about 5 minutes)
 With this, "AQI now" is CPCB's live reading from the nearest monitoring station, the same number the CPCB AQI dashboard and the Sameer app show for that station, and Delhi's GRAP average uses every CPCB station in Delhi. Without it the site uses the forecast model. Websites like IQAir use the US AQI scale, so their numbers are higher and won't match.
@@ -115,9 +109,9 @@ Answer the questions like this:
 | AWS Region | `ap-south-1` (press Enter) |
 | Parameter BudgetEmail | your email (gets a warning if spend passes $0.80), or Enter to skip |
 | Parameter AlarmEmail | your email, or Enter to skip |
-| Parameter AiProvider | press Enter (keeps `gemini`), or `bedrock` if you did step 4b |
+| Parameter AiProvider | press Enter (keeps `bedrock`), or `gemini` if you did step 4b |
 | Parameter GeminiModel | press Enter (keeps `gemini-flash-latest`) |
-| Parameter BedrockModel | press Enter, or the model ID from step 4b |
+| Parameter BedrockModel | press Enter (keeps `apac.amazon.nova-lite-v1:0`), or another model ID |
 | Parameter BedrockRegion | press Enter (`ap-south-1`) |
 | Confirm changes before deploy | `y` |
 | Allow SAM CLI IAM role creation | `y` |
@@ -142,7 +136,7 @@ Next time you only need `sam build` and `sam deploy` (no `--guided`).
 - **`sam build` fails on a long path:** make sure LongPathsEnabled is on (we did this for pip), or move the project to a short folder like `C:\ac`.
 - **`sam build` says Python 3.12 not found:** activate the venv first (step 2).
 - **Deploy fails with "not authorized":** your AWS user needs admin rights for the deploy.
-- **Personal advice says "not available":** the Gemini key (step 4) is missing or wrong, or Bedrock access (step 4b) is not on; follow "If it says not available" there.
+- **Personal advice says "not available":** Bedrock access (step 4) is not on, or the Gemini key (step 4b) is missing; follow "If it says not available" there.
 - Anything else: paste the last 20 lines of the error in the thread (no keys).
 
 ## Remove everything after the hackathon

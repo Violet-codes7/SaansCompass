@@ -347,7 +347,8 @@ def create_app():
             return jsonify({"error": str(exc)}), 400
         text = _summary(plan, lang)
         if not text:
-            return jsonify({"error": "No summary right now.", "reason": ai.last_error()}), 502
+            # The provider's reason stays in the logs (ai._fail), never on the page.
+            return jsonify({"error": "No summary right now."}), 502
         return jsonify({"summary": text, "lang": lang, "by": ai.label()})
 
     @app.post("/api/chat")
@@ -368,7 +369,7 @@ def create_app():
             return jsonify({"error": str(exc)}), 400
         answer = ai.chat(plan, body["question"], body.get("history"), lang)
         if not answer:
-            return jsonify({"error": CHAT_TEXT["errors"]["failed"], "reason": ai.last_error()}), 502
+            return jsonify({"error": CHAT_TEXT["errors"]["failed"]}), 502
         return jsonify({"answer": answer, "by": ai.label()})
 
     @app.get("/api/speak")

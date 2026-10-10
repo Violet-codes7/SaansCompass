@@ -16,7 +16,7 @@ Parameters:
     Description: Optional. Email to notify when the Alert Lambda errors. Leave empty to skip.
   AiProvider:
     Type: String
-    Default: gemini
+    Default: bedrock
     AllowedValues: [gemini, bedrock, "off"]
     Description: >
       Model for personal advice and reading the "What do you do?" box. gemini reads its API key
@@ -28,7 +28,7 @@ Parameters:
     Description: Gemini model id when AiProvider is gemini.
   BedrockModel:
     Type: String
-    Default: anthropic.claude-opus-5-5
+    Default: apac.amazon.nova-lite-v1:0
     Description: >
       Bedrock model or inference profile id. Claude ids (anthropic.*) use the Anthropic Messages API;
       any other model, such as apac.amazon.nova-lite-v1:0, uses Bedrock's Converse API.
