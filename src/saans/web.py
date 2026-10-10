@@ -204,7 +204,7 @@ def create_app():
                 "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "glance_text": guide.TEXT, "chat_text": CHAT_TEXT, "layout": LAYOUT, "chat_max_chars": settings.get("chat_max_chars"), "aqi_category": aqi_category, "vehicles": VEHICLES, "vehicle_labels": VEHICLE_LABELS,
                 "hour_labels": ADVICE_TEXT["hour_verdict_labels"], "hour_tags": ADVICE_TEXT["hour_tags"],
                 "source_links": [l for l in settings.get("source_links") if grap_on or not l.get("grap")],
-                "grap_on": grap_on, "brand": LAYOUT["brand"]["grap" if grap_on else "plain"], "cpcb_on": cpcb.enabled() or waqi.enabled(), "route_messages": route.TEXT["messages"],
+                "grap_on": grap_on, "suggest_min_chars": settings.get("suggest_min_chars"), "brand": LAYOUT["brand"]["grap" if grap_on else "plain"], "cpcb_on": cpcb.enabled() or waqi.enabled(), "route_messages": route.TEXT["messages"],
                 "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision")}
 
     @app.errorhandler(data.ForecastUnavailable)
@@ -292,6 +292,11 @@ def create_app():
                                name=saved.get("name") if saved else None, role=_role(saved),
                                qr=gauges.qr_code(public, "QR code for the live plan"),
                                date_label=day.strftime("%A %d %B %Y"))
+
+    @app.get("/api/places")
+    def api_places():
+        """"Name, State" suggestions for a place being typed. The text is never logged."""
+        return jsonify({"places": data.place_suggestions(request.args.get("q", "")[:settings.get("place_max_chars")])})
 
     @app.post("/api/locate")
     def api_locate():

@@ -92,9 +92,14 @@ def place_for(lat, lon, name):
 
 
 def _place_name(text):
-    """A short display name from what was typed: "gurgaon" -> "Gurgaon"."""
-    words = str(text).split(",")[0].split()
-    return " ".join(w if w.isupper() else w[:1].upper() + w[1:] for w in words)
+    """A short display name from what was typed, with the state when one was
+    given: "gurgaon" -> "Gurgaon", "aurangabad, bihar" -> "Aurangabad, Bihar"."""
+    parts = [p.strip() for p in str(text).split(",") if p.strip()]
+    parts = parts[:1] + parts[-1:] if len(parts) > 1 else parts
+
+    def title(part):
+        return " ".join(w if w.isupper() else w[:1].upper() + w[1:] for w in part.split())
+    return ", ".join(title(p) for p in parts)
 
 
 def read_route(start, destination, travel):
@@ -106,7 +111,10 @@ def read_route(start, destination, travel):
     out, used_ai = {}, reading is not None
     for key, text, field in (("area", start, "start"), ("to_area", destination, "destination")):
         area = None
-        if reading and reading[field]:
+        if text and "," in text:  # "Town, State": the geocoder tells same-named places apart
+            hit = data.geocode(text)
+            area = place_for(*hit) if hit else None
+        if area is None and reading and reading[field]:
             area = place_for(*reading[field], _place_name(text))
         if area is None and text:
             area = match_place(text)

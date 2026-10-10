@@ -188,3 +188,32 @@ def test_plan_page_outside_ncr(client, monkeypatch):
     assert 'class="stage-box' not in html  # no GRAP stage outside Delhi-NCR
     assert 'id="grap"' not in html and 'href="#grap"' not in html
     assert "Weather in Lucknow" in html and seen == ["Lucknow"]
+
+
+# Places with their state
+
+REAL_GEOCODE, REAL_SUGGEST = data.geocode, data.place_suggestions  # before conftest stubs the geocoder
+HITS = [{"name": "Aurangabad", "latitude": 19.88, "longitude": 75.34, "admin1": "Maharashtra"},
+        {"name": "Aurangabad", "latitude": 24.75, "longitude": 84.37, "admin1": "Bihar"},
+        {"name": "Aurangabad", "latitude": 19.88, "longitude": 75.34, "admin1": "Maharashtra"}]
+
+
+def test_state_tells_same_named_places_apart(monkeypatch):
+    geocode, place_suggestions = REAL_GEOCODE, REAL_SUGGEST
+    monkeypatch.setattr(data, "_geocode_hits", lambda name, session=None: HITS if name.lower() == "aurangabad" else [])
+    assert geocode("Aurangabad") == (19.88, 75.34, "Aurangabad, Maharashtra")
+    assert geocode("aurangabad, bihar") == (24.75, 84.37, "Aurangabad, Bihar")
+    assert geocode("Aurangabad, Kerala") is None
+    assert place_suggestions("Aurangabad") == ["Aurangabad, Maharashtra", "Aurangabad, Bihar"]
+    assert place_suggestions("Au") == []
+
+
+def test_typed_town_and_state_is_found_and_named_with_its_state(client, monkeypatch):
+    monkeypatch.setattr(data, "_geocode_hits", lambda name, session=None: HITS if name.lower() == "aurangabad" else [])
+    monkeypatch.setattr(data, "geocode", REAL_GEOCODE)
+    loc = client.get("/plan?persona=commuter&from=Aurangabad,+Bihar&area=&day=today").headers["Location"]
+    html = client.get(loc).get_data(as_text=True)
+    assert "AURANGABAD, BIHAR" in html.upper() and "could not find" not in html
+    assert data.get_area(dict(p.split("=") for p in loc.split("?")[1].split("&"))["area"]).lat == 24.75
+    assert client.get("/api/places?q=Aurangabad").get_json() == {"places": ["Aurangabad, Maharashtra", "Aurangabad, Bihar"]}
+    assert route._place_name("lalbagh, lucknow, uttar pradesh") == "Lalbagh, Uttar Pradesh"

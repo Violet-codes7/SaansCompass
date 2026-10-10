@@ -116,22 +116,67 @@ def get_area(area_id, store=None):
     raise ValueError(f"area must be one of {', '.join(AREAS)}") from None
 
 
-def geocode(text, session=None):
-    """(lat, lon, name) for a town or locality name from the Open-Meteo
-    geocoding API, or None. Used when the AI model cannot read the place."""
-    params = {"name": str(text)[:settings.get("place_name_max_chars")], "count": 1,
+def _geocode_hits(name, session=None):
+    """Places in the country named `name`, from the Open-Meteo geocoding API, or []."""
+    params = {"name": str(name)[:settings.get("place_name_max_chars")], "count": settings.get("geocode_count"),
               "countryCode": settings.get("geocode_country"), "language": "en", "format": "json"}
     try:
         resp = (session or requests).get(settings.get("geocode_url"), params=params,
                                          timeout=settings.get("http_timeout_seconds"))
         resp.raise_for_status()
-        hit = (resp.json().get("results") or [None])[0]
+        hits = resp.json().get("results") or []
     except Exception as exc:  # network, HTTP or JSON error; the typed text is never logged
         log.warning("geocoding failed: %s", type(exc).__name__)
+        return []
+    return [h for h in hits if all(isinstance(h.get(k), (int, float)) for k in ("latitude", "longitude"))]
+
+
+def _name_and_state(text):
+    """"Aurangabad, Bihar" -> ("Aurangabad", "Bihar"); "Aurangabad" -> ("Aurangabad", "")."""
+    parts = [p.strip() for p in str(text).split(",") if p.strip()]
+    return (parts[0] if parts else ""), (parts[-1] if len(parts) > 1 else "")
+
+
+def _in_state(hit, state):
+    """True when a place is in the state (or district) someone typed after the comma."""
+    state = state.lower()
+    return any((hit.get(k) or "").lower().startswith(state) for k in ("admin1", "admin2", "admin3"))
+
+
+def place_label(hit):
+    """"Aurangabad, Bihar": a place's name with its state, so two places of one name differ."""
+    name, state = hit.get("name") or "", hit.get("admin1") or ""
+    return f"{name}, {state}" if state and state.lower() != name.lower() else name
+
+
+def geocode(text, session=None):
+    """(lat, lon, "Name, State") for a town or locality, or None. "Name, State"
+    picks the place of that name in that state. Used for typed places when
+    the AI model cannot read them, and first for "Name, State"."""
+    name, state = _name_and_state(text)
+    if not name:
         return None
-    if not hit or not all(isinstance(hit.get(k), (int, float)) for k in ("latitude", "longitude")):
+    hits = _geocode_hits(name, session)
+    if state:
+        hits = [h for h in hits if _in_state(h, state)]
+    if not hits:
         return None
-    return float(hit["latitude"]), float(hit["longitude"]), hit.get("name") or str(text)
+    return float(hits[0]["latitude"]), float(hits[0]["longitude"]), place_label(hits[0])
+
+
+def place_suggestions(text, session=None):
+    """Up to suggest_count "Name, State" labels for what someone is typing."""
+    name, state = _name_and_state(text)
+    if len(name) < settings.get("suggest_min_chars"):
+        return []
+    labels = []
+    for h in _geocode_hits(name, session):
+        if state and not _in_state(h, state):
+            continue
+        label = place_label(h)
+        if label not in labels:
+            labels.append(label)
+    return labels[:settings.get("suggest_count")]
 
 
 def now_ist():
