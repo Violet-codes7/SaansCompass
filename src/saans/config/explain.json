@@ -341,7 +341,7 @@
   "grap": {
     "_about": "Text for the GRAP section. Sources: CAQM's GRAP schedule Rev. 29.09.2026 and PIB's release on it.",
     "intro": "GRAP, the Graded Response Action Plan, is Delhi-NCR's step-by-step plan for bad air. CAQM, the air quality commission, switches it on for the whole of Delhi-NCR at once, not one neighbourhood at a time. As Delhi's AQI climbs, each stage adds rules on top of the ones before.",
-    "scale_title": "Where Delhi stands",
+    "scale_title": "Where {area} stands",
     "delhi": "Delhi",
     "tomorrow": "Tomorrow",
     "you": "{area}",
@@ -351,7 +351,7 @@
     "area_line": "{area}: AQI {aqi}, the same figure as the air dials. GRAP still follows Delhi's average.",
     "range_line": "Cleanest: {low} ({low_aqi}). Worst: {high} ({high_aqi}).",
     "area_basis": "Not enough areas had a forecast, so this uses {area}'s AQI alone.",
-    "next_line": "Stage {label} starts at AQI {min_aqi}: {gap} points to go.",
+    "next_line": "{area}: Stage {label} level starts at AQI {min_aqi}, {gap} points away.",
     "next_reached": "Delhi's AQI is already in the Stage {label} range (from {min_aqi}).",
     "top_line": "Stage IV is the highest stage.",
     "outlook_worse": "Tomorrow's forecast for Delhi points to Stage {label} (AQI {aqi}). CAQM can switch a stage on early when the forecast says the air is getting worse.",
@@ -382,6 +382,12 @@
     "fitted_none": "Add your work, travel, car and health in your profile to fit these rules to you.",
     "charter_you": "Because of {reasons}, GRAP's Stage IV advice to stay indoors as much as possible is meant for you.",
     "city_line_cpcb": "Delhi's AQI is {aqi} ({category}): the average of {count} CPCB stations right now.",
-    "box_area_cpcb": "{area}: AQI {aqi} ({category}) at CPCB's {station} station, {time} IST."
+    "box_area_cpcb": "{area}: AQI {aqi} ({category}) at CPCB's {station} station, {time} IST.",
+    "box_eyebrow": "GRAP level at {area}",
+    "local_title": "Stage {label} level",
+    "local_title_none": "Below Stage I",
+    "in_force": "Delhi-wide {label_text} (Delhi AQI {aqi}) sets the rules.",
+    "in_force_set": "{label_text}, {source}.",
+    "in_force_tag": "In force"
   }
 }

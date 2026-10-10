@@ -74,8 +74,8 @@ def test_plan_page_explains_where_delhi_stands(mem_store, monkeypatch):
     monkeypatch.setattr(data, "fetch_open_meteo", fetch)
     monkeypatch.setattr(web, "_work_cache", {})
     html = web.create_app().test_client().get("/plan?persona=commuter&area=ito&day=today").get_data(as_text=True)
-    for text in ("Where Delhi stands", "the 24-hour AQI of 9 areas, averaged", "Worst: Dwarka",
-                 "points to go", "What Stage I would bring", "anti-smog guns",
+    for text in ("Where ITO stands", "the 24-hour AQI of 9 areas, averaged", "Worst: Dwarka",
+                 "points away", "GRAP level at ITO", "sets the rules", "What Stage I would bring", "anti-smog guns",
                  "the same figure as the air dials"):
         assert text in html, text
 
@@ -116,3 +116,13 @@ def test_rules_follow_travel_and_vehicle(mem_store, live_fetcher):
     assert commute["morning_commute"][1] == "check_official_order"  # car not known
     explain = {a["id"]: a["explain"] for a in plan["activities"]}
     assert "Add your car" in explain["morning_commute"]["do"]
+
+
+def test_area_level_leads_but_rules_follow_delhi(mem_store):
+    from conftest import FIXED_NOW
+    from saans.service import get_plan
+    fetch = _fetch_with("dwarka", 300, 70)
+    dwarka = get_plan("commuter", "dwarka", now=FIXED_NOW, fetcher=fetch)
+    ito = get_plan("commuter", "ito", now=FIXED_NOW, fetcher=fetch)
+    assert dwarka["stage"]["local"]["stage"] > ito["stage"]["local"]["stage"]
+    assert dwarka["stage"]["stage"] == ito["stage"]["stage"]  # one stage in force for all of Delhi-NCR

@@ -9,7 +9,7 @@ from .advisor import build_plan
 from .personas import get_persona
 from .profile import Profile
 from .rules import default_rulebook
-from .stage import declared_stage, parse_stage, resolve_stage
+from .stage import declared_stage, local_level, parse_stage, resolve_stage
 from .store import get_store
 
 DAYS = ("today", "tomorrow")
@@ -96,7 +96,7 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
         area_aqi = station["aqi"] if station else data.particles_now(forecast, now)["aqi"]
     else:
         area_aqi = data.day_aqi(forecast, date)
-    stage_info.update(area_aqi=area_aqi, day=day)
+    stage_info.update(area_aqi=area_aqi, day=day, local=local_level(area.name, area_aqi))
     sensitive = persona.sensitive or bool(profile and profile.sensitive)
     rule_results = rulebook.evaluate_persona(persona, area.id, stage_info["stage"], sensitive)
     plan = build_plan(persona, area, forecast, date, stage_info, rule_results, profile)
