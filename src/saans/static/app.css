@@ -787,3 +787,28 @@ main .dw-day small{font-family:var(--mono);font-size:10.5px;text-transform:upper
 .chat-mic{border-radius:999px}
 .chat-mic:not([aria-pressed="true"]){background:var(--glass-soft);color:var(--accent);border-color:var(--accent)}
 .chat audio{height:34px;border-radius:999px}
+/* Pollution map and Cleaner route */
+.map-box{height:380px;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:8px 0}
+.route-map{height:300px}
+.map-status{margin:4px 0}
+.map-legend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;padding:0;margin:6px 0 0;font-size:13px}
+.map-legend li{display:flex;align-items:center;gap:6px}
+.map-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid var(--line)}
+.map-pop{font-size:13px;line-height:1.4;color:#1a1a1a}
+.clean-route{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.clean-route h3{margin:0 0 4px}
+.route-list{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:8px}
+.route-item{display:grid;gap:2px;padding:8px 12px;border:1px solid var(--line);border-left:6px solid var(--none);border-radius:10px}
+.route-item.best{background:var(--ok-bg)}
+.chip-best{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--good);color:#fff;vertical-align:middle}
+@media (max-width:600px){.map-box{height:300px}.route-map{height:240px}}
+
+/* Map card and Cleaner route in the glass style */
+.map-box{border-radius:14px;border-color:var(--glass-line);box-shadow:var(--lift),inset 0 0 0 1px var(--line);background:var(--glass-soft)}
+.map-legend li{font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;padding:3px 10px;border:1px solid var(--line);border-radius:999px;background:var(--glass-soft)}
+.map-legend i{border-color:rgba(255,255,255,.6);box-shadow:0 0 0 2px color-mix(in srgb,var(--ink) 8%,transparent)}
+.clean-route{border-top-color:var(--line)}
+.route-item{border-radius:12px;background:var(--glass-soft);border-color:var(--line);transition:border-color .18s,box-shadow .18s,transform .18s}
+.route-item:hover{box-shadow:var(--lift);transform:translateY(-2px)}
+.route-item.best{background:linear-gradient(135deg,var(--green-bg),var(--glass-soft));border-color:var(--green-line)}
+.chip-best{font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;font-size:10.5px;border-radius:4px;padding:2px 8px}

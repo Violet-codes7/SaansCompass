@@ -1,0 +1,11 @@
+{# The pollution map: live station AQI around the map centre, coloured by category. #}
+<section class="panel air-map" id="air-map-panel">
+  <div class="dp-head">
+    <h2>{{ map_text.title }}</h2>
+    <p class="small">{{ map_text.lead }}</p>
+  </div>
+  <div class="map-box" id="air-map" data-api="{{ url_for('api_map_stations') }}" role="region" aria-label="{{ map_text.title }}"></div>
+  <p class="small map-status" id="air-map-status" aria-live="polite">{{ map_text.loading }}</p>
+  <ul class="map-legend">{% for name, slug in aqi_levels %}<li><i class="{{ slug }}"></i>{{ name }}</li>{% endfor %}</ul>
+</section>
+{% include "_map_script.html" %}

@@ -7,11 +7,11 @@ from urllib.parse import urlencode
 
 from flask import Flask, g, jsonify, redirect, render_template, request, url_for
 
-from . import ai, cpcb, data, guide, i18n, route, saving, settings, web_accounts
+from . import ai, airmap, cleanroute, cpcb, data, guide, i18n, route, saving, settings, web_accounts
 from .alerts import subscribe as sns_subscribe
 from .personas import PERSONAS
 from . import gauges, waqi, weather
-from .aqi import category as aqi_category
+from .aqi import CATEGORIES as AQI_LEVELS, category as aqi_category, category_slug as aqi_slug
 from .advisor import TEXT as ADVICE_TEXT
 from .explain import GRAP, STAGE_SOURCES, STAGES
 from .profile import COMMUTE_MODES, CONDITION_GROUPS, CONDITIONS, VEHICLE_LABELS, VEHICLES, WORK, clean_job, clean_text, guess_work, parse_profile, tidy_role
@@ -221,6 +221,21 @@ def _diary_week(plan, saved):
     return saving.week(get_store().get_diary(g.user["sub"]), plan["date"])
 
 
+def _both(texts):
+    """{key: {"en", "hi"}} for strings the page's script shows, so they follow the language switch."""
+    return {k: {"en": v, "hi": i18n.builtin(v) or v} for k, v in texts.items() if not k.startswith("_")}
+
+
+def map_page_data():
+    """What the map script needs: centre, zoom, base map, and its words."""
+    m = airmap.MAP
+    return {"center": [m["center"]["lon"], m["center"]["lat"]], "zoom": m["zoom"], "phone_zoom": m["phone_zoom"],
+            "min_zoom": m["min_zoom"], "max_zoom": m["max_zoom"], "radius": m["marker_radius"],
+            "styles": {s: airmap.style(s) for s in m["location_schemes"]}, "text": _both(m["text"]),
+            "route_text": _both(m["route"]["text"]), "line_colours": m["route"]["line_colours"],
+            "lib_js": m["maplibre_js"], "lib_css": m["maplibre_css"]}
+
+
 def locate_near(area_id):
     """False when a saved place is too far from Delhi's areas for live
     location, which only finds those areas, to be any use."""
@@ -267,7 +282,8 @@ def create_app():
                 "grap_on": grap_on, "suggest_min_chars": settings.get("suggest_min_chars"),
                 "region_only": bool(settings.get("place_region_km")), "brand": LAYOUT["brand"]["grap" if grap_on else "plain"], "cpcb_on": cpcb.enabled() or waqi.enabled(), "route_messages": route.TEXT["messages"],
                 "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision"),
-                "locate_near": locate_near, "diary_on": settings.get("diary_enabled")}
+                "locate_near": locate_near, "diary_on": settings.get("diary_enabled"), "air_map_on": airmap.enabled(), "clean_route_on": cleanroute.enabled(),
+                "map_text": airmap.MAP["text"], "aqi_levels": [(n, aqi_slug(m)) for m, n in AQI_LEVELS], "map_page_data": map_page_data, "clean_trip": cleanroute.plan_trip}
 
     @app.errorhandler(data.ForecastUnavailable)
     def no_forecast(exc):
@@ -413,6 +429,36 @@ def create_app():
             return jsonify({"error": route.TEXT["messages"]["outside"], "km": km}), 404
         return jsonify({"area": area.id, "name": area.name, "km": km,
                         "label": route.TEXT["messages"]["located"].format(name=area.name)})
+
+    @app.get("/api/map/stations")
+    def api_map_stations():
+        """Live AQI at the stations around the map centre."""
+        if not airmap.enabled():
+            return jsonify({"error": "off"}), 404
+        out = airmap.stations(get_store(), data.now_ist())
+        if not out["stations"]:
+            return jsonify({"error": airmap.MAP["text"]["failed"]}), 503
+        return jsonify(out)
+
+    @app.get("/api/routes")
+    def api_routes():
+        """The routes between two places in a plan, with the air along each."""
+        if not cleanroute.enabled():
+            return jsonify({"error": "off"}), 404
+        try:
+            start = data.get_area(request.args.get("from", ""))
+            dest = data.get_area(request.args.get("to", ""))
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        mode = request.args.get("mode") or None
+        if mode and mode not in route.EXPOSURE_ORDER:
+            return jsonify({"error": "unknown mode"}), 400
+        if _over_limit("routes"):
+            return jsonify({"error": "busy"}), 429
+        out = cleanroute.compare(start, dest, mode, get_store(), data.now_ist())
+        if not out:
+            return jsonify({"error": "no routes"}), 503
+        return jsonify(out)
 
     @app.get("/api/plan")
     def api_plan():

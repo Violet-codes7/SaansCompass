@@ -102,6 +102,16 @@
   </div>
   {% endfor %}
   <p class="small">{{ route_text.messages.day_area.format(area=plan.route.to.name) }}</p>
+  {% set ct = clean_trip(plan) if clean_route_on else None %}
+  {% if ct %}{% set rt = map_page_data().route_text %}
+  <div class="clean-route" id="clean-route" data-api="{{ url_for('api_routes') }}?{{ {'from': ct[0].id, 'to': ct[1].id, 'mode': ct[2] or ''}|urlencode }}">
+    <h3>{{ rt.title.en }}</h3>
+    <div class="map-box route-map" id="route-map" role="region" aria-label="{{ rt.title.en }}"></div>
+    <p class="small map-status" aria-live="polite">{{ rt.loading.en }}</p>
+    <ol class="route-list"></ol>
+  </div>
+  {% include "_map_script.html" %}
+  {% endif %}
 </section>
 {% endif %}
 {% endset %}

@@ -1,0 +1,58 @@
+{
+  "_about": "The pollution map (home page) and Cleaner route (plan page). Each can be turned off with the settings air_map and clean_route (SAM parameters AirMap and CleanRoute).",
+  "center": {"lat": 28.6139, "lon": 77.209},
+  "zoom": 9.6,
+  "phone_zoom": 9.0,
+  "min_zoom": 4,
+  "max_zoom": 15,
+  "_bounds_about": "Stations are read inside this box around the map centre (degrees each way).",
+  "bounds_pad": {"lat": 0.55, "lon": 0.7},
+  "station_stale_hours": 3,
+  "marker_radius": 9,
+  "_style_about": "The base map: Amazon Location Service when its API key is set up, else the open tiles below.",
+  "location_style_url": "https://maps.geo.{region}.amazonaws.com/v2/styles/{style}/descriptor?key={key}&color-scheme={scheme}",
+  "location_style": "Standard",
+  "location_schemes": {"light": "Light", "dark": "Dark"},
+  "fallback_tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+  "fallback_attribution": "© OpenStreetMap contributors",
+  "maplibre_js": "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js",
+  "maplibre_css": "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css",
+  "text": {
+    "title": "Air across Delhi right now",
+    "lead": "Each dot is a monitoring station, coloured by its AQI.",
+    "loading": "Loading the stations…",
+    "failed": "The station readings cannot be reached right now.",
+    "updated": "Updated {time}",
+    "aqi": "AQI {aqi}",
+    "stations": "{count} stations",
+    "model": "Forecast for each area (no live stations right now)"
+  },
+  "route": {
+    "_about": "Cleaner route: Amazon Location Service finds up to max_alternatives other routes; the air along each comes from the nearest station to points every sample_km. The pick is the route with the least pollution breathed (average AQI times minutes on the way).",
+    "max_alternatives": 2,
+    "sample_km": 1.0,
+    "max_samples": 80,
+    "station_km": 6,
+    "min_covered": 0.5,
+    "travel_modes": {
+      "walk": "Pedestrian",
+      "cycle": "Scooter",
+      "two_wheeler": "Scooter",
+      "auto": "Scooter",
+      "bus": "Car",
+      "car": "Car"
+    },
+    "default_mode": "car",
+    "line_colours": ["#1f7a4d", "#7a7f87", "#9aa3aa"],
+    "text": {
+      "title": "Cleaner route",
+      "loading": "Comparing routes…",
+      "route": "Route {n}",
+      "cleanest": "Cleanest",
+      "summary": "{km} km · {min} min · average AQI {aqi}",
+      "less": "{pct}% less pollution breathed than the dirtiest route",
+      "only_one": "Only one route was found for this trip.",
+      "same": "These routes have about the same air."
+    }
+  }
+}

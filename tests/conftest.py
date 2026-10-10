@@ -82,3 +82,13 @@ def no_real_network(monkeypatch):
         def converse(self, **kw):
             raise AssertionError("tests must not call the real Bedrock API")
     monkeypatch.setattr(ai, "_runtime", NoBedrock())
+    from saans import airmap
+    for name in ("MAP_KEY_NAME", "AIR_MAP", "CLEAN_ROUTE"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(airmap, "_key_cache", {"at": -1e18, "value": None})
+    monkeypatch.setattr(airmap, "_memo", {})
+    from saans import cleanroute
+
+    def no_routes():
+        raise AssertionError("tests must not call the real Amazon Location API")
+    monkeypatch.setattr(cleanroute, "_client", no_routes)

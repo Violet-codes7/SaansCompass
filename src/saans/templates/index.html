@@ -58,6 +58,7 @@
   {% if accounts_on and not user %}<p class="small"><a href="{{ url_for('account', mode='signup') }}">Create an account</a> to skip this form next time.</p>{% endif %}
 </form>
 {% endif %}
+{% if air_map_on %}{% include "_map.html" %}{% endif %}
 <script>
 (function () {
   var f = document.querySelector("form[data-draft]");
