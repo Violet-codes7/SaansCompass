@@ -72,7 +72,7 @@
   "about_me_max_chars": 600,
   "max_area_distance_km": 40,
   "area_snap_km": 5,
-  "model_pm10_pm25_ratio_max": 3.0,
+  "model_pm10_pm25_ratio_max": 2.5,
   "place_bounds": {"lat": [6.5, 37.5], "lon": [68.0, 97.5]},
   "grap_enabled": false,
   "grap_region_km": 150,

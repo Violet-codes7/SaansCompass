@@ -95,7 +95,6 @@
     "today_to": "Where you're going today",
     "today_go": "Show today's plan"
   },
-  "no_station": "No CPCB station near {area}: 24-hour average, forecast model",
   "brand": {
     "_about": "Site tagline, page descriptions and the home-page intro, with GRAP on (grap_enabled) or off.",
     "grap": {

@@ -160,11 +160,11 @@ def test_implausible_model_pm10_is_held_and_said(mem_store, monkeypatch):
     from conftest import FIXED_NOW
     rows = [{"time": f"2026-10-{d:02d}T{h:02d}:00", "pm25": 120.0, "pm10": 598.0} for d in (9, 10, 11) for h in range(24)]
     held = data.plausible(rows)
-    assert held[0]["pm10"] == 360.0 and held[0]["pm10_model"] == 598.0  # 3 x PM2.5
+    assert held[0]["pm10"] == 300.0 and held[0]["pm10_model"] == 598.0  # 2.5 x PM2.5
     assert data.plausible([{"time": "t", "pm25": 120.0, "pm10": 200.0}])[0] == {"time": "t", "pm25": 120.0, "pm10": 200.0}
     f = {"hours": held}
     pt = data.particles_now(f, FIXED_NOW)
-    assert pt["pm10"] == 360 and pt["pm10_model"] == 598 and pt["aqi"] < 500
+    assert pt["pm10"] == 300 and pt["pm10_model"] == 598 and pt["aqi"] < 500
     monkeypatch.setattr(data, "fetch_open_meteo", lambda area: [dict(r) for r in rows])
     monkeypatch.setattr(weather, "fetch_weather", lambda area: dict(WX))
     monkeypatch.setattr(data, "now_ist", lambda: FIXED_NOW)

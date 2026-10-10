@@ -147,7 +147,7 @@ def test_page_names_the_cpcb_station(feed_on, mem_store, live_fetcher, monkeypat
     monkeypatch.setattr(cpcb, "get_stations", lambda store=None, now=None, session=None: stations)
     monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
     html = create_app().test_client().get("/plan?persona=commuter&area=ito&day=today").get_data(as_text=True)
-    assert "CPCB, ITO station" in html and "at CPCB&#39;s ITO station" in html
+    assert "ITO · " in html and "at CPCB&#39;s ITO station" in html
 
 
 class Refused(FakeSession):
