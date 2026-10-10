@@ -625,8 +625,6 @@ nav.sections a.on{background:var(--sky-deep);color:#fff}
 .g-ai{border-radius:var(--radius);border-color:var(--green-line);background:linear-gradient(180deg,var(--green-bg),var(--panel) 70%)}
 .stage-box{border-radius:var(--radius);border-color:var(--line-strong)}
 
-/* Dials: the needle sweeps in once */
-svg.gauge .needle{transform-box:view-box;transform-origin:60px 60px;animation:sweep .9s cubic-bezier(.2,.8,.2,1) both}
 .gauges figure{transition:transform .18s}
 .gauges figure:hover{transform:translateY(-3px)}
 
@@ -681,3 +679,87 @@ nav.sections{margin:10px 0 6px;padding:6px 8px;border:1px solid var(--line);bord
 .chat-next .chip{font-size:12px;background:var(--panel)}
 label.check:has(input[name=stay]){font-weight:600;padding:8px 12px;border:1px dashed var(--line-strong);border-radius:var(--radius);margin-top:10px;width:fit-content}
 label.check:has(input[name=stay]:checked){border-style:solid;border-color:var(--green-line);background:var(--green-bg);color:var(--green)}
+
+/* ==== Glass: frosted cards over a fixed sky; ring dials ==== */
+:root{
+  --glass:rgba(255,255,255,.62);--glass-strong:rgba(255,255,255,.8);--glass-soft:rgba(255,255,255,.45);
+  --glass-line:rgba(255,255,255,.7);--glass-edge:rgba(16,40,70,.12);
+  --glass-shadow:0 12px 40px -18px rgba(20,60,110,.45),inset 0 1px 0 rgba(255,255,255,.75);
+  --blur:blur(16px) saturate(1.5);
+  --line:rgba(16,40,70,.13);--line-strong:rgba(16,40,70,.26);
+}
+:root[data-theme=dark]{
+  --glass:rgba(20,30,44,.58);--glass-strong:rgba(22,33,48,.82);--glass-soft:rgba(255,255,255,.05);
+  --glass-line:rgba(255,255,255,.1);--glass-edge:rgba(255,255,255,.08);
+  --glass-shadow:0 14px 44px -18px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.06);
+  --line:rgba(255,255,255,.1);--line-strong:rgba(255,255,255,.2);
+}
+body{background-attachment:fixed;background-color:#dcebf6;
+  background-image:var(--cloud),var(--cloud),var(--cloud),var(--cloud),
+    radial-gradient(40vw 40vw at 0% 100%,rgba(120,214,170,.45),transparent 70%),
+    radial-gradient(38vw 38vw at 100% 70%,rgba(255,196,150,.45),transparent 70%),
+    radial-gradient(30vw 30vw at 70% 0%,rgba(255,255,255,.55),transparent 70%),
+    linear-gradient(170deg,#4aa8f2 0%,#8ccbf7 30%,#cfe8fa 62%,#f3eee6 100%);
+  background-size:300px 104px,200px 70px,240px 84px,170px 60px,auto,auto,auto,auto;
+  background-position:6% 14%,88% 26%,74% 78%,12% 62%,0 0,0 0,0 0,0 0}
+:root[data-theme=dark] body{background-color:#0a111a;background-size:auto;background-position:0 0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 12%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 30% 22%,#fff 50%,transparent 51%),
+    radial-gradient(1.5px 1.5px at 72% 16%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 86% 34%,#fff 50%,transparent 51%),
+    radial-gradient(1px 1px at 55% 40%,#fff 50%,transparent 51%),
+    radial-gradient(45vw 45vw at 0% 100%,rgba(40,160,130,.28),transparent 70%),
+    radial-gradient(40vw 40vw at 100% 60%,rgba(110,80,220,.28),transparent 70%),
+    linear-gradient(170deg,#0d2742 0%,#0c1a2c 50%,#0a111a 100%)}
+
+/* Frosted surfaces: only the big containers blur, inner cards are just translucent */
+.panel,nav.sections,.chat,.stage-box,.profile fieldset,.notes-mini,.dp-detail{background:var(--glass);border:1px solid var(--glass-line);box-shadow:var(--glass-shadow);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
+.panel{border-radius:16px}
+.profile fieldset,.stage-box,.notes-mini,.dp-detail{border-radius:14px}
+nav.sections{border-radius:12px}
+.chat{border-radius:18px;background:var(--glass-strong)}
+.panel .panel,.panel fieldset{-webkit-backdrop-filter:none;backdrop-filter:none}
+.g-m,.g-group,.rule,.dp-hour,.cond,.dose-tiles div,.pm-tile,.g-local,.dd-stats > div,.choice,.ladder .gstep,.g-ai,.why-air,.note-list li,.chips li,.eyebrow,.days a,.chat-msg,.dd-verdict{background-color:var(--glass-soft);border-color:var(--line)}
+.g-m,.g-group,.rule,.dp-hour,.cond,.dose-tiles div,.pm-tile,.g-local,.dd-stats > div,.choice{border-radius:12px}
+.chat-msg{border-radius:14px}
+.chat-msg.user{background:color-mix(in srgb,var(--sky) 22%,transparent)}
+.ladder .gstep.here{background:var(--no-bg)}
+.days a[aria-current="page"]{background:var(--ink);color:var(--panel)}
+.topbar{background:color-mix(in srgb,var(--sky) 78%,transparent);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border-bottom-color:var(--glass-line);position:sticky;top:0}
+nav.sections{top:58px}
+@media (max-width:560px){.topbar{position:relative}nav.sections{top:0}}
+.skyline{border-radius:16px;border-color:var(--glass-line)}
+.g-aqi,.dd-aqi{border-radius:14px;background-image:linear-gradient(140deg,rgba(255,255,255,.28),transparent 55%);box-shadow:0 10px 26px -14px rgba(0,0,0,.45)}
+.g-verdict{border-radius:14px}
+select,input,textarea,.job textarea,.about textarea,.chat-form textarea{background:var(--glass-strong)}
+button.ghost,.button.ghost,button.locate,.chip{background:var(--glass-soft)}
+:root[data-theme=dark] .g-aqi,:root[data-theme=dark] .dd-aqi{background-image:linear-gradient(140deg,rgba(255,255,255,.14),transparent 55%)}
+@media (max-width:760px){
+  :root{--blur:blur(10px) saturate(1.3)}
+  body{background-attachment:scroll}
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .panel,nav.sections,.chat,.stage-box,.profile fieldset,.notes-mini,.dp-detail{background:var(--panel)}
+}
+
+/* Ring dials: soft track, gradient or band-coloured fill that draws in, a knob at the end, big centre number */
+svg.gauge{overflow:visible}
+svg.gauge .arc.track{stroke:color-mix(in srgb,var(--ink) 9%,transparent)}
+svg.gauge .arc.fill{stroke-dasharray:100 200;filter:drop-shadow(0 3px 5px rgba(0,0,0,.18));animation:ring 1.1s cubic-bezier(.2,.8,.2,1) both}
+svg.gauge .arc.fill.accent{stroke:var(--accent)}
+svg.gauge .g-stop.good{stop-color:var(--good)}svg.gauge .g-stop.satisfactory{stop-color:var(--satisfactory)}svg.gauge .g-stop.moderate{stop-color:var(--moderate)}
+svg.gauge .g-stop.poor{stop-color:var(--poor)}svg.gauge .g-stop.very-poor{stop-color:var(--very-poor)}svg.gauge .g-stop.severe{stop-color:var(--severe)}
+svg.gauge .knob{fill:var(--panel);stroke:var(--accent);animation:knob .35s .85s ease-out both}
+svg.gauge .knob.good{stroke:var(--good)}svg.gauge .knob.satisfactory{stroke:var(--satisfactory)}svg.gauge .knob.moderate{stroke:var(--moderate)}
+svg.gauge .knob.poor{stroke:var(--poor)}svg.gauge .knob.very-poor{stroke:var(--very-poor)}svg.gauge .knob.severe{stroke:var(--severe)}
+svg.gauge .knob.tone-blue{stroke:var(--tone-blue)}svg.gauge .knob.tone-teal{stroke:var(--tone-teal)}svg.gauge .knob.tone-green{stroke:var(--tone-green)}
+svg.gauge .knob.tone-yellow{stroke:var(--tone-yellow)}svg.gauge .knob.tone-orange{stroke:var(--tone-orange)}svg.gauge .knob.tone-red{stroke:var(--tone-red)}
+svg.gauge .g-val{font-size:21px;font-weight:800;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+svg.gauge .g-unit{font-size:8.5px;letter-spacing:0;font-weight:600}
+.gauges figure{padding:6px 4px;border-radius:14px;transition:transform .18s,background-color .18s}
+.gauges figure:hover{background:var(--glass-soft)}
+@keyframes ring{from{stroke-dashoffset:100}}
+@keyframes knob{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
+svg.gauge .knob{transform-box:fill-box;transform-origin:center}
+@media print{svg.gauge .arc.fill{filter:none}}
+.scale .bands,.lbar{border-radius:999px}
+.dp-bar{border-radius:8px 8px 3px 3px}

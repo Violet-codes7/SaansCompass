@@ -46,7 +46,9 @@ h2{font-size:15px;letter-spacing:.04em;text-transform:uppercase;margin:0 0 8px;c
 svg.gauge .arc.band.good{stroke:var(--good)}svg.gauge .arc.band.satisfactory{stroke:var(--satisfactory)}
 svg.gauge .arc.band.moderate{stroke:var(--moderate)}svg.gauge .arc.band.poor{stroke:var(--poor)}
 svg.gauge .arc.band.very-poor{stroke:var(--very-poor)}svg.gauge .arc.band.severe{stroke:var(--severe)}
-svg.gauge .needle{stroke:var(--ink)}svg.gauge .hub{fill:var(--ink)}
+svg.gauge .arc.track{stroke:#e3e7ea}svg.gauge .knob{fill:#fff;stroke:var(--ink)}
+svg.gauge .g-stop.good{stop-color:var(--good)}svg.gauge .g-stop.satisfactory{stop-color:var(--satisfactory)}svg.gauge .g-stop.moderate{stop-color:var(--moderate)}
+svg.gauge .g-stop.poor{stop-color:var(--poor)}svg.gauge .g-stop.very-poor{stop-color:var(--very-poor)}svg.gauge .g-stop.severe{stop-color:var(--severe)}
 svg.gauge .g-val{fill:var(--ink);font-size:20px;font-weight:800}
 .cat{display:inline-block;margin-top:-6px;padding:2px 12px;border-radius:999px;font-weight:700;font-size:14px;color:#fff;background:var(--none)}
 .good{background:var(--good);color:#fff}.satisfactory{background:var(--satisfactory);color:#1a1a1a}.moderate{background:var(--moderate);color:#222}

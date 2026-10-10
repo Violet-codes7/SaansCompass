@@ -10,13 +10,13 @@ WX = {"time": "2026-10-10T09:00", "temp_c": 27.0, "humidity": 74.0, "wind_kmh": 
 
 def test_aqi_gauge_draws_bands_and_needle():
     svg = str(aqi_gauge(165, "AQI now"))
-    assert svg.startswith("<svg") and svg.count('class="arc band') == 6
-    assert "needle" in svg and ">165<" in svg and 'aria-label="AQI now: AQI 165"' in svg
+    assert svg.startswith("<svg") and svg.count('class="g-stop') == 6  # the band colours, as a gradient
+    assert 'class="arc fill band moderate"' in svg and "knob" in svg and ">165<" in svg and 'aria-label="AQI now: AQI 165"' in svg
 
 
 def test_gauges_handle_missing_and_out_of_range_values():
-    assert "needle" not in str(aqi_gauge(None, "x")) and ">–<" in str(aqi_gauge(None, "x"))
-    assert ">520<" in str(aqi_gauge(520, "x"))  # needle pinned at the end, value still shown
+    assert "knob" not in str(aqi_gauge(None, "x")) and ">–<" in str(aqi_gauge(None, "x"))
+    assert ">520<" in str(aqi_gauge(520, "x"))  # ring full, value still shown, value still shown
     assert ">5.6<" in str(simple_gauge(5.6, 0, 40, "", "Wind"))
     assert ">74%<" in str(simple_gauge(74, 0, 100, "%", "Humidity"))
 
