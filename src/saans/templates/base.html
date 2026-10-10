@@ -28,6 +28,7 @@
     </div>
     <span class="lang-status small" id="lang-status" aria-live="polite" translate="no"></span>
   </header>
+  <div class="skyline"><picture><source srcset="{{ url_for('static', filename='skyline-dark.svg') }}" media="(prefers-color-scheme: dark)"><img src="{{ url_for('static', filename='skyline.svg') }}" alt="{{ layout.banner_label }}" width="960" height="72"></picture></div>
   <main>{% block main %}{% endblock %}</main>
   <footer class="site">
     Advisory only. Not medical advice and not an official order; CAQM declares the GRAP stage.

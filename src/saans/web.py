@@ -57,6 +57,7 @@ def _read_work(job):
 
 PARTICLES = settings.load("particles")
 CHAT_TEXT = settings.load("chat")
+LAYOUT = settings.load("layout")
 
 _route_cache = {}
 
@@ -184,7 +185,7 @@ def create_app():
                 "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link,
                 "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge, "band_gauge": gauges.band_gauge,
                 "weather_dials": weather.DIALS, "weather_text": weather.TEXT["explain"], "particles": PARTICLES,
-                "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "glance_text": guide.TEXT, "chat_text": CHAT_TEXT, "chat_max_chars": settings.get("chat_max_chars"), "aqi_category": aqi_category, "vehicles": VEHICLES, "vehicle_labels": VEHICLE_LABELS,
+                "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "glance_text": guide.TEXT, "chat_text": CHAT_TEXT, "layout": LAYOUT, "chat_max_chars": settings.get("chat_max_chars"), "aqi_category": aqi_category, "vehicles": VEHICLES, "vehicle_labels": VEHICLE_LABELS,
                 "hour_labels": ADVICE_TEXT["hour_verdict_labels"], "hour_tags": ADVICE_TEXT["hour_tags"],
                 "source_links": settings.get("source_links"), "route_messages": route.TEXT["messages"],
                 "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision")}

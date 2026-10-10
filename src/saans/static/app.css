@@ -430,3 +430,17 @@ button.ask:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)}
 .chat-note{margin:0;padding:0 14px 10px;color:var(--muted)}
 @media (max-width:520px){.chat{right:8px;left:8px;bottom:8px;width:auto;max-height:calc(100vh - 16px)}.chat-fab{right:12px;bottom:12px}}
 @media print{.chat,.chat-fab,button.ask{display:none !important}}
+
+/* Skyline banner (pixel art, static/skyline.svg) */
+.skyline{height:clamp(72px,7.5vw,150px);overflow:hidden;line-height:0;border-bottom:1px solid var(--line);background:#7fb6e6}
+.skyline img{width:100%;height:100%;object-fit:cover;object-position:center bottom;image-rendering:pixelated;display:block}
+@media (prefers-color-scheme:dark){.skyline{background:#0d1830}}
+
+/* Section bar and numbered sections */
+nav.sections{position:sticky;top:0;z-index:40;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:8px -16px 4px;padding:8px 16px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+nav.sections::-webkit-scrollbar{display:none}
+nav.sections a{flex:none;text-decoration:none;color:var(--ink);font-size:14px;font-weight:600;padding:6px 12px;border-radius:999px}
+nav.sections a:hover,nav.sections a.on{background:var(--accent);color:#fff}
+main{counter-reset:sec}
+section.panel[id]{counter-increment:sec;scroll-margin-top:64px}
+section.panel[id] > h2::before,section.panel[id] > .h-row > h2::before,section.panel[id] > .dp-head h2::before,section.panel[id] > .dash-group:first-child > h2::before{content:counter(sec,decimal-leading-zero) " / ";color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}

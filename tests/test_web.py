@@ -29,7 +29,8 @@ def test_plan_page_shows_rules_first(client, persona):
     resp = client.get(f"/plan?persona={persona}&area=ito")
     html = resp.get_data(as_text=True)
     assert resp.status_code == 200
-    assert html.index("GRAP rules for you") < html.index("At a glance") < html.index("Your health")
+    body = html[html.index("</nav>", html.index('class="sections"')):]  # after the section bar
+    assert body.index("GRAP rules for you") < body.index("At a glance") < body.index("Your health")
     assert "Check the official order" in html
     assert "Not medical advice" in html or "not medical advice" in html
 

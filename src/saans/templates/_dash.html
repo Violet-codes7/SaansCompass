@@ -1,6 +1,6 @@
 {# Dial gauges: the air now and tomorrow, its particles, and the weather that moves the air. #}
 {% set pt = air_now.particles %}
-<section class="panel dash" aria-label="Air and weather now">
+<section class="panel dash" id="air" aria-label="Air and weather now">
   <div class="dash-group">
     <h2>Air quality{% if area_name %} at {{ area_name }}{% endif %}</h2>
     <div class="gauges">

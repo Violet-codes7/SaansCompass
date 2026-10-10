@@ -10,6 +10,10 @@
   {% else %}<a class="edit" href="{{ url_for('index') }}">Change my details</a>{% endif %}
 </nav>
 
+<nav class="sections" aria-label="{{ layout.sections_label }}">
+  {% for sct in layout.sections if not sct.when or plan[sct.when] %}<a href="#{{ sct.id }}">{{ sct.label }}</a>{% endfor %}
+</nav>
+
 <section class="summary">
   <div>
     <p class="eyebrow">{{ plan.area.name }} · {{ plan.date }}</p>
@@ -82,7 +86,7 @@
 {% with area_name=plan.area.name, air_now=plan.air_now, air_tomorrow=plan.air_tomorrow, is_stale=plan.is_stale, fetched_at=plan.fetched_at %}{% include "_dash.html" %}{% endwith %}
 
 {% if plan.route %}
-<section class="panel trips">
+<section class="panel trips" id="trips">
   <div class="dp-head">
     <h2>Your trips</h2>
     <p class="small">{{ plan.route.from.name }} → {{ plan.route.to.name }}{% if plan.route.km %}, about {{ plan.route.km }} km{% endif %}{% if plan.route.mode_labels %} · {{ plan.route.mode_labels|join(' + ') }}{% endif %}</p>
@@ -348,7 +352,7 @@
     <p class="small">{{ ht.general }}</p>
   </section>
 
-<section class="panel dayplan">
+<section class="panel dayplan" id="day">
   <div class="dp-head">
     <div>
       <h2>Your day, hour by hour</h2>
@@ -456,5 +460,21 @@
     <button type="submit">Subscribe</button>
   </form>
 </section>
+<script>
+(function () {
+  var links = document.querySelectorAll("nav.sections a"), map = {};
+  links.forEach(function (a) { map[a.getAttribute("href").slice(1)] = a; });
+  if (!("IntersectionObserver" in window)) return;
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting || !map[e.target.id]) return;
+      links.forEach(function (a) { a.classList.remove("on"); });
+      map[e.target.id].classList.add("on");
+      map[e.target.id].scrollIntoView({block: "nearest", inline: "nearest"});
+    });
+  }, {rootMargin: "-30% 0px -60% 0px"});
+  Object.keys(map).forEach(function (id) { var el = document.getElementById(id); if (el) io.observe(el); });
+})();
+</script>
 {% if ai_enabled %}{% include "_chat.html" %}{% endif %}
 {% endblock %}

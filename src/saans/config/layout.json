@@ -1,0 +1,36 @@
+{
+  "_about": "Page layout: the plan page's section bar (in page order) and the banner's alt text. 'when' names a plan field that must be set for the section to exist.",
+  "sections_label": "Sections",
+  "sections": [
+    {
+      "id": "air",
+      "label": "Air now"
+    },
+    {
+      "id": "trips",
+      "label": "Your trips",
+      "when": "route"
+    },
+    {
+      "id": "grap",
+      "label": "GRAP rules"
+    },
+    {
+      "id": "glance",
+      "label": "At a glance"
+    },
+    {
+      "id": "health",
+      "label": "Your health"
+    },
+    {
+      "id": "day",
+      "label": "Hour by hour"
+    },
+    {
+      "id": "particles",
+      "label": "PM2.5 & PM10"
+    }
+  ],
+  "banner_label": "Pixel-art Delhi skyline with India Gate, Qutub Minar, the Lotus Temple, the Red Fort and Jama Masjid"
+}
