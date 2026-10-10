@@ -96,12 +96,12 @@ With this, "AQI now" is CPCB's live reading from the nearest monitoring station,
 4. Deploy (step 5). Readings refresh every 10 minutes; CPCB itself updates each station once an hour.
 
 ## 4d. Backup for CPCB readings: aqicn.org (optional, about 2 minutes)
-When data.gov.in is down (`cpcb feed failed: ConnectionError` in the logs), the site can read the same CPCB station through aqicn.org instead and convert it to India's AQI scale. It uses the station's latest hourly reading, so it can differ a little from the 24-hour figure Sameer shows.
+When data.gov.in is down (`cpcb feed failed: ConnectionError` in the logs), the site can read the same CPCB station through aqicn.org instead and convert it to India's AQI scale. aqicn.org gives each pollutant on the US scale, not the raw µg/m³, so the site turns PM2.5 and PM10 back into µg/m³ and works out India's AQI from them. It uses the station's latest hourly reading, while CPCB and Sameer show a 24-hour average, so it will not match Sameer exactly: it is usually in the same AQI category, and can be further off when the air is changing fast.
 
 1. Get a free token at https://aqicn.org/data-platform/token (enter your email and name, then confirm the email).
-2. In PowerShell:
+2. Copy the token from the email, then in PowerShell:
    ```powershell
-   $t = Read-Host "Paste your aqicn token"
+   $t = (Get-Clipboard).Trim()
    aws ssm put-parameter --name /saans-compass/waqi-token --type SecureString --value $t --overwrite --region ap-south-1
    Remove-Variable t
    ```
