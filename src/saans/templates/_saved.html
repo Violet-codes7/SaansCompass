@@ -1,0 +1,9 @@
+{# "Dose saved": what following this plan saves, against the same time outdoors at the worst hours. #}
+{% set ds = plan.dose_saved %}{% set st = glance_text.saving %}
+{% if ds and ds.show %}
+<div class="dose-tiles saved-tile">
+  <div><b>🫁 {{ st.big.format(pct=ds.vs_worst_pct) }}</b>
+    <span>{{ st.vs_worst.format(minutes=ds.minutes) }}{% if ds.vs_usual_pct and ds.vs_usual_pct != ds.vs_worst_pct %} {{ st.vs_usual.format(pct=ds.vs_usual_pct) }}{% endif %}</span></div>
+</div>
+<style>.saved-tile{margin:10px 0}.saved-tile div{border-color:var(--good);background:var(--ok-bg)}.saved-tile b{color:var(--ok)}</style>
+{% endif %}

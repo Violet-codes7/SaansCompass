@@ -217,6 +217,7 @@
     {% endfor %}
   </div>
   {% endif %}
+  {% include "_saved.html" %}
   <h3>{{ gt.todo_title if plan.day == 'today' else gt.todo_title_tomorrow }}</h3>
   <div class="g-todo">
     {% for grp in g.todo %}
@@ -224,6 +225,7 @@
       <ul>{% for item in grp['items'] %}<li>{{ item }}</li>{% endfor %}</ul></div>
     {% endfor %}
   </div>
+  {% if stay %}{% include "_windows.html" %}{% endif %}
   {% if ai_enabled %}
   <div class="g-ai" id="ai" data-query="{{ request.query_string.decode() }}">
     <div class="ai-head">
@@ -327,6 +329,7 @@
       {% if plan.dose.ratio is not none %}<div><b>{{ plan.dose.ratio }}×</b><span>{{ ht.dose.format(ratio=plan.dose.ratio, minutes=plan.dose.minutes) }}</span></div>{% endif %}
       {% if plan.air.cigarettes %}<div><b>🚬 {{ plan.air.cigarettes }}</b><span>{{ ht.cigarettes.format(n=plan.air.cigarettes, pm25=plan.air.pm25_day) }}</span></div>{% endif %}
     </div>
+    {% include "_diary.html" %}
     <h3>{{ ht.ladder_title }}</h3>
     <ol class="ladder-h">{% for step in ht.ladder %}<li class="lv-{{ step.level }}"><p>{{ step.signs }}</p><p><b>{{ step.do }}</b></p></li>{% endfor %}</ol>
     <h3>{{ ht.protect_title }}</h3>

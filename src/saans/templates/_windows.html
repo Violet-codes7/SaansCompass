@@ -1,0 +1,23 @@
+{# The window and purifier planner: one strip for the day, then what to do. #}
+{% set wp = plan.windows %}{% set wt = glance_text.windows %}
+{% if wp %}
+<div class="win-plan">
+  <h3>{{ wt.title if plan.day == 'today' else wt.title_tomorrow }}</h3>
+  <div class="win-strip" role="list">
+    {% for h in wp.hours %}<span role="listitem" class="win-h {{ h.state }}{{ ' past' if h.past }}" title="{{ '%02d:00'|format(h.hour) }} · AQI {{ h.aqi }} · {{ wt.legend[h.state] }}"><small>{{ '%02d'|format(h.hour) if h.hour % 3 == 0 }}</small></span>{% endfor %}
+  </div>
+  <p class="win-legend small">{% for k, label in wt.legend.items() %}<span><i class="win-h {{ k }}"></i> {{ label }}</span>{% endfor %}</p>
+  <ul>{% for line in wp.lines %}<li>{{ line }}</li>{% endfor %}</ul>
+</div>
+<style>
+.win-plan{margin-top:12px}
+.win-strip{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;margin:6px 0}
+.win-h{display:block;height:28px;border-radius:4px;position:relative}
+.win-h small{position:absolute;bottom:-18px;left:0;font-size:11px;color:var(--muted)}
+.win-h.open{background:var(--good)}.win-h.shut{background:var(--moderate)}.win-h.purifier{background:var(--very-poor)}
+.win-h.past{opacity:.3}
+.win-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
+.win-legend span{display:inline-flex;align-items:center;gap:6px}
+.win-legend i.win-h{width:14px;height:14px;display:inline-block}
+</style>
+{% endif %}

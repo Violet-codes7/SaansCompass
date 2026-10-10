@@ -170,5 +170,42 @@
     "forecast": "forecast"
   },
   "notes_title": "Please read",
-  "area_basis_cpcb": "CPCB, {station} station, {time} IST"
+  "area_basis_cpcb": "CPCB, {station} station, {time} IST",
+  "saving": {
+    "big": "{pct}% less PM2.5",
+    "vs_worst": "breathed by following this plan than in the same {minutes} minutes outdoors at the day's worst hours.",
+    "vs_usual": "{pct}% less than at your usual times."
+  },
+  "diary": {
+    "title": "Your week",
+    "ask": "Did you follow today's plan?",
+    "answers": {
+      "yes": "Yes",
+      "partly": "Partly",
+      "no": "No"
+    },
+    "saved": "You told us you followed your plan on {followed} of the last 7 days: about {pct}% less PM2.5 than at the worst hours.",
+    "cigarettes": "That is roughly {n} cigarettes' worth of smoke not breathed in.",
+    "none": "Answer each day to see how much cleaner air your plan gave you this week.",
+    "logged": "Saved for {date}.",
+    "sign_in": "Sign in to keep a weekly diary of the air your plan saved you.",
+    "legend_plan": "Following the plan",
+    "legend_worst": "At the worst hours"
+  },
+  "windows": {
+    "title": "Your windows today",
+    "title_tomorrow": "Your windows tomorrow",
+    "legend": {
+      "open": "Open the windows",
+      "shut": "Keep them shut",
+      "purifier": "Shut, and run a purifier"
+    },
+    "open": "Open the windows {times} (AQI about {aqi}) to air the rooms out.",
+    "open_also": "Also fine to open: {times}.",
+    "open_none": "No hour is clean enough to keep the windows open. Air the rooms for {minutes} minutes at {time}, the cleanest hour (AQI {aqi}), then shut them.",
+    "shut": "Keep windows and doors shut {times}.",
+    "purifier": "If you have an air purifier, run it {times} in the room you are in.",
+    "purifier_sleep": "At night, run it in the bedroom with the door shut.",
+    "shut_purifier": "Keep windows and doors shut {times}, and run an air purifier then if you have one, in the room you are in."
+  }
 }

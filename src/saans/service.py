@@ -3,7 +3,7 @@ forecast -> AQI -> stage -> Cedar rules -> plan and dose."""
 from datetime import timedelta
 
 from . import aqi as aqi_mod
-from . import cpcb, data, guide, route, settings, waqi
+from . import cpcb, data, guide, route, saving, settings, waqi, windows
 from .advisor import TEXT as ADVICE
 from .advisor import build_plan
 from .personas import get_persona
@@ -218,6 +218,8 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
         plan["air"].update(pm25_day=pt["pm25"], cigarettes=round(pt["pm25"] / settings.get("cigarette_pm25_ugm3"), 1))
     tomorrow_aqi = data.day_aqi(forecast, now.astimezone(data.IST).date() + timedelta(days=1))
     plan["air_tomorrow"] = {"aqi": tomorrow_aqi, "category": aqi_mod.category(tomorrow_aqi)}
+    plan["dose_saved"] = saving.dose_saved(plan, persona)
+    plan["windows"] = windows.plan_windows(plan, now)
     plan["glance"] = guide.build(plan, persona, profile, modes)
     plan["dates"] = {
         "today": now.astimezone(data.IST).date().isoformat(),

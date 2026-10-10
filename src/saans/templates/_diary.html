@@ -1,0 +1,40 @@
+{# The weekly diary: signed-in people answer "did you follow today's plan?" and see their last seven days. #}
+{% set dt = glance_text.diary %}
+{% if diary %}
+<div class="diary">
+  <h3>{{ dt.title }}</h3>
+  {% set today = diary.days[-1] %}
+  <form method="post" action="{{ url_for('diary') }}?{{ request.query_string.decode() }}" class="diary-ask">
+    <span>{{ dt.ask }}</span>
+    {% for k, label in dt.answers.items() %}<button type="submit" name="followed" value="{{ k }}" class="{{ '' if today.entry and today.entry.followed == k else 'ghost' }}">{{ label }}</button>{% endfor %}
+    {% if diary_saved %}<span class="small" aria-live="polite">{{ dt.logged.format(date=diary_saved) }}</span>{% endif %}
+  </form>
+  <div class="diary-week" aria-label="{{ dt.title }}">
+    {% for d in diary.days %}
+    <div class="dw-day{{ ' empty' if not d.entry }}" title="{{ d.date }}{% if d.entry %} · {{ dt.answers[d.entry.followed] }}{% endif %}">
+      <div class="dw-bars"><span class="dw-worst" style="height: {{ d.worst_pct }}%"></span><span class="dw-plan {{ d.entry.followed if d.entry else '' }}" style="height: {{ d.bar_pct }}%"></span></div>
+      <small>{{ d.day }}</small>{% if d.entry %}<small>{{ dt.answers[d.entry.followed] }}</small>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <p class="win-legend small"><span><i class="dw-key worst"></i> {{ dt.legend_worst }}</span><span><i class="dw-key plan"></i> {{ dt.legend_plan }}</span></p>
+  {% if diary.followed %}<p>{{ dt.saved.format(followed=diary.followed, pct=diary.saved_pct) }}{% if diary.cigarettes >= 0.1 %} {{ dt.cigarettes.format(n=diary.cigarettes) }}{% endif %}</p>
+  {% else %}<p class="small">{{ dt.none }}</p>{% endif %}
+</div>
+<style>
+.diary{margin-top:12px}
+.diary-ask{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.diary-ask button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.diary-week{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:10px}
+.dw-day{display:grid;gap:2px;justify-items:center;text-align:center}
+.dw-bars{position:relative;width:100%;max-width:44px;height:90px;border-bottom:1px solid var(--line)}
+.dw-bars span{position:absolute;bottom:0;border-radius:4px 4px 0 0}
+.dw-worst{left:0;width:100%;background:var(--chk-bg)}
+.dw-plan{left:20%;width:60%;background:var(--good)}.dw-plan.partly{background:var(--moderate)}.dw-plan.no{background:var(--very-poor)}
+.dw-day.empty small{color:var(--muted)}
+.dw-key{width:14px;height:14px;display:inline-block;border-radius:3px}.dw-key.worst{background:var(--chk-bg)}.dw-key.plan{background:var(--good)}
+.win-legend{display:flex;flex-wrap:wrap;gap:12px}.win-legend span{display:inline-flex;align-items:center;gap:6px}
+</style>
+{% elif diary_on and accounts_on and not user and plan.day == 'today' %}
+<p class="small"><a href="{{ url_for('account', mode='signup') }}">{{ dt.sign_in }}</a></p>
+{% endif %}

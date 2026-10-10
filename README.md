@@ -11,6 +11,8 @@ Advisory only. Not medical advice and not an official order. In an emergency, ca
 - **Your place first.** Signed in, the air and weather section opens on the place in your profile. "Change place" switches it to where you are today, for that plan only, without touching the profile.
 - **Your profile, in your own words.** Write what you do ("I deliver food on a scooter at night"). The AI reads it into the closest of 19 kinds of day (student, teacher, office worker, delivery rider, auto driver, street vendor, pregnant, retired and more) and the hours it mentions; a keyword match does the same without the AI. Add age, 16 air-related health conditions (asthma, COPD, heart disease, pregnancy, smoking and more), how you travel, your outdoor hours and whether you have an N95. Each condition makes your limits stricter and adds its own "why, what to do, watch for" advice.
 - **A plan for your day.** At a glance: your area's AQI and verdict, your key times (best, worst, when you set out, tomorrow) and what to do, grouped by timing, getting around, protecting your lungs, home and health. "Your day, hour by hour" charts each hour against your own limits; tap an hour for its AQI, PM2.5, PM10, weather, your plans in it and what to do. "Your trips" shows the air at the start, on the way and at the destination, out and back. A day spent in one place (at home, at school, at work) needs no trip: tick "in one place all day" and the plan drops the commute and lists each outdoor part of the day, such as assembly, recess or PE, at its own hour with its AQI and what to do. The plan opens on today, with tomorrow one tab away.
+- **What your plan saves you.** At a glance shows how much less PM2.5 you breathe by following the plan (the best time for your outdoor activity, the rest indoors where the plan says so) than with the same minutes outdoors at the day's worst hours, and than at your usual times. Signed in, you answer "Did you follow today's plan?" (yes, partly, no) and a weekly diary shows the last seven days and what the plan saved over them. The diary is kept under your account only and deleted with it.
+- **Your windows.** On a day spent in one place, a 24-hour strip shows when to open the windows to air the rooms, when to keep them shut, and when to run an air purifier (at night, in the bedroom), from the day's hourly AQI and your own limits. The same times appear under "At home" on every plan.
 - **GRAP rules in Delhi-NCR.** For places in Delhi-NCR, the plan shows the GRAP stage (declared by CAQM, or estimated from Delhi's average AQI) and what it means for your activities, vehicle and way of travelling. Only the rules that change your day get a card (Not allowed, Advised against, Check the official order); everything else is one line. Each answer is decided by a [Cedar](https://www.cedarpolicy.com/) policy and names its clause; anything no verified rule covers says **"Check the official order"**, never "Allowed". Outside Delhi-NCR there is no GRAP stage, so none is shown.
 - **Ask Saans.** A chat on the plan page answers questions about your air and your day ("When is the best time for a run tomorrow?", "I'm taking my students to Noida by bus", "Can I take my car out?") from your plan's hourly figures and rules, and general questions on any other topic too. Plans and trips come first: the best time to go and come back, with the AQI at both ends, then a few steps. When a question names a place the plan does not cover, the server looks up that place's hourly air and the model answers with it. Each answer ends with up to three tappable follow-up questions. It never changes a rule decision, never diagnoses, sends emergency symptoms to 112, and saves nothing. Each visitor can ask a set number of questions an hour, so a script cannot use up the AI quota. People who find typing hard can tap **Speak in Hindi**, ask out loud, and hear the answer in Hindi (browser speech recognition, Amazon Polly).
 - **Personal advice, Hindi and voice.** The AI writes four short lines of advice fitted to your profile and "About me". The English / हिंदी switch converts the whole page (Amazon Translate, with a built-in dictionary for headings), and Amazon Polly reads the advice aloud.
@@ -45,6 +47,7 @@ src/saans/
   rules.py      Cedar evaluation -> Allowed / Not allowed / Advised against / Check the official order
   rules/        schema.cedarschema and the .cedar policies
   advisor.py    hour-by-hour plan, best window, verdict; guide.py builds "At a glance"
+  saving.py     what following the plan saves, and the weekly diary; windows.py plans windows and purifier
   personas.py   the 19 kinds of day; profile.py has age, conditions, travel and hours
   route.py      start, destination and travel: AI, known places or geocoder; trips
   ai.py         advice, chat and reading your words (Gemini or Bedrock), Polly voice
@@ -57,7 +60,7 @@ src/saans/
                 conditions, rule explanations, plan sentences, AI prompts, Hindi words
 ```
 
-Pages and API: `/`, `/plan`, `/poster`, `/account`, `/account/profile`, `GET /api/plan`, `GET /api/summary`, `POST /api/chat`, `GET /api/speak`, `POST /api/translate`, `GET /api/places` (place suggestions), `POST /api/locate`, `POST /subscribe`, `/healthz`.
+Pages and API: `/`, `/plan`, `/poster`, `/account`, `/account/profile`, `GET /api/plan`, `GET /api/summary`, `POST /api/chat`, `GET /api/speak`, `POST /api/translate`, `GET /api/places` (place suggestions), `POST /api/locate`, `POST /diary`, `POST /subscribe`, `/healthz`.
 
 ## Settings and content (no hardcoding)
 
@@ -127,7 +130,7 @@ GitHub Actions runs the tests and `cfn-lint` on every push, and can deploy from 
 - Weather and mixing height come from the weather model, not a local station.
 - The GRAP stage is an estimate unless CAQM's declared stage is stored in Parameter Store; Delhi-NCR is taken as within 150 km of Delhi, which is close to but not the official boundary. Departments may issue extra orders.
 - Advice and chat answers are written by a language model from the plan's facts; the rule decisions beside them are the source of truth.
-- Activity thresholds and the breath dose are our own heuristics, not medical advice.
+- Activity thresholds, the breath dose and what the plan saves are our own heuristics, not medical advice. The saving counts indoor air at 70% of outdoor PM2.5 (`indoor_pm25_ratio`) and leaves masks out.
 
 ## Credits
 

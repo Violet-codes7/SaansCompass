@@ -317,3 +317,21 @@ def test_a_day_in_one_place_has_no_trip(client, mem_store):
     # Today's trip can still go somewhere, for this plan only.
     trip = client.get("/plan?from=Rohini+Sector+9&area=rohini&to=ITO&to_area=ito&travel=bus&commute=bus&route_read=picked")
     assert "Your trips" in trip.get_data(as_text=True)
+
+
+def test_diary_keeps_a_week_under_the_account(client, mem_store):
+    assert "Sign in to keep a weekly diary" in client.get("/plan?persona=school&area=ito").get_data(as_text=True)
+    sign_up_and_in(client)
+    client.post("/account/profile", data=PROFILE)
+    html = client.get("/plan").get_data(as_text=True)
+    assert "Did you follow today&#39;s plan?" in html and "Answer each day" in html
+    resp = client.post("/diary?route_read=picked", data={"followed": "yes"})
+    assert resp.status_code == 302 and "#health" in resp.headers["Location"]
+    diary = mem_store.get_diary("sub-0")
+    assert list(diary.values())[0]["followed"] == "yes"
+    page = client.get(resp.headers["Location"]).get_data(as_text=True)
+    assert "followed your plan on 1 of the last 7 days" in page and "Saved for" in page
+    assert client.post("/diary", data={"followed": "maybe"}).status_code == 302
+    assert len(mem_store.get_diary("sub-0")) == 1
+    client.post("/account/delete")
+    assert mem_store.get_diary("sub-0") == {}

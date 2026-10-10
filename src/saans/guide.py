@@ -157,8 +157,10 @@ def _todo(plan, persona, profile, modes):
     else:
         groups["protect"].append(t["exercise_ok"])
 
-    # At home
-    if bad:
+    # At home: the window planner's own hours when it is on, else general advice
+    if plan.get("windows"):
+        groups["home"] += plan["windows"]["lines"]
+    elif bad:
         groups["home"].append(ADVICE["actions"]["windows"])
         groups["home"].append(t["purifier"])
     groups["home"].append(t["home_sources"])
