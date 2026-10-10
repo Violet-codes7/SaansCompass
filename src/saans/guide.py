@@ -102,7 +102,8 @@ def _todo(plan, persona, profile, modes):
         groups["rules"].append(t["no_rules"].format(day=day, stage=plan["stage"]["headline"]["title"]))
 
     # Timing: each outdoor part of the day at its own hour, then the best window
-    for a in [a for a in plan["activities"] if _outdoor_at(a, persona)][:settings.get("glance_activity_lines")]:
+    timed = [a for a in plan["activities"] if _outdoor_at(a, persona)][:settings.get("glance_activity_lines")]
+    for a in timed:
         advice = persona.hour_advice.get(verdict_for(persona, a["aqi"])) or ""
         groups["timing"].append(" ".join(filter(None, [t["activity_at"].format(
             activity=a["label"], time=a["time"], aqi=a["aqi"], advice=advice), a["suggestion"]])))
@@ -110,6 +111,8 @@ def _todo(plan, persona, profile, modes):
     flex = persona.activity(persona.flex_activity)
     if w and w.get("clean") is False:
         groups["timing"].append(ADVICE["actions"]["no_clean_window"].format(start=w["start"], aqi=w["avg_aqi"]))
+    elif any(a["id"] == flex.id and a["suggestion"] for a in timed):
+        pass  # its own line above already says when it is cleaner
     elif w and persona.flex_prefers == "cleanest":
         groups["timing"].append(ADVICE["actions"]["best_time"].format(activity=flex.label, start=w["start"],
                                                                       end=w["end"], aqi=w["avg_aqi"]))

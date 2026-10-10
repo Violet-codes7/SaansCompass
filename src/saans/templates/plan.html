@@ -445,12 +445,14 @@
 
 <section class="panel actions">
   <a class="button" href="{{ url_for('poster') }}?{{ request.query_string.decode() }}">Daily poster</a>
+  {% if plan.area.id in areas %}{# the alert run checks Delhi's areas only #}
   <form method="post" action="{{ url_for('subscribe') }}" class="sub">
     <input type="hidden" name="area" value="{{ plan.area.id }}">
-    <label>Email alerts for {{ plan.area.name }} at {{ '%02d:00'|format(alert_hours[0]) }} and {{ '%02d:00'|format(alert_hours[1]) }} when the plan changes
+    <label>{{ layout.alerts.label.format(area=plan.area.name, morning='%02d:00'|format(alert_hours[0]), evening='%02d:00'|format(alert_hours[1])) }}
       <input type="email" name="email" required maxlength="254" placeholder="you@example.com"></label>
-    <button type="submit">Subscribe</button>
+    <button type="submit">{{ layout.alerts.button }}</button>
   </form>
+  {% endif %}
 </section>
 <script>
 (function () {

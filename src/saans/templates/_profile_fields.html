@@ -19,8 +19,8 @@
     <label><span data-from-label data-trip="{{ layout.home.trip_from }}" data-stay="{{ layout.home.stay_from }}">{{ layout.home.stay_from if p.stay else layout.home.trip_from }}</span>
       <span class="with-button">
         <input name="from" data-clears="area" required maxlength="120" autocomplete="off" placeholder="e.g. Mayur Vihar Phase 1, or your metro station" value="{{ p.from or '' }}">
-        <button type="button" class="ghost locate" data-api="{{ url_for('api_locate') }}"
-          {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>
+        {% if locate_near(p.area) %}<button type="button" class="ghost locate" data-api="{{ url_for('api_locate') }}"
+          {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>{% endif %}
       </span></label>
     <input type="hidden" name="area" value="{{ p.area or '' }}">
     <label data-trip-only>Where you go most days <input name="to" maxlength="120" autocomplete="off" placeholder="e.g. Connaught Place, or DPS R K Puram" value="{{ p.to or '' }}"></label>

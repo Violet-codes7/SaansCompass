@@ -26,7 +26,8 @@
     "off": "The chat is not set up here.",
     "empty": "Type a question first.",
     "failed": "No answer right now. Please try again in a minute.",
-    "network": "Could not reach the server. Check your connection and try again."
+    "network": "Could not reach the server. Check your connection and try again.",
+    "busy": "That's a lot of questions in a short time. Please try again a little later."
   },
   "ask_buttons": {
     "advice": {

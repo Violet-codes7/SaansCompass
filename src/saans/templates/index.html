@@ -22,8 +22,8 @@
         <label><span data-from-label data-trip="{{ hm.trip_from }}" data-stay="{{ hm.stay_from }}">{{ hm.stay_from if saved.stay else hm.trip_from }}</span>
           <span class="with-button">
             <input name="from" data-clears="area" required maxlength="120" autocomplete="off" value="{{ saved['from'] or '' }}">
-            <button type="button" class="ghost locate" data-api="{{ url_for('api_locate') }}"
-              {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>
+            {% if locate_near(saved.area) %}<button type="button" class="ghost locate" data-api="{{ url_for('api_locate') }}"
+              {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>{% endif %}
           </span></label>
         <input type="hidden" name="area" value="{{ saved.area or '' }}">
         <label data-trip-only>{{ hm.today_to }} <input name="to" data-clears="to_area" maxlength="120" autocomplete="off" value="{{ saved.to or '' }}"></label>

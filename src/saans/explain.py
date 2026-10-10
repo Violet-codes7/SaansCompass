@@ -66,18 +66,32 @@ def rule_text(activity_id, rule):
     return POLICY.get(rule["policy_id"]) or {"means": rule.get("clause"), "why": None, "do": None}
 
 
+def _restricts(rule, stage):
+    """True when a rule answer changes something in the day: an order or
+    advice against it, or "check the official order" where it may (a draft
+    rule matched, or Stage III and up, when states add their own orders)."""
+    if rule["decision"] in (NOT_ALLOWED, ADVISED_AGAINST):
+        return True
+    return rule["decision"] == CHECK and bool(stage) and (bool(rule.get("policy_id")) or stage >= GRAP["check_from_stage"])
+
+
 def rules_for_you(activities, stage, day="today"):
     """Marks each activity whose rule changes something in the day (`restricts`,
-    shown as its own card) and returns one line naming all the rest, or None.
-    With no GRAP stage on, "check the official order" restricts nothing."""
-    restricting = {NOT_ALLOWED, ADVISED_AGAINST} | ({CHECK} if stage else set())
-    rest = []
+    shown as its own card) and returns one line for all the rest, or None:
+    what is allowed, and what GRAP has no rule on. With no stage on, GRAP
+    restricts nothing."""
+    allowed, uncovered = [], []
     for a in activities:
-        a["restricts"] = bool(a["rule"]) and a["rule"]["decision"] in restricting
+        a["restricts"] = bool(a["rule"]) and _restricts(a["rule"], stage)
         if a["rule"] and not a["restricts"]:
-            rest.append(a["label"])
-    if not rest:
+            (uncovered if stage and a["rule"]["decision"] == CHECK else allowed).append(a["label"])
+    if not (allowed or uncovered):
         return None
-    key = ("rest_free" if not stage else "rest_allowed") if any(a["restricts"] for a in activities) else (
-        "all_free" if not stage else "all_allowed")
-    return GRAP[key].format(day=GRAP["day_words"][day], activities=GRAP["list_joiner"].join(rest))
+    words, join = GRAP["day_words"][day], GRAP["list_joiner"].join
+    cards = any(a["restricts"] for a in activities)
+    if not stage:
+        return GRAP["rest_free" if cards else "all_free"].format(day=words, activities=join(allowed))
+    parts = [GRAP["no_rule"].format(activities=join(uncovered))] if uncovered else []
+    if allowed:
+        parts.append(GRAP["rest_allowed" if cards or uncovered else "all_allowed"].format(day=words, activities=join(allowed)))
+    return " ".join(parts)

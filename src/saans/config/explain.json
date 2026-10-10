@@ -397,6 +397,8 @@
       "today": "today",
       "tomorrow": "tomorrow"
     },
-    "list_joiner": "; "
+    "list_joiner": "; ",
+    "no_rule": "GRAP has no rule on: {activities}.",
+    "check_from_stage": 3
   }
 }

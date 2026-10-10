@@ -1,4 +1,5 @@
 """Flask routes: picker, plan page, JSON API, poster, subscribe, health check."""
+import hashlib
 import logging
 import os
 from datetime import datetime, timedelta
@@ -198,6 +199,33 @@ def _air_panel(area, store, now):
             "fetched_at": forecast["fetched_at"], "air_tomorrow": {"aqi": tomorrow, "category": aqi_category(tomorrow)}}
 
 
+def _over_limit(kind):
+    """True when this visitor has used up their `kind` requests (chat,
+    translate) for the current window. The address is kept only as a hash,
+    and only until the window ends; if counting fails, the request goes ahead."""
+    limit = settings.get(f"{kind}_per_ip")
+    if not limit:
+        return False
+    who = hashlib.sha256((request.remote_addr or "-").encode()).hexdigest()[:16]
+    try:
+        return get_store().count_hit(f"{kind}#{who}", settings.get("rate_window_minutes") * 60) > limit
+    except Exception as exc:
+        log.warning("rate count failed: %s", type(exc).__name__)
+        return False
+
+
+def locate_near(area_id):
+    """False when a saved place is too far from Delhi's areas for live
+    location, which only finds those areas, to be any use."""
+    if not area_id:
+        return True
+    try:
+        area = data.get_area(area_id)
+    except ValueError:
+        return True
+    return route.nearest_area(area.lat, area.lon)[0] is not None
+
+
 def _weather_place(area):
     """A typed town has its own weather; Delhi's areas share the city's."""
     return area if data.is_place(area) else weather.city_place()
@@ -231,7 +259,8 @@ def create_app():
                 "source_links": [l for l in settings.get("source_links") if grap_on or not l.get("grap")],
                 "grap_on": grap_on, "suggest_min_chars": settings.get("suggest_min_chars"),
                 "region_only": bool(settings.get("place_region_km")), "brand": LAYOUT["brand"]["grap" if grap_on else "plain"], "cpcb_on": cpcb.enabled() or waqi.enabled(), "route_messages": route.TEXT["messages"],
-                "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision")}
+                "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision"),
+                "locate_near": locate_near}
 
     @app.errorhandler(data.ForecastUnavailable)
     def no_forecast(exc):
@@ -420,6 +449,8 @@ def create_app():
         far and the answer are sent to the model only: never logged or stored."""
         if not ai.enabled():
             return jsonify({"error": CHAT_TEXT["errors"]["off"]}), 503
+        if _over_limit("chat"):
+            return jsonify({"error": CHAT_TEXT["errors"]["busy"]}), 429
         body = request.get_json(silent=True) or {}
         lang = body.get("lang", "en")
         try:
@@ -458,8 +489,11 @@ def create_app():
         body = request.get_json(silent=True) or {}
         texts = body.get("texts")
         if body.get("to") != "hi" or not isinstance(texts, list) or len(texts) > i18n.MAX_TEXTS \
-                or not all(isinstance(t, str) and len(t) <= i18n.MAX_CHARS for t in texts):
+                or not all(isinstance(t, str) and len(t) <= i18n.MAX_CHARS for t in texts) \
+                or sum(map(len, texts)) > settings.get("translate_max_total_chars"):
             return jsonify({"error": f"send to=hi and up to {i18n.MAX_TEXTS} strings"}), 400
+        if _over_limit("translate"):
+            return jsonify({"error": CHAT_TEXT["errors"]["busy"]}), 429
         out, complete = i18n.to_hindi(texts)
         return jsonify({"texts": out, "complete": complete})
 

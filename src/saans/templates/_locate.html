@@ -1,16 +1,19 @@
 <script>
 (function () {
+  // A typed change replaces what was read before: the live location, or today's saved places.
+  document.querySelectorAll("[data-clears]").forEach(function (el) {
+    if (el.dataset.clearsBound) return;
+    el.dataset.clearsBound = "1";
+    var form = el.closest("form");
+    el.addEventListener("input", function () {
+      el.dataset.clears.split(",").forEach(function (n) { var h = form.querySelector('input[type=hidden][name="' + n + '"]'); if (h) h.value = ""; });
+    });
+  });
   var btn = document.querySelector("button.locate");
   if (!btn || btn.dataset.bound) return;
   btn.dataset.bound = "1";
   var form = btn.closest("form"), from = form.querySelector("input[name=from]"),
       area = form.querySelector("input[name=area]"), status = form.querySelector(".locate-status");
-  // A typed change replaces what was read before: the live location, or today's saved places.
-  form.querySelectorAll("[data-clears]").forEach(function (el) {
-    el.addEventListener("input", function () {
-      el.dataset.clears.split(",").forEach(function (n) { var h = form.querySelector('input[type=hidden][name="' + n + '"]'); if (h) h.value = ""; });
-    });
-  });
   btn.addEventListener("click", function () {
     if (!navigator.geolocation) { status.textContent = btn.dataset.msgUnsupported; return; }
     status.textContent = btn.dataset.msgLocating;

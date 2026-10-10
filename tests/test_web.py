@@ -209,3 +209,30 @@ def test_one_place_all_day_plans_the_outdoor_parts(client):
     assert "Morning commute" not in html  # no trip, so no commute rule or hour
     assert "Outdoor recess at 11:00 (AQI" in html and "Outdoor PE / sports at 12:00 (AQI" in html
     assert "Air quality at Okhla" not in html  # the day is spent where the person is
+
+
+def test_chat_and_hindi_are_limited_per_visitor(client, monkeypatch):
+    from saans import ai
+    monkeypatch.setenv("AI_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "k")
+    monkeypatch.setenv("CHAT_PER_IP", "2")
+    monkeypatch.setenv("TRANSLATE_PER_IP", "1")
+    monkeypatch.setattr(ai, "chat", lambda *a, **k: "Answer.")
+    codes = [client.post("/api/chat?persona=rider&area=ito", json={"question": "x"}).status_code for _ in range(3)]
+    assert codes == [200, 200, 429]
+    big = client.post("/api/translate", json={"to": "hi", "texts": ["a" * 1500] * 15})
+    assert big.status_code == 400  # 22,500 characters in one go
+    assert client.post("/api/translate", json={"to": "hi", "texts": ["Show"]}).status_code == 200
+    assert client.post("/api/translate", json={"to": "hi", "texts": ["Show"]}).status_code == 429
+
+
+def test_tagline_is_for_all_of_india(client):
+    html = client.get("/").get_data(as_text=True)
+    assert "Your air and your day, in one plan" in html and "Delhi's air rules" not in html
+
+
+def test_rules_line_names_what_grap_has_no_rule_on(client):
+    part = _rules_part(client.get("/plan?persona=school&area=ito&stage=II&day=today").get_data(as_text=True))
+    assert 'class="rule ' not in part  # nothing restricts a school day at Stage II
+    assert "Everything else in your day is allowed today: Outdoor assembly" in part
+    assert "GRAP has no rule on: Morning commute." in part
