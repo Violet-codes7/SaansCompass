@@ -16,6 +16,8 @@ Advisory only. Not medical advice and not an official order. In an emergency, ca
 - **GRAP rules in Delhi-NCR.** For places in Delhi-NCR, the plan shows the GRAP stage (declared by CAQM, or estimated from Delhi's average AQI) and what it means for your activities, vehicle and way of travelling. Only the rules that change your day get a card (Not allowed, Advised against, Check the official order); everything else is one line. Each answer is decided by a [Cedar](https://www.cedarpolicy.com/) policy and names its clause; anything no verified rule covers says **"Check the official order"**, never "Allowed". Outside Delhi-NCR there is no GRAP stage, so none is shown.
 - **Ask Saans.** A chat on the plan page answers questions about your air and your day ("When is the best time for a run tomorrow?", "I'm taking my students to Noida by bus", "Can I take my car out?") from your plan's hourly figures and rules, and general questions on any other topic too. Plans and trips come first: the best time to go and come back, with the AQI at both ends, then a few steps. When a question names a place the plan does not cover, the server looks up that place's hourly air and the model answers with it. Each answer ends with up to three tappable follow-up questions. It never changes a rule decision, never diagnoses, sends emergency symptoms to 112, and saves nothing. Each visitor can ask a set number of questions an hour, so a script cannot use up the AI quota. People who find typing hard can tap **Speak in Hindi**, ask out loud, and hear the answer in Hindi (browser speech recognition, Amazon Polly).
 - **Personal advice, Hindi and voice.** The AI writes four short lines of advice fitted to your profile and "About me". The English / हिंदी switch converts the whole page (Amazon Translate, with a built-in dictionary for headings), and Amazon Polly reads the advice aloud.
+- **Pollution map.** The home page maps the live AQI at every monitoring station around Delhi (aqicn.org's station map, else CPCB's feed, else each area's forecast), coloured by India's AQI category, on an Amazon Location Service base map. Tap a station for its name, AQI and time.
+- **Cleaner route.** When a plan has a trip by road, Amazon Location Service finds up to three routes and the plan compares the air along each: the nearest station's AQI at points every kilometre, times the minutes on the way. The route with the least pollution breathed is marked "Cleanest", with how much less it is than the dirtiest. Trips partly by metro are not compared.
 - **Accounts (optional).** Sign up with email and password (Amazon Cognito). Your name, profile, places and "About me" are saved once in DynamoDB under your account only, never in a link, QR code or log, and are deleted with your account.
 - **Daily poster and alerts.** A printable A4 poster (or PDF) per plan, with a QR code that carries only the kind of day and area. Email alerts for Delhi's areas (the form only appears there): at 06:00 and 19:00 IST a scheduled Lambda checks each area and emails only where the plan changed.
 
@@ -30,6 +32,7 @@ Advisory only. Not medical advice and not an official order. In an emergency, ca
 | Sign-up and sign-in | Amazon Cognito user pool (email code, password reset); tokens in HttpOnly cookies |
 | Keys and the declared GRAP stage | SSM Parameter Store: `/saans-compass/gemini-api-key`, `/datagov-api-key`, `/waqi-token` (SecureStrings) and `/official-stage` |
 | Personal advice, chat, reading your words | Google Gemini, or Amazon Bedrock (Amazon Nova through the Converse API, or Claude through the Messages API) |
+| Map and routes | Amazon Location Service: base map tiles (API key, maps v2) and `CalculateRoutes` (routes v2) |
 | Voice and Hindi | Amazon Polly (Kajal, en-IN and hi-IN), Amazon Translate |
 | Packaging | SAM / CloudFormation |
 | Ops | X-Ray tracing, a CloudWatch dashboard, logs (14 days), alarm on Alert Lambda errors, forecast fallback metrics, optional budget |
@@ -50,6 +53,8 @@ src/saans/
   saving.py     what following the plan saves, and the weekly diary; windows.py plans windows and purifier
   personas.py   the 19 kinds of day; profile.py has age, conditions, travel and hours
   route.py      start, destination and travel: AI, known places or geocoder; trips
+  airmap.py     station AQIs for the pollution map, base map style (Amazon Location)
+  cleanroute.py Amazon Location routes for a trip and the air along each
   ai.py         advice, chat and reading your words (Gemini or Bedrock), Polly voice
   weather.py    weather dials and what the weather does to the air
   alerts.py     per-area change detection, SNS publish and subscribe
@@ -60,7 +65,7 @@ src/saans/
                 conditions, rule explanations, plan sentences, AI prompts, Hindi words
 ```
 
-Pages and API: `/`, `/plan`, `/poster`, `/account`, `/account/profile`, `GET /api/plan`, `GET /api/summary`, `POST /api/chat`, `GET /api/speak`, `POST /api/translate`, `GET /api/places` (place suggestions), `POST /api/locate`, `POST /diary`, `POST /subscribe`, `/healthz`.
+Pages and API: `/`, `/plan`, `/poster`, `/account`, `/account/profile`, `GET /api/plan`, `GET /api/summary`, `POST /api/chat`, `GET /api/speak`, `POST /api/translate`, `GET /api/places` (place suggestions), `GET /api/map/stations`, `GET /api/routes`, `POST /api/locate`, `POST /diary`, `POST /subscribe`, `/healthz`.
 
 ## Settings and content (no hardcoding)
 

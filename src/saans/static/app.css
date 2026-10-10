@@ -498,3 +498,18 @@ fieldset{min-width:0}
 @media (max-width:720px){.trip-grid{grid-template-columns:minmax(0,1fr)}}
 select{max-width:100%}
 label{grid-template-columns:minmax(0,1fr);min-width:0}
+/* Pollution map and Cleaner route */
+.map-box{height:380px;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:8px 0}
+.route-map{height:300px}
+.map-status{margin:4px 0}
+.map-legend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;padding:0;margin:6px 0 0;font-size:13px}
+.map-legend li{display:flex;align-items:center;gap:6px}
+.map-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid var(--line)}
+.map-pop{font-size:13px;line-height:1.4;color:#1a1a1a}
+.clean-route{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.clean-route h3{margin:0 0 4px}
+.route-list{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:8px}
+.route-item{display:grid;gap:2px;padding:8px 12px;border:1px solid var(--line);border-left:6px solid var(--none);border-radius:10px}
+.route-item.best{background:var(--ok-bg)}
+.chip-best{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--good);color:#fff;vertical-align:middle}
+@media (max-width:600px){.map-box{height:300px}.route-map{height:240px}}

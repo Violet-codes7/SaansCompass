@@ -396,6 +396,22 @@
     "Following the plan": "योजना मानकर",
     "At the worst hours": "सबसे ख़राब घंटों में",
     "Sign in to keep a weekly diary of the air your plan saved you.": "अपनी योजना से बची हवा की साप्ताहिक डायरी रखने के लिए साइन इन करें।",
-    "Answer each day to see how much cleaner air your plan gave you this week.": "हर दिन जवाब दें और देखें कि इस हफ़्ते आपकी योजना ने आपको कितनी साफ़ हवा दी।"
+    "Answer each day to see how much cleaner air your plan gave you this week.": "हर दिन जवाब दें और देखें कि इस हफ़्ते आपकी योजना ने आपको कितनी साफ़ हवा दी।",
+    "Air across Delhi right now": "दिल्ली भर की हवा अभी",
+    "Each dot is a monitoring station, coloured by its AQI.": "हर बिंदु एक निगरानी स्टेशन है, उसके AQI के रंग में।",
+    "Loading the stations…": "स्टेशन लोड हो रहे हैं…",
+    "The station readings cannot be reached right now.": "स्टेशनों की रीडिंग अभी नहीं मिल पा रही है।",
+    "Updated {time}": "{time} पर अपडेट",
+    "AQI {aqi}": "AQI {aqi}",
+    "{count} stations": "{count} स्टेशन",
+    "Forecast for each area (no live stations right now)": "हर इलाके का पूर्वानुमान (अभी कोई लाइव स्टेशन नहीं)",
+    "Cleaner route": "साफ़ हवा वाला रास्ता",
+    "Comparing routes…": "रास्तों की तुलना हो रही है…",
+    "Route {n}": "रास्ता {n}",
+    "Cleanest": "सबसे साफ़",
+    "{km} km · {min} min · average AQI {aqi}": "{km} किमी · {min} मिनट · औसत AQI {aqi}",
+    "{pct}% less pollution breathed than the dirtiest route": "सबसे गंदे रास्ते से {pct}% कम प्रदूषण साँस में",
+    "Only one route was found for this trip.": "इस सफ़र के लिए एक ही रास्ता मिला।",
+    "These routes have about the same air.": "इन रास्तों की हवा लगभग एक जैसी है।"
   }
 }

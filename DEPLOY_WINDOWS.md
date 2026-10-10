@@ -107,6 +107,9 @@ When data.gov.in is down (`cpcb feed failed: ConnectionError` in the logs), the 
    ```
 3. Deploy (step 5). The "Now" dial then says "CPCB, ITO station · 19:00 IST · aqicn".
 
+## 4e. Pollution map and Cleaner route (nothing to do)
+`sam deploy` creates an Amazon Location Service API key for the base map (`saans-compass-map`) and lets the web Lambda ask Amazon Location for routes. Both use the aqicn.org token from 4d for station readings. To turn either off, deploy with `--parameter-overrides AirMap=off` or `CleanRoute=off` (add them to the other overrides you use).
+
 ## 5. Build and deploy
 Keep the `C:\venv312` venv active (sam build uses the Python 3.12 on PATH).
 ```powershell

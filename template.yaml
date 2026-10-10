@@ -51,6 +51,16 @@ Parameters:
     Default: "on"
     AllowedValues: ["on", "off"]
     Description: Ask Saans by voice in Hindi (the browser's speech recognition) and hear the answer read by Amazon Polly. Needs the AI on.
+  AirMap:
+    Type: String
+    Default: "on"
+    AllowedValues: ["on", "off"]
+    Description: Pollution map on the home page, on an Amazon Location Service base map (open tiles if its key is missing).
+  CleanRoute:
+    Type: String
+    Default: "on"
+    AllowedValues: ["on", "off"]
+    Description: Cleaner route on the plan page, comparing routes from Amazon Location Service by the air along each.
   DefaultArea:
     Type: String
     Default: anand-vihar
@@ -80,6 +90,8 @@ Conditions:
   HasAccounts: !Equals [!Ref Accounts, "on"]
   HasBudgetEmail: !Not [!Equals [!Ref BudgetEmail, ""]]
   HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
+  HasAirMap: !Equals [!Ref AirMap, "on"]
+  HasCleanRoute: !Equals [!Ref CleanRoute, "on"]
   HasBedrock: !And
     - !Equals [!Ref AiProvider, bedrock]
     - !Not [!Equals [!Ref BedrockModel, ""]]
@@ -138,6 +150,11 @@ Resources:
           VOICE_CHAT: !Ref VoiceChat
           # Cognito app client for sign-in; empty turns accounts off.
           USER_POOL_CLIENT_ID: !If [HasAccounts, !Ref UserPoolClient, ""]
+          # Pollution map and Cleaner route (Amazon Location Service).
+          AIR_MAP: !Ref AirMap
+          CLEAN_ROUTE: !Ref CleanRoute
+          LOCATION_REGION: !Ref AWS::Region
+          MAP_KEY_NAME: !If [HasAirMap, !Sub "${AWS::StackName}-map", ""]
       Events:
         Root:
           Type: HttpApi
@@ -174,6 +191,20 @@ Resources:
                 - polly:SynthesizeSpeech
               Resource: "*"
         - !If
+          - HasAirMap
+          - Statement:
+              - Effect: Allow
+                Action: geo:DescribeKey
+                Resource: !GetAtt MapKey.Arn
+          - !Ref AWS::NoValue
+        - !If
+          - HasCleanRoute
+          - Statement:
+              - Effect: Allow
+                Action: geo-routes:CalculateRoutes
+                Resource: !Sub "arn:${AWS::Partition}:geo-routes:${AWS::Region}::provider/default"
+          - !Ref AWS::NoValue
+        - !If
           - HasBedrock
           - Statement:
               - Effect: Allow
@@ -184,6 +215,22 @@ Resources:
                   - bedrock:InvokeModel
                 Resource: "*"
           - !Ref AWS::NoValue
+
+  # The base map for the pollution map and Cleaner route. Browsers use this
+  # key to load map tiles only; the web Lambda reads its value with DescribeKey.
+  MapKey:
+    Type: AWS::Location::APIKey
+    Condition: HasAirMap
+    Properties:
+      KeyName: !Sub "${AWS::StackName}-map"
+      Description: Saans Compass base map tiles
+      NoExpiry: true
+      Restrictions:
+        AllowActions:
+          - geo-maps:GetTile
+          - geo-maps:GetStaticMap
+        AllowResources:
+          - !Sub "arn:${AWS::Partition}:geo-maps:${AWS::Region}::provider/default"
 
   # People sign up with their email; Cognito checks the address with a code
   # and keeps the password. The web app calls it with its public app client,
