@@ -54,5 +54,6 @@
   "route_corridor_km": 5,
   "place_max_chars": 120,
   "past_days": 1,
-  "rolling_min_hours": 16
+  "rolling_min_hours": 16,
+  "city_min_areas": 5
 }

@@ -45,7 +45,7 @@
     },
     "stage_estimate": {
       "title": "The GRAP stage is our estimate",
-      "text": "It is worked out from the forecast. CAQM declares the official stage, so check its latest order before acting on a rule."
+      "text": "It is worked out from Delhi's average AQI across 9 areas, using the forecast model. CAQM declares the official stage for all of Delhi-NCR, so check its latest order before acting on a rule."
     },
     "stage_declared": {
       "title": "GRAP stage from CAQM",

@@ -54,8 +54,7 @@ def test_two_personas_on_the_same_air_get_different_plans(mem_store, live_fetche
 
 def test_rules_come_before_advice_in_the_plan(mem_store, live_fetcher):
     plan = get_plan("school", "ito", stage="IV", now=FIXED_NOW, fetcher=live_fetcher)
-    assert plan["stage"] == {"stage": 4, "label": "IV", "source": "official", "day_aqi": plan["stage"]["day_aqi"],
-                             "estimate": plan["stage"]["estimate"], "headline": plan["stage"]["headline"]}
+    assert {k: plan["stage"][k] for k in ("stage", "label", "source")} == {"stage": 4, "label": "IV", "source": "official"}
     assert plan["stage"]["headline"]["title"] == "Stage IV: Severe+ air"
     assert len(plan["rules"]) == len(PERSONAS["school"].activities)
     for a in plan["activities"]:
@@ -89,14 +88,15 @@ def test_outage_falls_back_to_the_last_real_forecast(mem_store, live_fetcher, fa
 def test_forecast_is_cached(mem_store, live_fetcher):
     get_plan("school", "ito", now=FIXED_NOW, fetcher=live_fetcher)
     get_plan("rider", "ito", now=FIXED_NOW, fetcher=live_fetcher)
-    assert live_fetcher.calls == ["ito"]
+    # Each area is fetched once: ITO for the plan, all of them for Delhi's AQI.
+    assert sorted(live_fetcher.calls) == sorted(data.AREAS)
 
 
 def test_expired_cache_is_refetched(mem_store, live_fetcher):
     from datetime import timedelta
     get_plan("school", "ito", now=FIXED_NOW, fetcher=live_fetcher)
     get_plan("school", "ito", now=FIXED_NOW + timedelta(minutes=31), fetcher=live_fetcher)
-    assert live_fetcher.calls == ["ito", "ito"]
+    assert live_fetcher.calls.count("ito") == 2
 
 
 def test_tomorrow_uses_the_next_date(mem_store, live_fetcher):

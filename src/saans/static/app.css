@@ -140,13 +140,40 @@ header.site .lang-status:empty{display:none}
 .stage-box.s0 strong{color:var(--ok)}
 .stage-box.s3 strong,.stage-box.s4 strong{color:var(--no)}
 .lead{font-size:15px;margin:0 0 10px}
-.ladder{list-style:none;padding:0;margin:0 0 12px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
-.ladder li{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12px;display:grid;line-height:1.3;color:var(--muted)}
-.ladder li b{color:var(--ink);font-size:13px}
-.ladder li.past{background:var(--chk-bg)}
-.ladder li.here{border:2px solid var(--no);background:var(--no-bg);color:var(--no)}
-.ladder li em{font-style:normal;font-weight:700}
-@media (max-width:520px){.ladder{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stage-box .outlook{color:var(--no);font-weight:600}
+/* GRAP: where Delhi stands on the stage scale */
+.grap-scale{margin:8px 0 14px}
+.grap-scale h3{margin-top:0}
+.scale{position:relative;padding:26px 0 26px}
+.scale .bands{display:flex;height:26px;border-radius:6px;overflow:hidden;font-size:12px;font-weight:700}
+.scale .bands span{display:flex;align-items:center;justify-content:center;min-width:0;white-space:nowrap;overflow:hidden}
+.scale .b0{background:var(--chk-bg);color:var(--chk)}.scale .b1{background:var(--poor);color:#1a1a1a}.scale .b2{background:var(--very-poor);color:#fff}
+.scale .b3{background:var(--severe);color:#fff}.scale .b4{background:#4a0000;color:#fff}
+.scale .mark{position:absolute;top:0;transform:translateX(-50%);font-size:12px;white-space:nowrap}
+.scale .mark b{display:inline-block;background:var(--ink);color:var(--panel);border-radius:4px;padding:1px 6px}
+.scale .mark::after{content:"";position:absolute;left:50%;top:20px;height:34px;border-left:3px solid var(--ink)}
+.scale .mark.ahead{top:auto;bottom:0}
+.scale .mark.ahead b{background:var(--panel);color:var(--ink);border:1px dashed var(--ink)}
+.scale .mark.ahead::after{top:auto;bottom:20px;border-left-style:dashed}
+.scale-notes{margin:4px 0 0;padding-left:18px;font-size:14px;display:grid;gap:3px}
+/* GRAP: the four stages and what each brings */
+.ladder{display:grid;gap:6px;margin:0 0 12px}
+.ladder .gstep{border:1px solid var(--line);border-left:6px solid var(--none);border-radius:8px;padding:6px 10px}
+.ladder .gstep.s1{border-left-color:var(--poor)}.ladder .gstep.s2{border-left-color:var(--very-poor)}.ladder .gstep.s3{border-left-color:var(--severe)}.ladder .gstep.s4{border-left-color:#4a0000}
+.ladder .gstep summary{cursor:pointer;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline;font-size:14px}
+.ladder .gstep summary span{color:var(--muted)}
+.ladder .gstep summary small{color:var(--muted);margin-left:auto}
+.ladder .gstep ul{margin:4px 0 4px;padding-left:18px;font-size:14px;display:grid;gap:3px}
+.ladder .gstep.past{background:var(--chk-bg)}
+.ladder .gstep.here{border-width:2px;border-left-width:6px;border-color:var(--no);background:var(--no-bg)}
+.ladder .gstep em{font-style:normal;font-weight:700;color:var(--no)}
+.rules-for-you{margin-top:4px}
+.grap-more{border-top:1px solid var(--line);padding:8px 0}
+.grap-more summary{cursor:pointer;font-weight:600;font-size:14px}
+.grap-more ul{padding-left:18px;font-size:14px;display:grid;gap:3px}
+.stops.sites{flex-wrap:wrap;gap:6px;overflow:visible}
+.stops.sites li{margin-right:0;min-width:110px;flex:0 1 auto}
+.stops.sites li::after{display:none}
 .rule p{margin:2px 0;font-size:15px}
 .rule p.why{color:var(--muted);font-size:14px}
 .rule p.do{font-size:14px}

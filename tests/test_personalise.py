@@ -70,15 +70,15 @@ def test_uncovered_activity_never_reads_as_allowed():
     assert "Check" in x["do"]
 
 
-@pytest.mark.parametrize("stage,cat,title,sub", [
-    (0, "Satisfactory", "No restrictions today", "Air is okay today (Satisfactory)."),
-    (0, "Moderate", "No restrictions today", "Air is Moderate"),
-    (3, "Severe", "Stage III: Severe air", "dusty construction"),
+@pytest.mark.parametrize("stage,value,cat,title,sub", [
+    (0, 80, "Satisfactory", "No GRAP stage today", "Delhi's air is Satisfactory (AQI about 80). GRAP starts at AQI 201."),
+    (0, 195, "Moderate", "No GRAP stage today", "about 195 (Moderate), 6 points below Stage I, which starts at 201"),
+    (3, 420, "Severe", "Stage III: Severe air", "dusty construction"),
 ])
-def test_stage_headline(stage, cat, title, sub):
-    h = stage_headline(stage, 150, cat)
+def test_stage_headline(stage, value, cat, title, sub):
+    h = stage_headline(stage, value, cat)
     assert h["title"] == title and sub in h["sub"]
-    assert "okay" not in stage_headline(0, 180, "Moderate")["sub"]
+    assert stage_headline(0, 150, "Moderate", "tomorrow")["title"] == "No GRAP stage tomorrow"
 
 
 def test_plan_page_explains_rules_and_glance(client):
@@ -89,7 +89,7 @@ def test_plan_page_explains_rules_and_glance(client):
     for label in ("Air today", "Worst time to be outside", "Your limits", "Like smoking"):
         assert label in html
     html0 = client.get("/plan?persona=commuter&area=ito&stage=0").get_data(as_text=True)
-    assert "No restrictions today" in html0 and ">None<" not in html0
+    assert "No GRAP stage today" in html0 and ">None<" not in html0
 
 
 def test_health_panel_lists_each_condition(client):

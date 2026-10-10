@@ -275,7 +275,11 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
 
     day_aqi = stage_info.get("day_aqi")
     day_category = aqi_category(day_aqi) if day_aqi is not None else None
-    stage_info = {**stage_info, "headline": stage_headline(stage_info["stage"], day_aqi, day_category)}
+    stage_info = {**stage_info, "headline": stage_headline(stage_info["stage"], day_aqi, day_category,
+                                                           stage_info.get("day", "today"))}
+    # The stage follows Delhi's AQI; the air section is about this area.
+    area_aqi = stage_info.get("area_aqi", day_aqi)
+    area_category = aqi_category(area_aqi) if area_aqi is not None else None
     known = [r for r in readings if r["aqi"] is not None]
     worst = max(known, key=lambda r: r["aqi"]) if known else None
     day_pm25 = [r["pm25"] for r in data.readings_for(forecast, date, list(range(24))) if r.get("pm25") is not None]
@@ -305,9 +309,9 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
         "warnings": [n["text"] for n in notes],
         "dominant": dominant,
         "air": {
-            "day_aqi": day_aqi,
-            "category": day_category,
-            "impact": CATEGORY_IMPACT.get(day_category),
+            "day_aqi": area_aqi,
+            "category": area_category,
+            "impact": CATEGORY_IMPACT.get(area_category),
             "pollutant": POLLUTANTS.get(dominant),
             "worst": {"time": f"{worst['hour']:02d}:00", "aqi": worst["aqi"], "category": worst["category"]}
             if worst else None,

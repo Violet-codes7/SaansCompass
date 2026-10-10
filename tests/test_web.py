@@ -141,7 +141,7 @@ def test_stage_links_poster_order_and_favicon(client):
     rules = poster[poster.index('class="rules"'):]
     assert rules.index("Not allowed") < rules.index("</ul>")
     calm = client.get("/poster?persona=school&area=ito&stage=0").get_data(as_text=True)
-    assert "No restrictions today" in calm and "Check the official order" not in calm
+    assert "No GRAP stage today" in calm and "Check the official order" not in calm
     assert client.get("/favicon.ico").status_code == 301
     assert client.get("/static/favicon.svg").status_code == 200
 

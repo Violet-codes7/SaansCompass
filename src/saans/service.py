@@ -63,7 +63,15 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
     date = now.astimezone(data.IST).date() + timedelta(days=1 if day == "tomorrow" else 0)
     # CAQM's declaration applies to the day it is made; tomorrow stays an estimate.
     declared = declared_stage() if day == "today" and official is None else None
-    stage_info = resolve_stage(data.day_aqi(forecast, date), official, declared)
+    # GRAP is decided for all of Delhi-NCR on Delhi's city-wide AQI, so the
+    # estimate uses every area, not just this one.
+    forecasts = data.get_forecasts(data.AREAS.values(), store, now=now, fetcher=fetcher)
+    forecasts[area.id] = forecast
+    city = data.city_air(forecasts, date, now)
+    next_day = data.city_air(forecasts, date + timedelta(days=1), now) if day == "today" else None
+    stage_info = resolve_stage(city["aqi"] if city else data.day_aqi(forecast, date), official, declared,
+                               city=city, outlook=next_day["aqi"] if next_day else None)
+    stage_info.update(area_aqi=data.day_aqi(forecast, date), day=day)
     sensitive = persona.sensitive or bool(profile and profile.sensitive)
     rule_results = rulebook.evaluate_persona(persona, area.id, stage_info["stage"], sensitive)
     plan = build_plan(persona, area, forecast, date, stage_info, rule_results, profile)

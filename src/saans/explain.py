@@ -31,21 +31,27 @@ def _policy(policy_id):
 POLICY = {pid: _policy(pid) for pid in _CONFIG["policy"]}
 
 
-def stage_headline(stage, day_aqi, category):
+def stage_headline(stage, day_aqi, category, day="today"):
     """The big line in the stage box: never a bare "None"."""
     h = _HEADLINES
     if stage is None:
         return dict(h["unknown"])
     if stage == 0:
-        if category in h["okay_categories"]:
-            sub = h["none_okay"].format(category=category)
-        elif category == "Moderate":
-            sub = h["none_moderate"].format(stage1_min=STAGES[1]["min_aqi"])
+        stage1 = STAGES[1]["min_aqi"]
+        if day_aqi is None:
+            sub = ""
+        elif category in h["okay_categories"]:
+            sub = h["none_okay"].format(category=category, aqi=day_aqi, stage1_min=stage1)
+        elif day_aqi < stage1:
+            sub = h["none_moderate"].format(category=category, aqi=day_aqi, gap=stage1 - day_aqi, stage1_min=stage1)
         else:
-            sub = h["none_other"].format(category=category)
-        return {"title": h["none_title"], "sub": sub}
+            sub = h["none_other"].format(category=category, aqi=day_aqi)
+        return {"title": h["none_title"].format(day=h["days"].get(day, day)), "sub": sub}
     info = STAGES[stage]
     return {"title": h["stage_title"].format(roman=_ROMAN[stage], name=info["name"]), "sub": info["about"]}
+
+
+GRAP = _CONFIG["grap"]
 
 
 def rule_text(activity_id, rule):

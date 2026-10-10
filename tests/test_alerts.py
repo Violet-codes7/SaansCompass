@@ -61,7 +61,9 @@ def test_sends_once_then_only_on_change(aws, live_fetcher):
     results, _ = run_alert_check("today", ddb_store, rec, topic, now=FIXED_NOW, fetcher=live_fetcher)
     assert {r["status"] for r in results} == {"unchanged"} and rec.published == []
 
-    # Much cleaner air for one area later: that area changes.
+    # Much cleaner air for one area later. GRAP is decided on Delhi's
+    # city-wide AQI, so this pulls the Delhi stage down (II to I) and every
+    # area's plan changes with it.
     clean = make_hours([20] * 24)
 
     def fetch(area):
@@ -70,7 +72,8 @@ def test_sends_once_then_only_on_change(aws, live_fetcher):
     later = FIXED_NOW.replace(hour=11)  # past the 30-minute cache
     results, _ = run_alert_check("today", ddb_store, rec, topic, now=later, fetcher=fetch)
     sent = [r["area"] for r in results if r["status"] == "sent"]
-    assert sent == ["lodhi-road"]
+    assert sent == list(data.AREAS)
+    assert "Stage I" in rec.published[0]["Message"] or "Stage I" in rec.published[0]["Subject"]
 
 
 def test_failed_publish_is_retried_next_run(aws, live_fetcher):

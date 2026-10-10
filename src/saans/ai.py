@@ -136,6 +136,8 @@ def plan_facts(plan):
         "date": plan["date"],
         "grap_stage": plan["stage"]["headline"]["title"],
         "stage_source": plan["stage"]["source"],
+        "delhi_aqi": plan["stage"].get("day_aqi"),
+        "stage_outlook_tomorrow": (plan["stage"].get("outlook") or {}).get("label"),
         "verdict": plan["verdict_label"],
         "day_aqi_category": plan.get("air", {}).get("category"),
         "best_time": (

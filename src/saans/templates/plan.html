@@ -61,14 +61,17 @@
   {% endif %}
   {% endif %}
   </div>
-  <div class="stage-box s{{ plan.stage.stage or 0 }}">
-    <span class="eyebrow">GRAP stage</span>
-    <strong>{{ plan.stage.headline.title }}</strong>
-    <span class="small">{{ plan.stage.headline.sub }}</span>
-    <span class="src {{ plan.stage.source }}">{{ stage_sources[plan.stage.source].label }}</span>
-    {% if plan.stage.day_aqi is not none %}<span class="small">Day AQI about {{ plan.stage.day_aqi }} ({{ plan.air.category }}){% if plan.dominant %} · mostly {{ plan.dominant }}{% endif %}</span>{% endif %}
-    {% if plan.stage.source != 'estimate' and plan.stage.estimate and plan.stage.estimate != plan.stage.label %}<span class="small">The forecast alone suggests {{ 'no stage' if plan.stage.estimate == 'None' else 'Stage ' ~ plan.stage.estimate }}.</span>{% endif %}
-    {% if plan.stage.source == 'official' %}<a class="small" href="{{ plan_link(stage='') }}">Back to the real stage</a>{% endif %}
+  {% set sg = plan.stage %}
+  <div class="stage-box s{{ sg.stage or 0 }}">
+    <span class="eyebrow">GRAP stage, Delhi-NCR</span>
+    <strong>{{ sg.headline.title }}</strong>
+    <span class="small">{{ sg.headline.sub }}</span>
+    {% if sg.stage and sg.day_aqi is not none %}<span class="small">{{ grap.box_line.format(aqi=sg.day_aqi, category=aqi_category(sg.day_aqi)) }}</span>{% endif %}
+    <span class="src {{ sg.source }}">{{ stage_sources[sg.source].label }}</span>
+    {% if sg.source != 'estimate' and sg.estimate and sg.estimate != sg.label %}<span class="small">{{ grap.differs.format(estimate=grap.no_stage_word if sg.estimate == 'None' else grap.stage_word.format(label=sg.estimate)) }}</span>{% endif %}
+    {% if sg.outlook and sg.outlook.stage > (sg.stage or 0) %}<span class="small outlook">{{ grap.outlook_worse.format(label=sg.outlook.label, aqi=sg.outlook.aqi) }}</span>{% endif %}
+    <a class="small" href="#grap">What this stage means</a>
+    {% if sg.source == 'official' %}<a class="small" href="{{ plan_link(stage='') }}">Back to the real stage</a>{% endif %}
   </div>
 </section>
 
@@ -100,14 +103,48 @@
 {% endif %}
 
 <div class="two">
-  <section class="panel rules">
+  <section class="panel rules" id="grap">
     <h2>GRAP rules for you</h2>
-    <p class="lead">GRAP, the Graded Response Action Plan, is Delhi-NCR's step-by-step plan for bad air. As the AQI climbs, CAQM declares Stage I to IV, and each stage adds rules on top of the last. Here is what {{ 'today' if plan.day == 'today' else 'tomorrow' }}'s stage means for you.</p>
-    <ol class="ladder" aria-label="GRAP stages">
-      {% for n, st in stages.items() %}
-      <li class="{{ 'here' if plan.stage.stage == n }}{{ ' past' if plan.stage.stage and n < plan.stage.stage }}"><b>Stage {{ roman[n] }}</b> <span>{{ st.name }}</span> <small>{{ st.band }}</small>{% if plan.stage.stage == n %} <em>You are here</em>{% endif %}</li>
+    <p class="lead">{{ grap.intro }}</p>
+    {% set sg = plan.stage %}{% set city = sg.city %}
+    {% if sg.day_aqi is not none %}
+    <div class="grap-scale">
+      <h3>{{ grap.scale_title }}</h3>
+      <div class="scale" role="img" aria-label="{{ grap.delhi }} AQI {{ sg.day_aqi }}">
+        <div class="bands">
+          <span class="b0" style="flex: {{ stages[1].min_aqi - 1 }}">{{ grap.no_stage_band }}</span>
+          {% for n, st in stages.items() %}{% set top = stages[n + 1].min_aqi - 1 if n + 1 in stages else 500 %}
+          <span class="b{{ n }}" style="flex: {{ top - st.min_aqi + 1 }}">{{ roman[n] }}</span>
+          {% endfor %}
+        </div>
+        <span class="mark now" style="left: {{ [sg.day_aqi, 500]|min / 5 }}%"><b>{{ grap.delhi }} {{ sg.day_aqi }}</b></span>
+        {% if sg.outlook %}<span class="mark ahead" style="left: {{ [sg.outlook.aqi, 500]|min / 5 }}%"><b>{{ grap.tomorrow }} {{ sg.outlook.aqi }}</b></span>{% endif %}
+      </div>
+      <ul class="scale-notes">
+        {% if city %}
+        <li>{{ (grap.city_line if city.basis == 'last24' else grap.city_line_forecast).format(aqi=city.aqi, category=city.category, count=city.count) }}
+          {{ grap.range_line.format(low=city.low.name, low_aqi=city.low.aqi, high=city.high.name, high_aqi=city.high.aqi) }}</li>
+        {% if sg.area_aqi is not none %}<li>{{ grap.area_line.format(area=plan.area.name, aqi=sg.area_aqi) }}</li>{% endif %}
+        {% else %}
+        <li>{{ grap.area_basis.format(area=plan.area.name) }}</li>
+        {% endif %}
+        {% if sg.next %}<li>{{ grap.next_line.format(label=sg.next.label, min_aqi=sg.next.min_aqi, gap=sg.next.gap) }}</li>{% else %}<li>{{ grap.top_line }}</li>{% endif %}
+        {% if sg.outlook %}{% set now_n = sg.stage or 0 %}{% set label_text = grap.no_stage_word if sg.outlook.stage == 0 else grap.stage_word.format(label=sg.outlook.label) %}
+        <li>{% if sg.outlook.stage > now_n %}{{ grap.outlook_worse.format(label=sg.outlook.label, aqi=sg.outlook.aqi) }}{% elif sg.outlook.stage < now_n %}{{ grap.outlook_better.format(label_text=label_text, aqi=sg.outlook.aqi) }}{% else %}{{ grap.outlook_same.format(label_text=label_text, aqi=sg.outlook.aqi) }}{% endif %}</li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+    <div class="ladder" aria-label="GRAP stages">
+      {% for n, st in stages.items() %}{% set here = sg.stage == n %}{% set upcoming = (sg.stage or 0) == 0 and n == 1 %}
+      <details class="gstep s{{ n }}{{ ' here' if here }}{{ ' past' if sg.stage and n < sg.stage }}"{% if here or upcoming %} open{% endif %}>
+        <summary><b>Stage {{ roman[n] }}</b> <span>{{ st.name }}</span> <small>{{ st.band }}</small>{% if here %} <em>You are here</em>{% endif %}</summary>
+        <p class="small"><b>{{ (grap.measures_next if (sg.stage or 0) < n else grap.measures_title).format(label=roman[n]) }}.</b> {{ grap.actions_count.format(count=st.actions) }}</p>
+        <ul>{% for m in st.measures %}<li>{{ m }}</li>{% endfor %}</ul>
+      </details>
       {% endfor %}
-    </ol>
+    </div>
+    <h3 class="rules-for-you">{{ 'Today' if plan.day == 'today' else 'Tomorrow' }}, for you</h3>
     {% set no_stage = plan.stage.stage == 0 %}
     <ul class="rule-list">
       {% for a in plan.activities|selectattr('rule')|sort(attribute='rank') %}{% set r = a.rule %}{% set x = a.explain %}
@@ -128,6 +165,14 @@
     </ul>
     {% if no_stage %}{% set uncovered = plan.activities|selectattr('rule')|selectattr('rule.decision', 'equalto', 'check_official_order')|map(attribute='label')|list %}
     {% if uncovered %}<p class="small">Not covered by GRAP at any stage: {{ uncovered|join(', ') }}.</p>{% endif %}{% endif %}
+    <details class="grap-more"><summary>{{ grap.how_title }}</summary>
+      <ul>{% for line in grap.how %}<li>{{ line }}</li>{% endfor %}</ul></details>
+    <details class="grap-more"><summary>{{ grap.estimate_title }}</summary>
+      <ul>{% for line in grap.estimate %}<li>{{ line }}</li>{% endfor %}</ul>
+      {% if sg.city %}<p class="small"><b>{{ grap.sites_title }}</b></p>
+      <ol class="stops sites">{% for st in sg.city.sites %}<li class="{{ st.slug }}"><span>{{ st.name }}</span><b>{{ st.aqi }}</b></li>{% endfor %}</ol>{% endif %}
+    </details>
+    <p class="small">{{ grap.sources_label }}: {% for src in grap.sources %}<a href="{{ src.url }}" rel="noopener" target="_blank">{{ src.label }}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>
   </section>
 
   <section class="panel glance">

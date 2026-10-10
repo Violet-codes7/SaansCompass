@@ -12,7 +12,6 @@ the person leaves and the hour they come back.
 """
 import math
 import re
-from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 from . import aqi as aqi_mod
@@ -124,14 +123,7 @@ def trip_hours(persona):
 
 
 def _forecasts(areas, store, now, fetcher):
-    def one(area):
-        try:
-            return area.id, data.get_forecast(area, store, now=now, **({"fetcher": fetcher} if fetcher else {}))
-        except data.ForecastUnavailable:
-            return area.id, None
-
-    with ThreadPoolExecutor(max_workers=min(8, len(areas))) as pool:
-        return dict(pool.map(one, areas))
+    return data.get_forecasts(areas, store, now=now, fetcher=fetcher)
 
 
 def trips(persona, start, dest, date, store, now, fetcher=None, modes=()):

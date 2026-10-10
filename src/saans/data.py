@@ -8,6 +8,7 @@ ForecastUnavailable is raised: the app never makes numbers up.
 """
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
@@ -124,6 +125,19 @@ def get_forecast(area, store, now=None, fetcher=None):
     return forecast
 
 
+def get_forecasts(areas, store, now=None, fetcher=None):
+    """{area id: forecast or None} for several areas, fetched in parallel."""
+    def one(area):
+        try:
+            return area.id, get_forecast(area, store, now=now, fetcher=fetcher)
+        except ForecastUnavailable:
+            return area.id, None
+
+    areas = list(areas)
+    with ThreadPoolExecutor(max_workers=min(8, len(areas))) as pool:
+        return dict(pool.map(one, areas))
+
+
 def readings_for(forecast, date, hours):
     """Hourly readings with AQI for the given hours of `date` (IST).
 
@@ -194,3 +208,29 @@ def particles_now(forecast, now):
     return {"basis": basis, "pm25": rnd(pm25), "pm10": rnd(pm10), "aqi": value, "dominant": dominant,
             "category": aqi_mod.category(value) if value is not None else None,
             "pm25_hour": rnd(hour.get("pm25")), "pm10_hour": rnd(hour.get("pm10"))}
+
+
+def city_air(forecasts, date, now):
+    """Delhi's AQI the way CPCB reports a city: the average of its sites' AQIs.
+
+    For today each site's AQI is its last-24-hour average (particles_now); for
+    another day it is that day's forecast average. GRAP is decided on this
+    city-wide figure, not on one neighbourhood. None when fewer than
+    city_min_areas sites have a forecast.
+    """
+    today = now.astimezone(IST).date()
+    sites = []
+    for area_id, f in forecasts.items():
+        if not f:
+            continue
+        value = particles_now(f, now)["aqi"] if date == today else day_aqi(f, date)
+        if value is not None:
+            area = AREAS[area_id]
+            sites.append({"id": area.id, "name": area.name, "aqi": value,
+                          "category": aqi_mod.category(value), "slug": aqi_mod.category_slug(value)})
+    if len(sites) < settings.get("city_min_areas"):
+        return None
+    sites.sort(key=lambda s: s["aqi"])
+    value = round(sum(s["aqi"] for s in sites) / len(sites))
+    return {"aqi": value, "category": aqi_mod.category(value), "basis": "last24" if date == today else "forecast",
+            "count": len(sites), "total": len(forecasts), "low": sites[0], "high": sites[-1], "sites": sites}

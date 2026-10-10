@@ -40,9 +40,24 @@ def parse_stage(raw):
     return _PARSE[key]
 
 
-def resolve_stage(day_aqi, official=None, declared=None):
+def next_stage(stage, value):
+    """The stage above `stage` and how many AQI points `value` is below it, or None at Stage IV."""
+    above = sorted((n, m) for n, m in _STAGE_MIN_AQI if n > (stage or 0))
+    if not above:
+        return None
+    n, min_aqi = above[0]
+    return {"stage": n, "label": ROMAN[n], "min_aqi": min_aqi,
+            "gap": None if value is None else max(min_aqi - value, 0)}
+
+
+def resolve_stage(day_aqi, official=None, declared=None, city=None, outlook=None):
     """Stage to use, in order: the stage the user set (official), the stage the
-    team recorded from CAQM's latest order (declared), then the AQI estimate."""
+    team recorded from CAQM's latest order (declared), then the AQI estimate.
+
+    `day_aqi` is the AQI the estimate is made from: Delhi's city-wide AQI
+    (`city`, from data.city_air) when known, else the area's own. `outlook`
+    is the city AQI forecast for the next day, for "where this is heading".
+    """
     if official is not None:
         stage, source = official, "official"
     elif declared is not None:
@@ -50,13 +65,18 @@ def resolve_stage(day_aqi, official=None, declared=None):
     else:
         stage, source = stage_from_aqi(day_aqi), "estimate"
     estimate = stage_from_aqi(day_aqi)
+    ahead = stage_from_aqi(outlook)
     return {
         "stage": stage,
         "label": "Unknown" if stage is None else ROMAN[stage],
         "source": source,
         "day_aqi": day_aqi,
+        "basis": "city" if city else "area",
+        "city": city,
         # The AQI estimate, shown beside a declared or user-set stage when they differ.
         "estimate": None if estimate is None else ROMAN[estimate],
+        "next": next_stage(estimate, day_aqi),
+        "outlook": None if ahead is None else {"aqi": outlook, "stage": ahead, "label": ROMAN[ahead]},
     }
 
 

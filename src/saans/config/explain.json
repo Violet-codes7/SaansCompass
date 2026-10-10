@@ -4,26 +4,59 @@
     "1": {
       "name": "Poor air",
       "band": "AQI 201 to 300",
-      "about": "Early steps: dust control at building sites, strict PUC checks, no open burning.",
-      "min_aqi": 201
+      "about": "First steps across Delhi-NCR: dust control at building sites, no open burning, strict pollution checks on vehicles, diesel generators and older buses kept in check.",
+      "min_aqi": 201,
+      "actions": 25,
+      "measures": [
+        "Building and demolition sites must keep dust down: cover materials, sprinkle water, run anti-smog guns and wash vehicle wheels. Large sites are registered and monitored.",
+        "No open burning of garbage, leaves or other waste.",
+        "Roads are swept by machine and sprinkled with water to settle dust.",
+        "Strict checks on vehicle pollution certificates (PUC) and on vehicles giving out visible smoke.",
+        "Diesel generators may run only if they meet emission standards or have approved pollution controls; hospitals, lifts and other emergency services are exempt.",
+        "BS-IV and older buses from other NCR and neighbouring states are kept out of Delhi; electric, CNG and BS-VI buses can come in."
+      ]
     },
     "2": {
       "name": "Very poor air",
       "band": "AQI 301 to 400",
-      "about": "Stage I plus more: diesel generators limited, parking fees raised, people asked to use public transport.",
-      "min_aqi": 301
+      "about": "Stage I plus more: daily road cleaning with dust suppressants, higher parking fees, more buses and metro trips, and people asked to use public transport.",
+      "min_aqi": 301,
+      "actions": 8,
+      "measures": [
+        "Daily machine sweeping and water sprinkling with dust suppressants on main roads and pollution hotspots.",
+        "Parking fees go up to discourage private vehicles.",
+        "More CNG and electric buses and more metro trips.",
+        "Public office timings in Delhi are staggered to spread out the rush.",
+        "Citizens are asked to use public transport and keep personal vehicle use to a minimum."
+      ]
     },
     "3": {
       "name": "Severe air",
       "band": "AQI 401 to 450",
       "about": "Stage I and II plus: dusty construction stopped, older petrol and diesel cars off the road, hybrid classes up to Class V.",
-      "min_aqi": 401
+      "min_aqi": 401,
+      "actions": 10,
+      "measures": [
+        "Dust-generating construction and demolition stops: digging, piling, demolition, brick and masonry work, painting, tile cutting and road building. Railway, metro, airport, hospital, defence, sanitation and linear public projects are exempt.",
+        "BS-III petrol and BS-IV (or older) diesel cars are barred in Delhi and nearby NCR districts, now including Sonipat. Cars adapted for people with disabilities are exempt.",
+        "Diesel BS-IV (or older) light and medium goods vehicles registered outside Delhi cannot enter, with no exemption for essential goods.",
+        "Classes up to Class V in Delhi move to hybrid mode; families can choose online classes.",
+        "The Delhi and NCR governments can decide to let half of office staff work from home."
+      ]
     },
     "4": {
       "name": "Severe+ air",
       "band": "AQI above 450",
-      "about": "Emergency level: most trucks barred, hybrid classes for more grades, and the advice to stay indoors as much as possible.",
-      "min_aqi": 451
+      "about": "Emergency level: most trucks barred, all big construction stopped, hybrid classes for more grades, and the advice to stay indoors as much as possible.",
+      "min_aqi": 451,
+      "actions": 5,
+      "measures": [
+        "BS-IV and older diesel trucks cannot enter Delhi; essential-goods trucks are no longer exempt.",
+        "Linear public projects such as highways, roads, flyovers and power lines also stop.",
+        "Classes VI to IX and XI in Delhi move to hybrid mode.",
+        "State governments can add emergency steps such as odd-even for cars or closing non-emergency businesses.",
+        "Children, older people and anyone with lung or heart disease are advised to stay indoors as much as possible and wear a mask outside."
+      ]
     }
   },
   "category_impact": {
@@ -228,15 +261,19 @@
       "title": "Stage unknown",
       "sub": "Not enough forecast data to estimate it."
     },
-    "none_title": "No restrictions today",
-    "none_okay": "Air is okay today ({category}).",
-    "none_moderate": "Air is Moderate: no GRAP stage yet. Stage I starts at AQI {stage1_min}.",
-    "none_other": "AQI category: {category}.",
+    "none_title": "No GRAP stage {day}",
+    "none_okay": "Delhi's air is {category} (AQI about {aqi}). GRAP starts at AQI {stage1_min}.",
+    "none_moderate": "Delhi's AQI is about {aqi} ({category}), {gap} points below Stage I, which starts at {stage1_min}.",
+    "none_other": "Delhi's AQI is about {aqi} ({category}).",
     "stage_title": "Stage {roman}: {name}",
     "okay_categories": [
       "Good",
       "Satisfactory"
-    ]
+    ],
+    "days": {
+      "today": "today",
+      "tomorrow": "tomorrow"
+    }
   },
   "draft_rule": {
     "means": "The rule we have for this is a draft that has not been checked against the latest CAQM order.",
@@ -252,8 +289,61 @@
       "short": "declared by CAQM"
     },
     "estimate": {
-      "label": "Estimated from the PM2.5/PM10 forecast",
-      "short": "estimated from the forecast"
+      "label": "Our estimate from Delhi's average AQI",
+      "short": "estimated from Delhi's AQI"
     }
+  },
+  "grap": {
+    "_about": "Text for the GRAP section. Sources: CAQM's GRAP schedule Rev. 29.09.2026 and PIB's release on it.",
+    "intro": "GRAP, the Graded Response Action Plan, is Delhi-NCR's step-by-step plan for bad air. CAQM, the air quality commission, switches it on for the whole of Delhi-NCR at once, not one neighbourhood at a time. As Delhi's AQI climbs, each stage adds rules on top of the ones before.",
+    "scale_title": "Where Delhi stands",
+    "delhi": "Delhi",
+    "tomorrow": "Tomorrow",
+    "box_line": "Delhi's AQI is about {aqi} ({category}).",
+    "you": "{area}",
+    "no_stage_band": "No stage",
+    "city_line": "Delhi's AQI is about {aqi} ({category}): the average of the last 24 hours across {count} areas.",
+    "city_line_forecast": "Delhi's AQI is forecast at about {aqi} ({category}), averaged across {count} areas.",
+    "area_line": "{area} on its own: AQI about {aqi}. GRAP still follows Delhi's average.",
+    "range_line": "Cleanest: {low} ({low_aqi}). Worst: {high} ({high_aqi}).",
+    "area_basis": "Not enough areas had a forecast, so this uses {area}'s AQI alone.",
+    "next_line": "Stage {label} starts at AQI {min_aqi}: {gap} points to go.",
+    "next_reached": "Delhi's AQI is already in the Stage {label} range (from {min_aqi}).",
+    "top_line": "Stage IV is the highest stage.",
+    "outlook_worse": "Tomorrow's forecast points to Stage {label} (AQI about {aqi}). CAQM can switch a stage on early when the forecast says the air is getting worse.",
+    "outlook_better": "Tomorrow's forecast is better: {label_text} (AQI about {aqi}).",
+    "outlook_same": "Tomorrow looks similar: {label_text} (AQI about {aqi}).",
+    "stage_word": "Stage {label}",
+    "no_stage_word": "no stage",
+    "differs": "Our estimate from Delhi's AQI is {estimate}.",
+    "measures_title": "What Stage {label} brings",
+    "measures_next": "What Stage {label} would bring",
+    "actions_count": "{count} actions in the schedule. The main ones:",
+    "how_title": "How a stage is decided",
+    "how": [
+      "CAQM's GRAP sub-committee watches Delhi's average AQI from CPCB's monitoring stations, and the IMD and IITM forecasts.",
+      "When the AQI reaches a stage's range, or is forecast to, it orders that stage for all of Delhi-NCR. It can act a few days early.",
+      "Stages add up: Stage III means the Stage I, II and III actions all apply.",
+      "When the air improves for a while, CAQM revokes the stage. A revoked stage's rules stop applying.",
+      "Delhi and the NCR states can also issue their own extra orders on top of GRAP."
+    ],
+    "estimate_title": "How accurate is this?",
+    "estimate": [
+      "When the Saans Compass team has entered CAQM's latest order, the stage shown is that order.",
+      "Otherwise it is our estimate from Delhi's AQI, worked out like CPCB's: each area's 24-hour average, then the average across Delhi.",
+      "Our numbers come from the Open-Meteo forecast model, not CPCB's stations, so they can be some points off. Near a stage's edge, the official stage may differ."
+    ],
+    "sites_title": "Delhi's AQI, area by area",
+    "sources": [
+      {
+        "label": "CAQM (Commission for Air Quality Management)",
+        "url": "https://caqm.nic.in/"
+      },
+      {
+        "label": "PIB: revised GRAP schedule, 29 Sep 2026",
+        "url": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2316597"
+      }
+    ],
+    "sources_label": "Sources"
   }
 }
