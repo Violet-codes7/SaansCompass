@@ -17,6 +17,7 @@
     },
     {
       "id": "grap",
+      "when": "grap_applies",
       "label": "GRAP rules"
     },
     {

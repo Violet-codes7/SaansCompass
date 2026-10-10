@@ -111,31 +111,38 @@ def _get(session, params):
 
 
 def fetch(session=None):
-    """The feed's records for the configured states (Delhi and the NCR states
-    around it), or None when the key is missing or the feed cannot be read.
-    When the host cannot be reached at all, the other states are not tried."""
+    """The feed's records for the configured states, or for all of India when
+    none are set (cpcb_filter_value), page by page up to cpcb_max_pages; None
+    when the key is missing or the feed cannot be read. When the host cannot
+    be reached at all, nothing more is tried."""
     import requests
 
     key = _api_key()
     if not key:
         return None
-    states = settings.get("cpcb_filter_value")
+    states = settings.get("cpcb_filter_value") or [None]
     states = [states] if isinstance(states, str) else states
+    limit = settings.get("cpcb_limit")
     records, ok = [], False
     for state in states:
-        params = {"api-key": key, "format": "json", "limit": settings.get("cpcb_limit"),
-                  f"filters[{settings.get('cpcb_filter_field')}]": state}
-        try:
-            got = _get(session, params)
-        except (requests.ConnectionError, requests.Timeout) as exc:
-            log.warning("cpcb feed failed: %s", type(exc).__name__)
-            break
-        except Exception as exc:  # HTTP or JSON error; the message may carry the URL, so log the type only
-            log.warning("cpcb feed failed: %s", type(exc).__name__)
-            continue
-        if isinstance(got, list):
+        for page in range(settings.get("cpcb_max_pages")):
+            params = {"api-key": key, "format": "json", "limit": limit, "offset": page * limit}
+            if state:
+                params[f"filters[{settings.get('cpcb_filter_field')}]"] = state
+            try:
+                got = _get(session, params)
+            except (requests.ConnectionError, requests.Timeout) as exc:
+                log.warning("cpcb feed failed: %s", type(exc).__name__)
+                return records if ok else None
+            except Exception as exc:  # HTTP or JSON error; the message may carry the URL, so log the type only
+                log.warning("cpcb feed failed: %s", type(exc).__name__)
+                break
+            if not isinstance(got, list):
+                break
             records += got
             ok = True
+            if len(got) < limit:
+                break
     return records if ok else None
 
 
@@ -192,17 +199,29 @@ def _km(lat1, lon1, lat2, lon2):
     return 12742 * math.asin(math.sqrt(a))
 
 
+def max_km(area, areas_km="cpcb_max_km"):
+    """How far a station may be from a place to stand for it: Delhi's areas
+    sit on CPCB sites; a typed town is a centre point (place_station_km)."""
+    from .data import is_place
+
+    return settings.get("place_station_km") if is_place(area) else settings.get(areas_km)
+
+
 def nearest(stations, area):
-    """The station for an area: the nearest within cpcb_max_km, else one named after it."""
+    """The station for an area: the nearest within max_km(area), else one named after it."""
     best = None
     for s in stations or ():
         if s.get("lat") is None or s.get("lon") is None:
             continue
         km = _km(area.lat, area.lon, s["lat"], s["lon"])
-        if km <= settings.get("cpcb_max_km") and (best is None or km < best[0]):
+        if km <= max_km(area) and (best is None or km < best[0]):
             best = (km, s)
     if best:
         return {**best[1], "km": round(best[0], 1)}
+    from .data import is_place
+
+    if is_place(area):  # a town's name can match a station in another town
+        return None
     name = area.name.lower().replace(" ", "")
     for s in stations or ():
         if s["name"].lower().replace(" ", "").startswith(name):

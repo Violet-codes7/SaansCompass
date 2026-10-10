@@ -93,8 +93,29 @@ def test_feed_failure_or_no_key_gives_none(feed_on, monkeypatch):
 def test_key_goes_in_the_request_only(feed_on):
     s = FakeSession(delhi_records())
     cpcb.get_stations(now=FIXED_NOW, session=s)
-    assert s.calls[0]["params"]["api-key"] == "test-key" and s.calls[0]["params"]["filters[state]"] == "Delhi"
-    assert [c["params"]["filters[state]"] for c in s.calls] == ["Delhi", "Haryana", "Uttar_Pradesh", "Rajasthan"]
+    assert s.calls[0]["params"]["api-key"] == "test-key" and "filters[state]" not in s.calls[0]["params"]
+
+
+class Pages(FakeSession):
+    """The feed in pages of `limit` records, by offset."""
+    def get(self, url, params=None, timeout=None):
+        self.calls.append({"url": url, "params": params})
+        page = self.records[params["offset"]:params["offset"] + params["limit"]]
+        return SimpleNamespace(raise_for_status=lambda: None, json=lambda: {"records": page})
+
+
+def test_all_of_india_is_read_page_by_page(feed_on, monkeypatch):
+    monkeypatch.setenv("CPCB_LIMIT", "10")
+    records = delhi_records() + station("Lalbagh, Lucknow - UPPCB", 26.85, 80.94, 90)
+    got = cpcb.fetch(Pages(records))
+    assert len(got) == len(records)
+
+
+def test_configured_states_are_asked_for_one_by_one(feed_on, monkeypatch):
+    monkeypatch.setenv("CPCB_FILTER_VALUE", '["Delhi", "Haryana"]')
+    s = FakeSession(delhi_records())
+    cpcb.fetch(s)
+    assert [c["params"]["filters[state]"] for c in s.calls] == ["Delhi", "Haryana"]
 
 
 def test_city_aqi_is_the_station_average(feed_on):
@@ -139,7 +160,7 @@ class Refused(FakeSession):
 def test_refused_host_is_retried_once_then_given_up(feed_on, monkeypatch):
     monkeypatch.setattr(cpcb.time, "sleep", lambda s: None)
     s = Refused()
-    assert cpcb.fetch(s) is None and len(s.calls) == 2  # one retry, then the other states are skipped
+    assert cpcb.fetch(s) is None and len(s.calls) == 2  # one retry, then nothing more is tried
 
 
 def test_last_good_reading_covers_a_feed_outage(feed_on, mem_store, monkeypatch):
@@ -149,3 +170,12 @@ def test_last_good_reading_covers_a_feed_outage(feed_on, mem_store, monkeypatch)
     monkeypatch.setattr(cpcb, "fetch", lambda session=None: None)
     stations = cpcb.get_stations(mem_store, now=FIXED_NOW)
     assert stations and cpcb.nearest(stations, data.get_area("ito"))["aqi"] == 312
+
+
+def test_a_town_uses_a_station_up_to_place_station_km_away(feed_on):
+    from saans import route
+    recs = delhi_records() + station("Lalbagh, Lucknow - UPPCB", 26.845, 80.94, 90)
+    stations = cpcb.get_stations(now=FIXED_NOW, session=FakeSession(recs))
+    near = cpcb.nearest(stations, route.place_for(26.85, 80.95, "Lucknow"))
+    assert near and near["name"].startswith("Lalbagh")
+    assert cpcb.nearest(stations, route.place_for(26.45, 80.33, "Kanpur")) is None  # none within reach

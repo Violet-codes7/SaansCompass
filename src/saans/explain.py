@@ -31,9 +31,12 @@ def _policy(policy_id):
 POLICY = {pid: _policy(pid) for pid in _CONFIG["policy"]}
 
 
-def stage_headline(stage, day_aqi, category, day="today"):
-    """The big line in the stage box: never a bare "None"."""
+def stage_headline(stage, day_aqi, category, day="today", outside=None):
+    """The big line in the stage box: never a bare "None". `outside` is the
+    name of a place outside Delhi-NCR, where GRAP does not apply."""
     h = _HEADLINES
+    if outside:
+        return {"title": h["outside_title"].format(area=outside), "sub": h["outside_sub"]}
     if stage is None:
         return dict(h["unknown"])
     if stage == 0:

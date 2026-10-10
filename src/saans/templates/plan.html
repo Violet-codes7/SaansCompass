@@ -65,15 +65,15 @@
   </div>
   {% set sg = plan.stage %}
   <div class="stage-box s{{ sg.stage or 0 }}">
-    <span class="eyebrow">GRAP stage, Delhi-NCR</span>
+    <span class="eyebrow">{{ 'GRAP stage, Delhi-NCR' if plan.grap_applies else 'GRAP stage' }}</span>
     <strong>{{ sg.headline.title }}</strong>
     <span class="small">{{ sg.headline.sub }}</span>
     {% if sg.area_aqi is not none %}<span class="small aqi-line">{% if plan.day == 'today' and plan.official %}{{ grap.box_area_cpcb.format(area=plan.area.name, aqi=sg.area_aqi, category=aqi_category(sg.area_aqi), station=plan.official.short, time=plan.official.time) }}{% else %}{{ (grap.box_area if plan.day == 'today' else grap.box_area_tomorrow).format(area=plan.area.name, aqi=sg.area_aqi, category=aqi_category(sg.area_aqi)) }}{% endif %}</span>{% endif %}
     {% if sg.city %}<span class="small">{{ grap.box_city.format(aqi=sg.day_aqi, category=aqi_category(sg.day_aqi)) }}</span>{% endif %}
-    <span class="src {{ sg.source }}">{{ stage_sources[sg.source].label }}</span>
+    {% if plan.grap_applies %}<span class="src {{ sg.source }}">{{ stage_sources[sg.source].label }}</span>{% endif %}
     {% if sg.source != 'estimate' and sg.estimate and sg.estimate != sg.label %}<span class="small">{{ grap.differs.format(estimate=grap.no_stage_word if sg.estimate == 'None' else grap.stage_word.format(label=sg.estimate)) }}</span>{% endif %}
     {% if sg.outlook and sg.outlook.stage > (sg.stage or 0) %}<span class="small outlook">{{ grap.outlook_worse.format(label=sg.outlook.label, aqi=sg.outlook.aqi) }}</span>{% endif %}
-    <a class="small" href="#grap">What this stage means</a>
+    {% if plan.grap_applies %}<a class="small" href="#grap">What this stage means</a>{% endif %}
     {% if sg.source == 'official' %}<a class="small" href="{{ plan_link(stage='') }}">Back to the real stage</a>{% endif %}
   </div>
 </section>
@@ -439,7 +439,7 @@
 </section>
 {% endset %}
 {% set sec = {"air": sec_air, "trips": sec_trips, "grap": sec_grap, "glance": sec_glance, "health": sec_health, "day": sec_day} %}
-{% for sct in layout.sections %}{{ sec[sct.id] }}
+{% for sct in layout.sections if not sct.when or plan[sct.when] %}{{ sec[sct.id] }}
 {% endfor %}
 
 <section class="panel actions">

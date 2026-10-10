@@ -133,13 +133,13 @@ def test_locate_api(client, caplog):
     ok = client.post("/api/locate", json={"lat": 28.6275, "lon": 77.2412}).get_json()
     assert ok["area"] == "ito" and ok["label"] == "Near ITO (your location)"
     far = client.post("/api/locate", json={"lat": 19.07, "lon": 72.88})
-    assert far.status_code == 404 and "outside" in far.get_json()["error"]
+    assert far.status_code == 404 and "Type your town" in far.get_json()["error"]
     assert client.post("/api/locate", json={"lat": "x"}).status_code == 400
     assert client.post("/api/locate", json={"lat": 100, "lon": 0}).status_code == 400
     assert "28.6275" not in caplog.text and "77.2412" not in caplog.text
 
 
-def test_places_near_delhi_get_their_own_area_far_ones_none(mem_store):
+def test_places_anywhere_in_india_get_their_own_area(mem_store):
     from saans import data, route
     near = route.place_for(28.6300, 77.2400, "ITO crossing")
     assert near.id == "ito"  # within area_snap_km of ITO
@@ -147,7 +147,44 @@ def test_places_near_delhi_get_their_own_area_far_ones_none(mem_store):
     assert town.id.startswith("p-") and town.name == "Gurugram" and (town.lat, town.lon) == (28.46, 77.03)
     data._places.clear()
     assert data.get_area(town.id) == town  # read back from the store
-    assert route.place_for(19.07, 72.88, "Mumbai") is None
+    assert route.place_for(19.07, 72.88, "Mumbai").name == "Mumbai"
+    assert route.place_for(51.51, -0.13, "London") is None  # outside India
     import pytest
     with pytest.raises(ValueError):
         data.get_area("p-000000000000")
+
+
+# Places outside Delhi-NCR: their own air, no GRAP stage
+
+def test_grap_applies_in_delhi_ncr_only(mem_store):
+    assert data.in_grap_region(data.get_area("ito"))
+    assert data.in_grap_region(route.place_for(28.4595, 77.0266, "Gurugram"))
+    assert not data.in_grap_region(route.place_for(26.85, 80.95, "Lucknow"))
+
+
+def test_plan_outside_ncr_has_no_grap_stage_or_rules(mem_store, live_fetcher):
+    lucknow = route.place_for(26.85, 80.95, "Lucknow")
+    plan = get_plan("commuter", lucknow.id, day="today", now=FIXED_NOW, store=mem_store, fetcher=live_fetcher,
+                    every_stage=True)
+    assert plan["grap_applies"] is False and plan["stage"]["source"] == "outside"
+    assert plan["stage"]["headline"]["title"] == "No GRAP stage in Lucknow"
+    assert not any(a["rule"] for a in plan["activities"]) and plan["stage_table"] is None
+    assert set(live_fetcher.calls) == {lucknow.id}  # Delhi's areas are not needed
+    assert plan["air"]["day_aqi"] is not None  # the town's own forecast
+
+
+def test_plan_page_outside_ncr(client, monkeypatch):
+    from saans import weather
+    seen = []
+
+    def no_weather(area):
+        seen.append(area.name)
+        raise TimeoutError("no network")
+    monkeypatch.setattr(weather, "fetch_weather", no_weather)
+    monkeypatch.setattr(data, "geocode", lambda text, session=None: (26.85, 80.95, "Lucknow"))
+    loc = client.get("/plan?persona=commuter&from=Lucknow&area=&day=today").headers["Location"]
+    assert "26.8" not in loc and "80.9" not in loc  # coordinates never go in the link
+    html = client.get(loc).get_data(as_text=True)
+    assert "No GRAP stage in Lucknow" in html and "GRAP rules apply only in Delhi-NCR." in html
+    assert 'id="grap"' not in html and 'href="#grap"' not in html
+    assert "Weather in Lucknow" in html and seen == ["Lucknow"]

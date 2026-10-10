@@ -260,7 +260,10 @@ def create_app():
         except ValueError as exc:
             return render_template("error.html", message=str(exc)), 400
         _log_plan(plan)
-        wx = weather.get_weather(weather.city_place(), get_store())
+        # A typed town has its own weather; Delhi's areas share the city's.
+        wx_place = data.get_area(plan["area"]["id"])
+        wx_place = wx_place if data.is_place(wx_place) else weather.city_place()
+        wx = weather.get_weather(wx_place, get_store())
         plan["hour_details"] = guide.hour_details(plan, wx)
         saved = _saved()
         typed = _typed_trip()
@@ -268,7 +271,7 @@ def create_app():
         return render_template("plan.html", plan=plan, args=args, weather=wx, using_saved=bool(saved),
                                saved_trip=bool(saved) and not typed,
                                route_texts=texts, route_text=route.TEXT, role=_role(saved),
-                               display_name=saved.get("name") if saved else None)
+                               display_name=saved.get("name") if saved else None, weather_place=wx_place.name)
 
     @app.get("/poster")
     def poster():

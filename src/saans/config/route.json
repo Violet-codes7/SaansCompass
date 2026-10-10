@@ -207,11 +207,11 @@
     "locating": "Finding where you are…",
     "located": "Near {name} (your location)",
     "denied": "Location is off. Type where you start instead.",
-    "outside": "You seem to be outside the Delhi areas we cover. Type the nearest place instead.",
+    "outside": "You seem to be away from Delhi's areas. Type your town or locality instead.",
     "unsupported": "This browser cannot share your location. Type where you start instead.",
     "not_found": "We could not place \"{text}\" on our map of Delhi. Pick the closest area below.",
     "day_area": "Your hour-by-hour plan uses the air at {area}, where you spend the day.",
-    "not_found_typed": "We could not find \"{text}\" near Delhi. Try a nearby town, locality or metro station."
+    "not_found_typed": "We could not find \"{text}\" in India. Try a nearby town, locality or station."
   },
   "_towns_about": "Towns in Delhi-NCR outside our Delhi areas, matched by name when the AI model is off (approximate centres).",
   "towns": [

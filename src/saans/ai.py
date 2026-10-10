@@ -238,6 +238,7 @@ def plan_facts(plan):
         "area": plan["area"]["name"],
         "date": plan["date"],
         "grap_stage": plan["stage"]["headline"]["title"],
+        "grap_applies": plan["stage"]["source"] != "outside",
         "stage_source": plan["stage"]["source"],
         "delhi_aqi": plan["stage"].get("day_aqi"),
         "stage_outlook_tomorrow": (plan["stage"].get("outlook") or {}).get("label"),

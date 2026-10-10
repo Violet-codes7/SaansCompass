@@ -311,6 +311,8 @@
     "none_moderate": "Delhi's average is {gap} points below Stage I, which starts at AQI {stage1_min}.",
     "none_other": "Delhi's average AQI is {aqi} ({category}).",
     "stage_title": "Stage {roman}: {name}",
+    "outside_title": "No GRAP stage in {area}",
+    "outside_sub": "GRAP rules apply only in Delhi-NCR.",
     "okay_categories": [
       "Good",
       "Satisfactory"
@@ -336,6 +338,10 @@
     "estimate": {
       "label": "Estimated from Delhi's AQI",
       "short": "estimated from Delhi's AQI"
+    },
+    "outside": {
+      "label": "Outside Delhi-NCR",
+      "short": "outside Delhi-NCR"
     }
   },
   "grap": {

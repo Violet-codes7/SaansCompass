@@ -9,7 +9,7 @@ from .advisor import build_plan
 from .personas import get_persona
 from .profile import COMMUTE_MODES, VEHICLES, Profile
 from .rules import default_rulebook
-from .stage import ROMAN, declared_stage, parse_stage, resolve_stage
+from .stage import ROMAN, declared_stage, outside_stage, parse_stage, resolve_stage
 from .store import get_store
 
 DAYS = ("today", "tomorrow")
@@ -110,18 +110,22 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
     forecast = data.get_forecast(area, store, now=now, **kwargs)
 
     date = now.astimezone(data.IST).date() + timedelta(days=1 if day == "tomorrow" else 0)
-    # CAQM's declaration applies to the day it is made; tomorrow stays an estimate.
-    declared = declared_stage() if day == "today" and official is None else None
-    # GRAP is decided for all of Delhi-NCR on Delhi's city-wide AQI, so the
-    # estimate uses every area, not just this one.
-    forecasts = data.get_forecasts(data.AREAS.values(), store, now=now, fetcher=fetcher)
-    if area.id in forecasts:  # a typed place outside Delhi's areas is not part of Delhi's AQI
-        forecasts[area.id] = forecast
     station, station_city = official_air(area, store, now)
-    city = (station_city if day == "today" else None) or data.city_air(forecasts, date, now)
-    next_day = data.city_air(forecasts, date + timedelta(days=1), now) if day == "today" else None
-    stage_info = resolve_stage(city["aqi"] if city else data.day_aqi(forecast, date), official, declared,
-                               city=city, outlook=next_day["aqi"] if next_day else None)
+    grap_here = data.in_grap_region(area)
+    if grap_here:
+        # CAQM's declaration applies to the day it is made; tomorrow stays an estimate.
+        declared = declared_stage() if day == "today" and official is None else None
+        # GRAP is decided for all of Delhi-NCR on Delhi's city-wide AQI, so the
+        # estimate uses every area, not just this one.
+        forecasts = data.get_forecasts(data.AREAS.values(), store, now=now, fetcher=fetcher)
+        if area.id in forecasts:  # a typed place outside Delhi's areas is not part of Delhi's AQI
+            forecasts[area.id] = forecast
+        city = (station_city if day == "today" else None) or data.city_air(forecasts, date, now)
+        next_day = data.city_air(forecasts, date + timedelta(days=1), now) if day == "today" else None
+        stage_info = resolve_stage(city["aqi"] if city else data.day_aqi(forecast, date), official, declared,
+                                   city=city, outlook=next_day["aqi"] if next_day else None)
+    else:  # GRAP is Delhi-NCR's plan: elsewhere there is no stage and no GRAP rule
+        stage_info = outside_stage()
     # One AQI for the area everywhere on the page: the same figure as the air
     # dials (last 24 hours today, the day's forecast average tomorrow).
     if day == "today":
@@ -130,7 +134,7 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
         area_aqi = data.day_aqi(forecast, date)
     stage_info.update(area_aqi=area_aqi, day=day)
     sensitive = persona.sensitive or bool(profile and profile.sensitive)
-    rule_results = rulebook.evaluate_persona(persona, area.id, stage_info["stage"], sensitive)
+    rule_results = rulebook.evaluate_persona(persona, area.id, stage_info["stage"], sensitive) if grap_here else []
     plan = build_plan(persona, area, forecast, date, stage_info, rule_results, profile)
     plan["day"] = day
     plan["route"] = (route.trips(persona, start, dest, date, store, now, fetcher, modes=modes)
@@ -145,7 +149,8 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
         plan["day_actions"] = trip_actions + plan["day_actions"]
         plan["actions"] = [a for a in plan["actions"] if a not in plan["day_actions"]] + plan["day_actions"]
     plan["official"] = station
-    plan["stage_table"] = stage_table(persona, area.id, sensitive, rulebook) if every_stage else None
+    plan["grap_applies"] = grap_here
+    plan["stage_table"] = stage_table(persona, area.id, sensitive, rulebook) if every_stage and grap_here else None
     today = now.astimezone(data.IST).date()
     plan["time_now"] = now.astimezone(data.IST).strftime("%H:%M")
     # Every hour of today and tomorrow, so "when is best tomorrow?" has an answer.

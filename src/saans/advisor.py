@@ -171,8 +171,10 @@ def _notes(forecast, stage_info, profile, rule_results):
     out = []
     if forecast.get("is_stale"):
         out.append(note("stale", fetched=forecast["fetched_at"][:16].replace("T", " ")))
-    out.append(note({"estimate": "stage_estimate", "declared": "stage_declared"}.get(stage_info["source"], "stage_official"),
-                    stage=stage_info["label"]))
+    if stage_info["source"] != "outside":
+        out.append(note({"estimate": "stage_estimate", "declared": "stage_declared"}.get(stage_info["source"],
+                                                                                         "stage_official"),
+                        stage=stage_info["label"]))
     out.append(note("forecast"))
     if profile and profile.threshold_shift():
         out.append(note("limits_profile", shift=profile.threshold_shift(), reasons=", ".join(profile.reasons())))
@@ -282,7 +284,8 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
     day_aqi = stage_info.get("day_aqi")
     day_category = aqi_category(day_aqi) if day_aqi is not None else None
     stage_info = {**stage_info, "headline": stage_headline(stage_info["stage"], day_aqi, day_category,
-                                                           stage_info.get("day", "today"))}
+                                                           stage_info.get("day", "today"),
+                                                           outside=area.name if stage_info["source"] == "outside" else None)}
     # The stage follows Delhi's AQI; the air section is about this area.
     area_aqi = stage_info.get("area_aqi", day_aqi)
     area_category = aqi_category(area_aqi) if area_aqi is not None else None

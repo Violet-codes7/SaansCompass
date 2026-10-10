@@ -91,7 +91,7 @@ def _todo(plan, persona, profile, modes):
         for a in plan["activities"]:
             if a["rule"] and a["rule"]["decision"] == decision:
                 groups["rules"].append(ADVICE["actions"][key].format(label=a["label"]))
-    if not groups["rules"]:
+    if not groups["rules"] and plan["stage"]["source"] != "outside":
         groups["rules"].append(t["no_rules"].format(day=day, stage=plan["stage"]["headline"]["title"]))
 
     # Timing

@@ -111,12 +111,12 @@ def fresh_and_near(reading, area, now):
     time, km), or None when it is too far away or too old to call "now"."""
     from datetime import datetime
 
-    from .cpcb import _km, short_name
+    from .cpcb import _km, max_km, short_name
 
     if not reading or reading.get("lat") is None or reading.get("lon") is None:
         return None
     km = _km(area.lat, area.lon, reading["lat"], reading["lon"])
-    if km > settings.get("waqi_max_km"):
+    if km > max_km(area, "waqi_max_km"):
         return None
     try:
         t = datetime.strptime(str(reading.get("updated")), "%Y-%m-%d %H:%M:%S")

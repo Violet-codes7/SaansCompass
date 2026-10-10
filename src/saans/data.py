@@ -37,7 +37,7 @@ class Area:
 AREAS = {a["id"]: Area(**a) for a in settings.load("areas")["areas"]}
 
 
-# Places someone typed that are not near one of the AREAS (Gurugram, Rewari).
+# Places someone typed that are not near one of the AREAS (Gurugram, Lucknow).
 # A link names one by a short id; its name and rounded coordinates are kept in
 # the store under that id, so no coordinates go in a link or a log.
 PLACE_PREFIX = "p-"
@@ -53,12 +53,12 @@ def _km(lat1, lon1, lat2, lon2):
 
 
 def make_place(lat, lon, name, store=None):
-    """An Area for a typed place, or None when it is too far from Delhi for
-    Delhi-NCR's GRAP rules (max_place_km)."""
+    """An Area for a typed place anywhere in India, or None when it is
+    outside the country's box (place_bounds)."""
     import hashlib
 
-    centre = settings.get("weather_place")
-    if _km(lat, lon, centre["lat"], centre["lon"]) > settings.get("max_place_km"):
+    box = settings.get("place_bounds")
+    if not (box["lat"][0] <= lat <= box["lat"][1] and box["lon"][0] <= lon <= box["lon"][1]):
         return None
     digits = settings.get("place_round_digits")
     lat, lon = round(lat, digits), round(lon, digits)
@@ -72,6 +72,20 @@ def make_place(lat, lon, name, store=None):
     except Exception as exc:
         log.warning("could not keep place %s: %s", pid, type(exc).__name__)
     return area
+
+
+def in_grap_region(area):
+    """True when GRAP applies to the place: Delhi's areas, and typed places
+    within grap_region_km of Delhi (Delhi-NCR)."""
+    if area.id in AREAS:
+        return True
+    centre = settings.get("weather_place")
+    return _km(area.lat, area.lon, centre["lat"], centre["lon"]) <= settings.get("grap_region_km")
+
+
+def is_place(area):
+    """A typed place rather than one of Delhi's areas."""
+    return str(area.id).startswith(PLACE_PREFIX)
 
 
 def _place_store(store):

@@ -50,6 +50,12 @@ def next_stage(stage, value):
             "gap": None if value is None else max(min_aqi - value, 0)}
 
 
+def outside_stage():
+    """The stage for a place outside Delhi-NCR, where GRAP does not apply."""
+    return {"stage": 0, "label": ROMAN[0], "source": "outside", "day_aqi": None, "basis": "area", "city": None,
+            "estimate": None, "next": None, "outlook": None}
+
+
 def resolve_stage(day_aqi, official=None, declared=None, city=None, outlook=None):
     """Stage to use, in order: the stage the user set (official), the stage the
     team recorded from CAQM's latest order (declared), then the AQI estimate.
