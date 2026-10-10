@@ -100,11 +100,27 @@ def enabled():
     return False
 
 
+_last_error = {"reason": None}
+
+
+def _fail(reason):
+    """Log why the model gave nothing and keep it for the API's error reply.
+    Reasons are status codes and finish reasons only, never keys or text."""
+    log.warning(reason)
+    _last_error["reason"] = reason
+    return None
+
+
+def last_error():
+    return _last_error["reason"]
+
+
 def gemini(system, user, max_tokens=4096, schema=None, session=None):
-    """Text from Gemini, or None on any failure or block."""
+    """Text from Gemini, or None on any failure or block. Busy or rate-limited
+    answers (429, 500, 503) are tried again once after a short pause."""
     key = _gemini_key()
     if not key:
-        return None
+        return _fail("gemini key not available")
     config = {"maxOutputTokens": max_tokens, "temperature": settings.get("ai_temperature")}
     if schema:
         config.update(responseMimeType="application/json", responseSchema=schema)
@@ -114,22 +130,33 @@ def gemini(system, user, max_tokens=4096, schema=None, session=None):
         "generationConfig": config,
     }
     url = settings.get("gemini_url").format(model=settings.get("gemini_model"))
-    try:
-        resp = (session or requests).post(url, json=body, headers={"x-goog-api-key": key},
-                                          timeout=settings.get("ai_timeout_seconds"))
-    except requests.RequestException as exc:
-        log.warning("gemini unreachable: %s", type(exc).__name__)
-        return None
+    for attempt in range(2):
+        try:
+            resp = (session or requests).post(url, json=body, headers={"x-goog-api-key": key},
+                                              timeout=settings.get("ai_timeout_seconds"))
+        except requests.RequestException as exc:
+            return _fail(f"gemini unreachable: {type(exc).__name__}")
+        if resp.status_code in (429, 500, 503) and attempt == 0:
+            time.sleep(settings.get("ai_retry_seconds"))
+            continue
+        break
     if resp.status_code != 200:
-        log.warning("gemini returned %s: %s", resp.status_code, resp.text[:300])
-        return None
+        return _fail(f"gemini returned {resp.status_code}: {_gemini_error(resp)}")
     candidates = resp.json().get("candidates") or []
     if not candidates or candidates[0].get("finishReason") not in (None, "STOP"):
-        log.warning("gemini gave no answer: %s", candidates[0].get("finishReason") if candidates else "blocked")
-        return None
+        return _fail(f"gemini gave no answer: {candidates[0].get('finishReason') if candidates else 'blocked'}")
     parts = candidates[0].get("content", {}).get("parts", [])
     text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
-    return text or None
+    return text or _fail("gemini gave an empty answer")
+
+
+def _gemini_error(resp):
+    """Google's short error status and message, e.g. RESOURCE_EXHAUSTED."""
+    try:
+        err = resp.json().get("error", {})
+        return f"{err.get('status', '')} {err.get('message', '')}".strip()[:200]
+    except Exception:
+        return resp.text[:200]
 
 
 def _region():
@@ -230,16 +257,12 @@ def cache_key(plan, lang):
     return "AI#" + hashlib.sha256(f"{lang}|{facts}".encode()).hexdigest()
 
 
-def summarize(plan, lang="en", client=None, session=None, runtime=None):
-    """Two-sentence summary, or None when it cannot be produced."""
-    if lang not in LANGUAGES:
-        raise ValueError("lang must be en or hi")
-    system = SYSTEM.format(language=LANGUAGES[lang], headings=", ".join(HEADINGS[lang]))
-    facts = json.dumps(plan_facts(plan), ensure_ascii=False)
+def _ask(system, user, client=None, session=None, runtime=None, what="answer"):
+    """Plain text from the configured model, or None on any failure."""
     if client is None and runtime is None and provider() == "gemini":
-        return gemini(system, facts, session=session)
+        return gemini(system, user, max_tokens=settings.get("gemini_max_tokens"), session=session)
     if client is None and (runtime is not None or not uses_messages_api()):
-        return converse(system, facts, max_tokens=settings.get("ai_max_tokens"), runtime=runtime)
+        return converse(system, user, max_tokens=settings.get("ai_max_tokens"), runtime=runtime)
     import anthropic
 
     client = client or _bedrock()
@@ -249,7 +272,7 @@ def summarize(plan, lang="en", client=None, session=None, runtime=None):
             max_tokens=settings.get("ai_max_tokens"),
             output_config={"effort": "low"},
             system=system,
-            messages=[{"role": "user", "content": facts}],
+            messages=[{"role": "user", "content": user}],
         )
     except anthropic.RateLimitError:
         log.warning("bedrock rate limited")
@@ -261,10 +284,63 @@ def summarize(plan, lang="en", client=None, session=None, runtime=None):
         log.warning("bedrock unreachable: %s", exc)
         return None
     if message.stop_reason == "refusal":
-        log.warning("bedrock declined the summary")
+        log.warning("bedrock declined the %s", what)
         return None
     text = "".join(b.text for b in message.content if b.type == "text").strip()
     return text or None
+
+
+def summarize(plan, lang="en", client=None, session=None, runtime=None):
+    """Four lines of personal advice, or None when they cannot be produced."""
+    if lang not in LANGUAGES:
+        raise ValueError("lang must be en or hi")
+    system = SYSTEM.format(language=LANGUAGES[lang], headings=", ".join(HEADINGS[lang]))
+    facts = json.dumps(plan_facts(plan), ensure_ascii=False)
+    return _ask(system, facts, client, session, runtime, what="summary")
+
+
+CHAT_SYSTEM = _PROMPTS["chat_system"]
+
+
+def chat_facts(plan):
+    """What the chat may use: the advice facts plus the day's hours and air."""
+    facts = plan_facts(plan)
+    facts.update(
+        area_aqi=plan.get("air", {}).get("day_aqi"),
+        air_this_hour={k: (plan.get("air_now") or {}).get(k) for k in ("time", "aqi", "category")},
+        air_tomorrow=plan.get("air_tomorrow"),
+        your_limits={"fine_up_to": plan["thresholds"]["go_max"], "keep_short_up_to": plan["thresholds"]["limit_max"]},
+        hours=[{"time": f"{r['hour']:02d}:00", "aqi": r["aqi"], "category": r.get("category")}
+               for r in plan.get("hours", [])],
+        rule_details=[{"activity": a["label"], "time": a["time"], "decision": a["rule"]["label"],
+                       "why": (a.get("explain") or {}).get("why")}
+                      for a in plan["activities"] if a["rule"]],
+    )
+    return facts
+
+
+def clean_history(history):
+    """The last few chat turns as [{"role": "user"|"assistant", "text": str}], trimmed."""
+    if not isinstance(history, list):
+        return []
+    turns = [{"role": t["role"], "text": t["text"][:settings.get("chat_max_chars")]}
+             for t in history
+             if isinstance(t, dict) and t.get("role") in ("user", "assistant") and isinstance(t.get("text"), str)]
+    return turns[-settings.get("chat_max_turns"):]
+
+
+def chat(plan, question, history=(), lang="en", client=None, session=None, runtime=None):
+    """An answer to one question about this plan, or None when it cannot be
+    produced. The question and history are data for the model, never logged."""
+    if lang not in LANGUAGES:
+        raise ValueError("lang must be en or hi")
+    question = (question or "").strip()[:settings.get("chat_max_chars")]
+    if not question:
+        raise ValueError("question is empty")
+    system = CHAT_SYSTEM.format(language=LANGUAGES[lang])
+    user = json.dumps({"plan": chat_facts(plan), "conversation": clean_history(history), "question": question},
+                      ensure_ascii=False)
+    return _ask(system, user, client, session, runtime, what="chat answer")
 
 
 WORK_SYSTEM = _PROMPTS["work_system"]

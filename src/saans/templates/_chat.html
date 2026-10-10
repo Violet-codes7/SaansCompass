@@ -1,0 +1,85 @@
+{# "Ask Saans": a chat about the plan in the link. Included by plan.html when the AI is on. #}
+{% set ct = chat_text %}
+<button type="button" class="chat-fab" id="chat-open" aria-controls="chat" aria-expanded="false">💬 <span>{{ ct.open }}</span></button>
+<section class="chat" id="chat" role="dialog" aria-modal="false" aria-labelledby="chat-title" hidden
+         data-api="{{ url_for('api_chat') }}?{{ request.query_string.decode() }}">
+  <header class="chat-head">
+    <h2 id="chat-title">💬 {{ ct.title }}</h2>
+    <button type="button" class="chat-x" id="chat-close" aria-label="{{ ct.close }}">×</button>
+  </header>
+  <div class="chat-log" id="chat-log" aria-live="polite">
+    <div class="chat-msg bot"><b>{{ ct.bot }}</b><p>{{ ct.intro.format(ai=ai_label) }}</p></div>
+  </div>
+  <div class="chat-sugg" id="chat-sugg">
+    <span class="small">{{ ct.suggestions_title }}:</span>
+    {% for q in ct.suggestions %}<button type="button" class="chip" data-ask="{{ q }}">{{ q }}</button>{% endfor %}
+  </div>
+  <form class="chat-form" id="chat-form">
+    <label class="sr-only" for="chat-q">{{ ct.placeholder }}</label>
+    <textarea id="chat-q" rows="1" maxlength="{{ chat_max_chars }}" placeholder="{{ ct.placeholder }}"></textarea>
+    <button type="submit" id="chat-send">{{ ct.send }}</button>
+  </form>
+  <p class="chat-note small">{{ ct.note }}</p>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("chat"), log = document.getElementById("chat-log");
+  var form = document.getElementById("chat-form"), q = document.getElementById("chat-q");
+  var openBtn = document.getElementById("chat-open"), send = document.getElementById("chat-send");
+  var T = {{ {"you": ct.you, "bot": ct.bot, "thinking": ct.thinking, "network": ct.errors.network, "failed": ct.errors.failed}|tojson }};
+  var history = [];
+  function lang() { return document.documentElement.lang === "hi" ? "hi" : "en"; }
+  function add(who, text, cls) {
+    var m = document.createElement("div"), b = document.createElement("b");
+    m.className = "chat-msg " + who + (cls ? " " + cls : "");
+    m.setAttribute("translate", "no");
+    b.textContent = who === "user" ? T.you : T.bot;
+    m.appendChild(b);
+    text.split(/\n+/).forEach(function (line) {
+      if (!line.trim()) return;
+      var p = document.createElement("p"); p.textContent = line.trim(); m.appendChild(p);
+    });
+    log.appendChild(m); log.scrollTop = log.scrollHeight;
+    return m;
+  }
+  function open(question) {
+    box.hidden = false; openBtn.setAttribute("aria-expanded", "true"); openBtn.hidden = true;
+    if (question) { q.value = question; }
+    q.focus();
+  }
+  function close() { box.hidden = true; openBtn.hidden = false; openBtn.setAttribute("aria-expanded", "false"); openBtn.focus(); }
+  function ask(question) {
+    question = question.trim();
+    if (!question || send.disabled) return;
+    add("user", question);
+    document.getElementById("chat-sugg").hidden = true;
+    q.value = ""; send.disabled = true;
+    var wait = add("bot", T.thinking, "wait");
+    fetch(box.dataset.api, {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({question: question, history: history, lang: lang()})})
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        wait.remove();
+        if (d.answer) {
+          add("bot", d.answer);
+          history.push({role: "user", text: question}, {role: "assistant", text: d.answer});
+        } else { add("bot", d.error || T.failed, "err"); }
+      })
+      .catch(function () { wait.remove(); add("bot", T.network, "err"); })
+      .finally(function () { send.disabled = false; q.focus(); });
+  }
+  openBtn.addEventListener("click", function () { open(); });
+  document.getElementById("chat-close").addEventListener("click", close);
+  box.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+  form.addEventListener("submit", function (e) { e.preventDefault(); ask(q.value); });
+  q.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(q.value); } });
+  document.getElementById("chat-sugg").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-ask]"); if (b) ask(b.dataset.ask);
+  });
+  // "Ask about …" buttons elsewhere on the page open the chat, with a question if they carry one.
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-chat]"); if (!b) return;
+    open(); if (b.dataset.chat) ask(b.dataset.chat);
+  });
+})();
+</script>

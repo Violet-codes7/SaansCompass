@@ -97,3 +97,26 @@ def test_pages_name_gemini(mem_store, monkeypatch, live_fetcher, gemini_on):
     client = create_app().test_client()
     assert "Google Gemini reads this" in client.get("/").get_data(as_text=True)
     assert "Written by Google Gemini" in client.get("/plan?persona=rider&area=ito").get_data(as_text=True)
+
+
+def test_busy_gemini_is_tried_again_once(plan, gemini_on, monkeypatch):
+    monkeypatch.setattr(ai.time, "sleep", lambda s: None)
+
+    class Busy(FakeSession):
+        def post(self, url, json=None, headers=None, timeout=None):
+            self.calls.append(json)
+            if len(self.calls) == 1:
+                return SimpleNamespace(status_code=503, json=lambda: {}, text="")
+            return SimpleNamespace(status_code=200, json=lambda: answer("Today: fine."), text="")
+    s = Busy()
+    assert ai.summarize(plan, session=s) == "Today: fine." and len(s.calls) == 2
+
+
+def test_failure_reason_is_reported_without_the_key(mem_store, monkeypatch, live_fetcher, gemini_on):
+    monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
+    monkeypatch.setattr(ai.time, "sleep", lambda s: None)
+    body = {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "message": "Quota exceeded"}}
+    monkeypatch.setattr(ai.requests, "post", lambda *a, **k: SimpleNamespace(status_code=429, json=lambda: body, text=""))
+    resp = create_app().test_client().get("/api/summary?persona=rider&area=ito")
+    reason = resp.get_json()["reason"]
+    assert resp.status_code == 502 and "429" in reason and "RESOURCE_EXHAUSTED" in reason and "test-key" not in reason

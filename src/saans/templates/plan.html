@@ -107,7 +107,7 @@
 {% endif %}
 
   <section class="panel rules" id="grap">
-    <h2>GRAP rules for you</h2>
+    <div class="h-row"><h2>GRAP rules for you</h2>{% if ai_enabled %}<button type="button" class="ask" data-chat="{{ chat_text.ask_buttons.rules.question }}">💬 {{ chat_text.ask_buttons.rules.label }}</button>{% endif %}</div>
     <p class="lead">{{ grap.intro }}</p>
     {% set sg = plan.stage %}{% set city = sg.city %}{% set route_modes_label = plan.route.mode_labels|join(' + ') if plan.route and plan.route.mode_labels else '' %}
     {% if sg.day_aqi is not none %}
@@ -231,7 +231,7 @@
   <div class="g-ai" id="ai" data-query="{{ request.query_string.decode() }}">
     <div class="ai-head">
       <h3>✨ {{ gt.ai_title }}</h3>
-      <div class="ai-tools"><button type="button" id="ai-listen">Listen</button></div>
+      <div class="ai-tools"><button type="button" id="ai-listen">Listen</button><button type="button" class="ask" data-chat="">💬 {{ chat_text.ask_buttons.advice.label }}</button></div>
     </div>
     <div id="ai-text" class="ai-text" aria-live="polite" translate="no"></div>
     <audio id="ai-audio" controls hidden></audio>
@@ -243,12 +243,21 @@
   var audio = document.getElementById("ai-audio"), listen = document.getElementById("ai-listen");
   var base = box.dataset.query;
   var MSG = {
-    en: {wait: "Writing your advice…", none: "Personal advice is not available right now. Your plan above is complete without it.", voice: "Voice is not available right now."},
-    hi: {wait: "आपकी सलाह लिखी जा रही है…", none: "निजी सलाह अभी उपलब्ध नहीं है। ऊपर दी गई योजना इसके बिना भी पूरी है।", voice: "आवाज़ अभी उपलब्ध नहीं है।"}
+    en: {wait: "Writing your advice…", none: "Personal advice is not available right now. Your plan above is complete without it.", voice: "Voice is not available right now.", again: "Try again"},
+    hi: {wait: "आपकी सलाह लिखी जा रही है…", none: "निजी सलाह अभी उपलब्ध नहीं है। ऊपर दी गई योजना इसके बिना भी पूरी है।", voice: "आवाज़ अभी उपलब्ध नहीं है।", again: "फिर से कोशिश करें"}
   };
   function lang() { return document.documentElement.lang === "hi" ? "hi" : "en"; }
   function url(path) { return path + "?" + base + (base ? "&" : "") + "lang=" + lang(); }
   function say(key) { text.textContent = MSG[lang()][key]; }
+  function failed(reason) {
+    say("none");
+    var again = document.createElement("button");
+    again.type = "button"; again.className = "ask"; again.textContent = MSG[lang()].again;
+    again.addEventListener("click", load);
+    var p = document.createElement("p"); p.appendChild(again);
+    if (reason) { var why = document.createElement("small"); why.className = "muted"; why.textContent = " " + reason; p.appendChild(why); }
+    text.appendChild(p);
+  }
   function show(summary) {
     text.textContent = "";
     summary.split(/\n+/).forEach(function (line) {
@@ -265,8 +274,8 @@
     say("wait");
     audio.hidden = true;
     fetch(url("{{ url_for('api_summary') }}")).then(function (r) { return r.json(); }).then(function (d) {
-      if (d.summary) show(d.summary); else say("none");
-    }).catch(function () { say("none"); });
+      if (d.summary) show(d.summary); else failed(d.reason);
+    }).catch(function () { failed(null); });
   }
   listen.addEventListener("click", function () {
     listen.disabled = true;
@@ -283,7 +292,7 @@
 </section>
 
   <section class="panel health" id="health">
-    <h2>Your health</h2>
+    <div class="h-row"><h2>Your health</h2>{% if ai_enabled %}<button type="button" class="ask" data-chat="{{ chat_text.ask_buttons.health.question }}">💬 {{ chat_text.ask_buttons.health.label }}</button>{% endif %}</div>
     {% set h = plan.health %}{% set gh = plan.glance.health %}{% set ht = glance_text.health %}
     <p class="level level-{{ h.level }}">Sensitivity to polluted air: <b>{{ {'usual': 'Usual sensitivity', 'higher': 'Higher', 'highest': 'Highest'}[h.level] }}</b></p>
     {% if gh.today %}<h3>{{ ht.today_title }}</h3>
@@ -378,6 +387,7 @@
       <div class="dd-title">
         <span class="dd-time">{{ d.label if d else h.time[11:16] }}</span>
         {% if (now_hour and h.time[11:13] == now_hour) or h.tags %}<span class="tags">{% if now_hour and h.time[11:13] == now_hour %}<span class="tag now">{{ hour_tags.now }}</span>{% endif %}{% for t in h.tags %}<span class="tag {{ t.kind }}">{{ t.text }}</span>{% endfor %}</span>{% endif %}
+        {% if ai_enabled %}{% set at = h.time[11:16] %}<button type="button" class="ask" data-chat="{{ chat_text.ask_buttons.hour.question.format(time=at) }}">💬 {{ chat_text.ask_buttons.hour.label.format(time=at) }}</button>{% endif %}
       </div>
       <button type="button" class="ghost dd-nav" data-go="{{ i + 1 }}" {% if loop.last %}disabled{% endif %} aria-label="{{ ht.next }}">›</button>
     </div>
@@ -446,4 +456,5 @@
     <button type="submit">Subscribe</button>
   </form>
 </section>
+{% if ai_enabled %}{% include "_chat.html" %}{% endif %}
 {% endblock %}

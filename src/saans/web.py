@@ -56,6 +56,7 @@ def _read_work(job):
 
 
 PARTICLES = settings.load("particles")
+CHAT_TEXT = settings.load("chat")
 
 _route_cache = {}
 
@@ -183,7 +184,7 @@ def create_app():
                 "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link,
                 "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge, "band_gauge": gauges.band_gauge,
                 "weather_dials": weather.DIALS, "weather_text": weather.TEXT["explain"], "particles": PARTICLES,
-                "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "glance_text": guide.TEXT, "aqi_category": aqi_category, "vehicles": VEHICLES, "vehicle_labels": VEHICLE_LABELS,
+                "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "glance_text": guide.TEXT, "chat_text": CHAT_TEXT, "chat_max_chars": settings.get("chat_max_chars"), "aqi_category": aqi_category, "vehicles": VEHICLES, "vehicle_labels": VEHICLE_LABELS,
                 "hour_labels": ADVICE_TEXT["hour_verdict_labels"], "hour_tags": ADVICE_TEXT["hour_tags"],
                 "source_links": settings.get("source_links"), "route_messages": route.TEXT["messages"],
                 "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision")}
@@ -334,8 +335,29 @@ def create_app():
             return jsonify({"error": str(exc)}), 400
         text = _summary(plan, lang)
         if not text:
-            return jsonify({"error": "No summary right now."}), 502
+            return jsonify({"error": "No summary right now.", "reason": ai.last_error()}), 502
         return jsonify({"summary": text, "lang": lang, "by": ai.label()})
+
+    @app.post("/api/chat")
+    def api_chat():
+        """One question about the plan in the link. The question, the chat so
+        far and the answer are sent to the model only: never logged or stored."""
+        if not ai.enabled():
+            return jsonify({"error": CHAT_TEXT["errors"]["off"]}), 503
+        body = request.get_json(silent=True) or {}
+        lang = body.get("lang", "en")
+        try:
+            if lang not in ai.LANGUAGES:
+                raise ValueError("lang must be en or hi")
+            if not isinstance(body.get("question"), str) or not body["question"].strip():
+                raise ValueError(CHAT_TEXT["errors"]["empty"])
+            plan = _build_plan()
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        answer = ai.chat(plan, body["question"], body.get("history"), lang)
+        if not answer:
+            return jsonify({"error": CHAT_TEXT["errors"]["failed"], "reason": ai.last_error()}), 502
+        return jsonify({"answer": answer, "by": ai.label()})
 
     @app.get("/api/speak")
     def api_speak():

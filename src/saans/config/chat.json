@@ -1,0 +1,45 @@
+{
+  "_about": "Text for the 'Ask Saans' chat on the plan page. The model's instructions are in prompts.json (chat_system).",
+  "open": "Ask Saans",
+  "title": "Ask about your air",
+  "intro": "Ask anything about your plan: when to go out, what a rule means for you, or how to protect yourself. Answers come from your plan and {ai}.",
+  "placeholder": "Type your question…",
+  "send": "Send",
+  "close": "Close",
+  "thinking": "Thinking…",
+  "you": "You",
+  "bot": "Saans",
+  "suggestions_title": "Try asking",
+  "suggestions": [
+    "When is the best time to go outside today?",
+    "Can I take my car out today?",
+    "Is it safe to exercise outdoors?",
+    "Which mask should I wear?",
+    "How will tomorrow compare with today?"
+  ],
+  "note": "Not medical advice. It never changes a GRAP rule. Your questions are not saved.",
+  "errors": {
+    "off": "The chat is not set up here.",
+    "empty": "Type a question first.",
+    "failed": "No answer right now. Please try again in a minute.",
+    "network": "Could not reach the server. Check your connection and try again."
+  },
+  "ask_buttons": {
+    "advice": {
+      "label": "Ask a follow-up",
+      "question": ""
+    },
+    "rules": {
+      "label": "Ask about these rules",
+      "question": "What do today's GRAP rules mean for me?"
+    },
+    "hour": {
+      "label": "Ask about {time}",
+      "question": "What should I do at {time}?"
+    },
+    "health": {
+      "label": "Ask about your health",
+      "question": "How should I protect my health today?"
+    }
+  }
+}
