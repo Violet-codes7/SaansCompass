@@ -59,6 +59,10 @@ def no_real_network(monkeypatch):
     monkeypatch.setattr(weather, "fetch_weather", boom)
     # No AI model unless a test turns one on.
     from saans import ai
-    for name in ("AI_PROVIDER", "GEMINI_API_KEY", "GEMINI_KEY_PARAM", "GEMINI_MODEL"):
+    for name in ("AI_PROVIDER", "BEDROCK_MODEL"):
         monkeypatch.delenv(name, raising=False)
-    monkeypatch.setattr(ai, "_key_cache", {"at": -1e9, "value": None})
+
+    class NoBedrock:
+        def converse(self, **kw):
+            raise AssertionError("tests must not call the real Bedrock API")
+    monkeypatch.setattr(ai, "_runtime", NoBedrock())

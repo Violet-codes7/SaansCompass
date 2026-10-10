@@ -16,19 +16,17 @@ Parameters:
     Description: Optional. Email to notify when the Alert Lambda errors. Leave empty to skip.
   AiProvider:
     Type: String
-    Default: gemini
-    AllowedValues: [gemini, bedrock, "off"]
+    Default: bedrock
+    AllowedValues: [bedrock, "off"]
     Description: >
-      Model for personal advice and reading the "What do you do?" box. gemini reads its API key
-      from the SecureString parameter /<stack name>/gemini-api-key; bedrock uses BedrockModel.
-  GeminiModel:
-    Type: String
-    Default: gemini-flash-latest
-    Description: Gemini model id when AiProvider is gemini.
+      Amazon Bedrock writes the personal advice and reads the "What do you do?" box; "off" hides
+      the advice and reads the box with keywords.
   BedrockModel:
     Type: String
     Default: anthropic.claude-opus-5-5
-    Description: Claude model on Amazon Bedrock when AiProvider is bedrock.
+    Description: >
+      Bedrock model or inference profile id. Claude ids (anthropic.*) use the Anthropic Messages API;
+      any other model, such as apac.amazon.nova-lite-v1:0, uses Bedrock's Converse API.
   BedrockRegion:
     Type: String
     Default: ap-south-1
@@ -110,8 +108,6 @@ Resources:
       Environment:
         Variables:
           AI_PROVIDER: !Ref AiProvider
-          GEMINI_MODEL: !Ref GeminiModel
-          GEMINI_KEY_PARAM: !Sub "/${AWS::StackName}/gemini-api-key"
           BEDROCK_MODEL: !If [HasBedrock, !Ref BedrockModel, ""]
           BEDROCK_REGION: !Ref BedrockRegion
           # The English/Hindi switch uses Amazon Translate, with a built-in
@@ -141,9 +137,6 @@ Resources:
               Resource: !Ref AlertTopic
         - SSMParameterReadPolicy:
             ParameterName: !Sub "${AWS::StackName}/official-stage"
-        # The Gemini API key, a SecureString you create once (see DEPLOY_WINDOWS.md).
-        - SSMParameterReadPolicy:
-            ParameterName: !Sub "${AWS::StackName}/gemini-api-key"
         - Statement:
             - Effect: Allow
               Action:
@@ -154,7 +147,11 @@ Resources:
           - HasBedrock
           - Statement:
               - Effect: Allow
-                Action: bedrock-mantle:CreateInference
+                Action:
+                  # Claude through the Anthropic Messages API on Bedrock
+                  - bedrock-mantle:CreateInference
+                  # Other Bedrock models through the Converse API
+                  - bedrock:InvokeModel
                 Resource: "*"
           - !Ref AWS::NoValue
 
