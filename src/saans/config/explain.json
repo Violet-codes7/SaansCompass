@@ -375,11 +375,13 @@
       }
     ],
     "sources_label": "Sources",
-    "box_area": "{area}: AQI {aqi} ({category}) over the last 24 hours, as in the air dials.",
+    "box_area": "{area}: AQI {aqi} ({category}) over the last 24 hours, forecast model.",
     "box_area_tomorrow": "{area} tomorrow: AQI {aqi} ({category}), the forecast day average.",
     "box_city": "Delhi's average: AQI {aqi} ({category}). GRAP is set on this one figure for all of Delhi-NCR.",
     "fitted_title": "Fitted to you",
     "fitted_none": "Add your work, travel, car and health in your profile to fit these rules to you.",
-    "charter_you": "Because of {reasons}, GRAP's Stage IV advice to stay indoors as much as possible is meant for you."
+    "charter_you": "Because of {reasons}, GRAP's Stage IV advice to stay indoors as much as possible is meant for you.",
+    "city_line_cpcb": "Delhi's AQI is {aqi} ({category}): the average of {count} CPCB stations right now.",
+    "box_area_cpcb": "{area}: AQI {aqi} ({category}) at CPCB's {station} station, {time} IST."
   }
 }

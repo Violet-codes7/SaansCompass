@@ -73,5 +73,42 @@
   "past_days": 1,
   "rolling_min_hours": 16,
   "city_min_areas": 5,
-  "cigarette_pm25_ugm3": 22
+  "cigarette_pm25_ugm3": 22,
+  "cpcb_url": "https://api.data.gov.in/resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69",
+  "cpcb_filter_field": "state",
+  "cpcb_filter_value": "Delhi",
+  "cpcb_limit": 1000,
+  "cpcb_timeout_seconds": 8,
+  "cpcb_cache_seconds": 600,
+  "cpcb_stale_hours": 3,
+  "cpcb_min_pollutants": 3,
+  "cpcb_max_km": 3.0,
+  "cpcb_city_min_stations": 10,
+  "cpcb_time_formats": [
+    "%d-%m-%Y %H:%M:%S",
+    "%d-%m-%Y %H:%M",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S"
+  ],
+  "cpcb_fields": {
+    "station": [
+      "station"
+    ],
+    "pollutant": [
+      "pollutant_id"
+    ],
+    "avg": [
+      "avg_value",
+      "pollutant_avg"
+    ],
+    "lat": [
+      "latitude"
+    ],
+    "lon": [
+      "longitude"
+    ],
+    "updated": [
+      "last_update"
+    ]
+  }
 }

@@ -128,7 +128,7 @@ GitHub Actions runs the tests and `cfn-lint` on every push. Deploys from `main` 
 
 - The main AQI dial is a 24-hour average built from the last 24 forecast hours, as CPCB defines it; the "this hour" dial is an estimate, because CPCB breakpoints are defined on 24-hour averages. If fewer than 16 of those hours are known, the dial falls back to today's forecast average and says so.
 - Weather and mixing height come from the Open-Meteo weather model, not a local station.
-- The forecast is a model (Open-Meteo), not a ground station.
+- "AQI now" is CPCB's live reading from the nearest monitoring station (data.gov.in feed) when the key is set; later hours and tomorrow come from the Open-Meteo forecast model, not a ground station.
 - The GRAP stage shown is an estimate unless you set it or the declared stage is stored in Parameter Store.
 - The summary is written by a language model from the plan's facts; the rules table beside it is the source of truth.
 - Activity thresholds and breath dose are our own heuristics, not medical advice.

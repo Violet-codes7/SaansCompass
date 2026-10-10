@@ -165,7 +165,9 @@
       ]
     },
     "do_worst": "This is the worst hour of your day: keep windows shut and stay off busy roads.",
-    "do_best": "This is your cleanest hour: the best time for anything you can move."
+    "do_best": "This is your cleanest hour: the best time for anything you can move.",
+    "forecast": "forecast"
   },
-  "notes_title": "Please read"
+  "notes_title": "Please read",
+  "area_basis_cpcb": "CPCB, {station} station, {time} IST"
 }

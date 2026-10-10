@@ -4,12 +4,18 @@
   <div class="dash-group">
     <h2>Air quality{% if area_name %} at {{ area_name }}{% endif %}</h2>
     <div class="gauges">
+      {% if pt.basis == 'cpcb' %}
+      <figure>{{ aqi_gauge(pt.aqi, 'AQI now, CPCB') }}
+        <figcaption><b>Now</b><span class="cat-chip {{ (pt.category or 'no data')|lower|replace(' ', '-') }}">{{ pt.category or 'No data' }}</span>
+          <small>CPCB, {{ pt.station }} station · {{ pt.updated }} IST</small></figcaption></figure>
+      {% else %}
       <figure>{{ aqi_gauge(pt.aqi, 'AQI, 24-hour average') }}
         <figcaption><b>{{ 'Last 24 hours' if pt.basis == 'last24' else 'Today' }}</b><span class="cat-chip {{ (pt.category or 'no data')|lower|replace(' ', '-') }}">{{ pt.category or 'No data' }}</span>
-          <small>{{ '24-hour average, as CPCB reports AQI' if pt.basis == 'last24' else 'Forecast average for today' }}</small></figcaption></figure>
+          <small>{{ '24-hour average, forecast model' if pt.basis == 'last24' else 'Forecast average for today' }}</small></figcaption></figure>
       <figure>{{ aqi_gauge(air_now.aqi, 'AQI this hour') }}
         <figcaption><b>This hour</b><span class="cat-chip {{ (air_now.category if air_now.aqi is not none else 'no data')|lower|replace(' ', '-') }}">{{ air_now.category if air_now.aqi is not none else 'No data' }}</span>
-          <small>{{ air_now.time[11:] }} IST{% if air_now.dominant %} · mostly {{ air_now.dominant }}{% endif %}</small></figcaption></figure>
+          <small>{{ air_now.time[11:] }} IST, forecast{% if air_now.dominant %} · mostly {{ air_now.dominant }}{% endif %}</small></figcaption></figure>
+      {% endif %}
       <figure>{{ aqi_gauge(air_tomorrow.aqi, 'AQI tomorrow') }}
         <figcaption><b>Tomorrow</b>{% if air_tomorrow.category %}<span class="cat-chip {{ air_tomorrow.category|lower|replace(' ', '-') }}">{{ air_tomorrow.category }}</span>{% endif %}
           <small>Day average, forecast</small></figcaption></figure>

@@ -3,7 +3,7 @@ forecast -> AQI -> stage -> Cedar rules -> plan and dose."""
 from datetime import timedelta
 
 from . import aqi as aqi_mod
-from . import data, guide, route, settings
+from . import cpcb, data, guide, route, settings
 from .advisor import TEXT as ADVICE
 from .advisor import build_plan
 from .personas import get_persona
@@ -30,12 +30,29 @@ def parse_day(raw, now=None):
     return day
 
 
-def air_now(forecast, now):
-    """The forecast AQI for the current IST hour (an hourly estimate)."""
+def official_air(area, store, now):
+    """CPCB's live station reading for an area, and Delhi's CPCB average, or Nones."""
+    try:
+        stations = cpcb.get_stations(store, now.astimezone(data.IST))
+        station = cpcb.nearest(stations, area)
+        return ({**station, "short": cpcb.short_name(station["name"])} if station else None), cpcb.city_air(stations)
+    except Exception as exc:  # never let the official feed break a page
+        cpcb.log.warning("cpcb reading failed: %s", type(exc).__name__)
+        return None, None
+
+
+def air_now(forecast, now, official=None):
+    """The forecast AQI for the current IST hour (an hourly estimate). The
+    "now" AQI is CPCB's station figure when there is one, else the model's
+    24-hour average."""
     local = now.astimezone(data.IST)
     r = data.readings_for(forecast, local.date(), [local.hour])[0]
+    particles = data.particles_now(forecast, now)
+    if official:
+        particles = {**particles, "aqi": official["aqi"], "category": official["category"], "basis": "cpcb",
+                     "dominant": official["dominant"], "station": official["short"], "updated": official["time"]}
     return {"aqi": r["aqi"], "category": aqi_mod.category(r["aqi"]), "dominant": r["dominant"],
-            "time": local.strftime("%Y-%m-%d %H:00"), "particles": data.particles_now(forecast, now)}
+            "time": local.strftime("%Y-%m-%d %H:00"), "particles": particles}
 
 
 def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None, rulebook=None, fetcher=None,
@@ -68,13 +85,17 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
     # estimate uses every area, not just this one.
     forecasts = data.get_forecasts(data.AREAS.values(), store, now=now, fetcher=fetcher)
     forecasts[area.id] = forecast
-    city = data.city_air(forecasts, date, now)
+    station, station_city = official_air(area, store, now)
+    city = (station_city if day == "today" else None) or data.city_air(forecasts, date, now)
     next_day = data.city_air(forecasts, date + timedelta(days=1), now) if day == "today" else None
     stage_info = resolve_stage(city["aqi"] if city else data.day_aqi(forecast, date), official, declared,
                                city=city, outlook=next_day["aqi"] if next_day else None)
     # One AQI for the area everywhere on the page: the same figure as the air
     # dials (last 24 hours today, the day's forecast average tomorrow).
-    area_aqi = data.particles_now(forecast, now)["aqi"] if day == "today" else data.day_aqi(forecast, date)
+    if day == "today":
+        area_aqi = station["aqi"] if station else data.particles_now(forecast, now)["aqi"]
+    else:
+        area_aqi = data.day_aqi(forecast, date)
     stage_info.update(area_aqi=area_aqi, day=day)
     sensitive = persona.sensitive or bool(profile and profile.sensitive)
     rule_results = rulebook.evaluate_persona(persona, area.id, stage_info["stage"], sensitive)
@@ -91,7 +112,8 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
     if trip_actions:  # a bad trip matters more than the general tips
         plan["day_actions"] = trip_actions + plan["day_actions"]
         plan["actions"] = [a for a in plan["actions"] if a not in plan["day_actions"]] + plan["day_actions"]
-    plan["air_now"] = air_now(forecast, now)
+    plan["official"] = station
+    plan["air_now"] = air_now(forecast, now, station)
     pt = plan["air_now"]["particles"]
     if day == "today" and pt["pm25"] is not None:
         # The same 24-hour PM2.5 as the dashboard chips.

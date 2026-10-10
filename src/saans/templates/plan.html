@@ -68,7 +68,7 @@
     <span class="eyebrow">GRAP stage, Delhi-NCR</span>
     <strong>{{ sg.headline.title }}</strong>
     <span class="small">{{ sg.headline.sub }}</span>
-    {% if sg.area_aqi is not none %}<span class="small aqi-line">{{ (grap.box_area if plan.day == 'today' else grap.box_area_tomorrow).format(area=plan.area.name, aqi=sg.area_aqi, category=aqi_category(sg.area_aqi)) }}</span>{% endif %}
+    {% if sg.area_aqi is not none %}<span class="small aqi-line">{% if plan.day == 'today' and plan.official %}{{ grap.box_area_cpcb.format(area=plan.area.name, aqi=sg.area_aqi, category=aqi_category(sg.area_aqi), station=plan.official.short, time=plan.official.time) }}{% else %}{{ (grap.box_area if plan.day == 'today' else grap.box_area_tomorrow).format(area=plan.area.name, aqi=sg.area_aqi, category=aqi_category(sg.area_aqi)) }}{% endif %}</span>{% endif %}
     {% if sg.city %}<span class="small">{{ grap.box_city.format(aqi=sg.day_aqi, category=aqi_category(sg.day_aqi)) }}</span>{% endif %}
     <span class="src {{ sg.source }}">{{ stage_sources[sg.source].label }}</span>
     {% if sg.source != 'estimate' and sg.estimate and sg.estimate != sg.label %}<span class="small">{{ grap.differs.format(estimate=grap.no_stage_word if sg.estimate == 'None' else grap.stage_word.format(label=sg.estimate)) }}</span>{% endif %}
@@ -124,7 +124,7 @@
       </div>
       <ul class="scale-notes">
         {% if city %}
-        <li>{{ (grap.city_line if city.basis == 'last24' else grap.city_line_forecast).format(aqi=city.aqi, category=city.category, count=city.count) }}
+        <li>{{ {'cpcb': grap.city_line_cpcb, 'last24': grap.city_line}.get(city.basis, grap.city_line_forecast).format(aqi=city.aqi, category=city.category, count=city.count) }}
           {{ grap.range_line.format(low=city.low.name, low_aqi=city.low.aqi, high=city.high.name, high_aqi=city.high.aqi) }}</li>
         {% if sg.area_aqi is not none %}<li>{{ grap.area_line.format(area=plan.area.name, aqi=sg.area_aqi) }}</li>{% endif %}
         {% else %}
@@ -345,7 +345,7 @@
   <div class="dp-head">
     <div>
       <h2>Your day, hour by hour</h2>
-      <p class="small">{{ plan.hours[0].time[11:16] if plan.hours }}–{{ plan.hours[-1].time[11:13] if plan.hours }}:59 · {{ plan.persona.question }}</p>
+      <p class="small">{{ plan.hours[0].time[11:16] if plan.hours }}–{{ plan.hours[-1].time[11:13] if plan.hours }}:59, {{ glance_text.hours.forecast }} · {{ plan.persona.question }}</p>
     </div>
     <ul class="dp-legend" aria-label="What the colours mean for you">
       <li><i class="v-go"></i><span>{{ hour_labels.go }}</span> (AQI up to {{ plan.thresholds.go_max }})</li>

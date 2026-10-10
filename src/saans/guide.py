@@ -30,12 +30,19 @@ def _ranges(hours):
     return ", ".join(out)
 
 
+def _basis(plan):
+    """How the area's AQI was measured, in a few words."""
+    if plan["day"] == "today" and plan.get("official"):
+        return TEXT["area_basis_cpcb"].format(station=plan["official"]["short"], time=plan["official"]["time"])
+    return TEXT["area_basis_today" if plan["day"] == "today" else "area_basis_tomorrow"]
+
+
 def _area(plan):
     air, stage = plan["air"], plan["stage"]
     value = air["day_aqi"]
     out = {"name": plan["area"]["name"], "aqi": value, "category": air["category"], "slug": _slug(value),
            "impact": air["impact"], "pollutant": air["pollutant"],
-           "basis": TEXT["area_basis_today" if plan["day"] == "today" else "area_basis_tomorrow"],
+           "basis": _basis(plan),
            "note": TEXT["area_notes"].get(plan["area"]["id"]), "vs_delhi": None, "rank": None}
     city = stage.get("city")
     if city and value is not None:
@@ -162,7 +169,7 @@ def _health(plan, persona, profile):
     verdict = verdict_for(persona, value)
     today = None
     if verdict:
-        basis = TEXT["area_basis_today" if plan["day"] == "today" else "area_basis_tomorrow"]
+        basis = _basis(plan)
         today = h[f"today_{verdict}"].format(area=plan["area"]["name"], aqi=value, basis=basis, go=go, limit=limit)
     shift = plan["health"].get("shift") or 0
     reasons = plan["health"].get("reasons") or []

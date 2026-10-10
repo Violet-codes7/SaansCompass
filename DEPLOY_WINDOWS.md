@@ -87,6 +87,20 @@ You can use **Claude** (the default) or **Amazon Nova**. Claude needs a one-time
 
 What is sent: the plan's decisions, the age and health conditions picked, and the "What do you do?" text. No names or emails. Bedrock does not use it to train models.
 
+## 4c. Turn on CPCB's official AQI (once, about 5 minutes)
+With this, "AQI now" is CPCB's live reading from the nearest monitoring station, the same number the CPCB AQI dashboard and the Sameer app show for that station, and Delhi's GRAP average uses every CPCB station in Delhi. Without it the site uses the forecast model. Websites like IQAir use the US AQI scale, so their numbers are higher and won't match.
+
+1. Sign up at https://data.gov.in (**Sign Up**, top right), verify your email and log in.
+2. Open **My Account** and copy your **API key**. Never paste it into chat or into a file in the repo.
+3. In PowerShell:
+   ```powershell
+   $k = Read-Host "Paste your data.gov.in API key"
+   aws ssm put-parameter --name /saans-compass/datagov-api-key --type SecureString --value $k --overwrite --region ap-south-1
+   Remove-Variable k
+   ```
+   It prints a `Version` number when it worked.
+4. Deploy (step 5). Readings refresh every 10 minutes; CPCB itself updates each station once an hour.
+
 ## 5. Build and deploy
 Keep the `C:\venv312` venv active (sam build uses the Python 3.12 on PATH).
 ```powershell

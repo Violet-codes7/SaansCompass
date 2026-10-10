@@ -14,7 +14,7 @@ from .aqi import category as aqi_category
 from .advisor import TEXT as ADVICE_TEXT
 from .explain import GRAP, STAGE_SOURCES, STAGES
 from .profile import COMMUTE_MODES, CONDITION_GROUPS, CONDITIONS, VEHICLE_LABELS, VEHICLES, WORK, clean_job, clean_text, guess_work, parse_profile, tidy_role
-from .service import air_now
+from .service import air_now, official_air
 from .service import get_plan
 from .stage import ROMAN
 from .store import get_store
@@ -224,7 +224,8 @@ def create_app():
             dash = None
         else:
             tomorrow = data.day_aqi(forecast, now.date() + timedelta(days=1))
-            dash = {"area": area.name, "air_now": air_now(forecast, now), "is_stale": forecast["is_stale"],
+            official, _ = official_air(area, store, now)
+            dash = {"area": area.name, "air_now": air_now(forecast, now, official), "is_stale": forecast["is_stale"],
                     "fetched_at": forecast["fetched_at"],
                     "air_tomorrow": {"aqi": tomorrow, "category": aqi_category(tomorrow)}}
         return render_template("index.html", dash=dash, dash_area=area.name, weather=weather.get_weather(area, store))

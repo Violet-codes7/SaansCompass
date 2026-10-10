@@ -115,6 +115,8 @@ Resources:
           AI_PROVIDER: !Ref AiProvider
           GEMINI_MODEL: !Ref GeminiModel
           GEMINI_KEY_PARAM: !Sub "/${AWS::StackName}/gemini-api-key"
+          # CPCB's live station AQI from data.gov.in; the key is a SecureString you create once.
+          DATAGOV_KEY_PARAM: !Sub "/${AWS::StackName}/datagov-api-key"
           BEDROCK_MODEL: !If [HasBedrock, !Ref BedrockModel, ""]
           BEDROCK_REGION: !Ref BedrockRegion
           # The English/Hindi switch uses Amazon Translate, with a built-in
@@ -147,6 +149,8 @@ Resources:
         # The Gemini API key, a SecureString you create once (see DEPLOY_WINDOWS.md).
         - SSMParameterReadPolicy:
             ParameterName: !Sub "${AWS::StackName}/gemini-api-key"
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub "${AWS::StackName}/datagov-api-key"
         - Statement:
             - Effect: Allow
               Action:
@@ -221,6 +225,7 @@ Resources:
       Environment:
         Variables:
           SITE_URL: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+          DATAGOV_KEY_PARAM: !Sub "/${AWS::StackName}/datagov-api-key"
       Events:
         Morning:
           Type: ScheduleV2
@@ -243,6 +248,8 @@ Resources:
             TopicName: !GetAtt AlertTopic.TopicName
         - SSMParameterReadPolicy:
             ParameterName: !Sub "${AWS::StackName}/official-stage"
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub "${AWS::StackName}/datagov-api-key"
 
   OfficialStageParam:
     Type: AWS::SSM::Parameter

@@ -30,6 +30,9 @@ Please don't paste keys, passwords or account links into chat. You run the deplo
 - No API key: the Lambda calls Bedrock with its IAM role. Deploy with `AiProvider=bedrock`; `BedrockModel` picks the model: a Claude id (`anthropic.*`, needs a paid AWS plan and Anthropic's one-time use-case form) or any other Bedrock model such as Amazon Nova (`apac.amazon.nova-lite-v1:0`, no form).
 - Before deploying, send `hello` to the model in the Bedrock playground in the same region. If that works, the app will too. Steps and fixes: DEPLOY_WINDOWS.md, step 4b.
 
+## 5b. data.gov.in API key (for CPCB's live station AQI)
+Register at https://data.gov.in, copy the API key from My Account, and store it as the SecureString `/saans-compass/datagov-api-key` (see DEPLOY_WINDOWS.md step 4c). Without it, "AQI now" falls back to the forecast model.
+
 ## 6. Deploy
 ```bash
 cd saans-compass
