@@ -74,7 +74,7 @@
   "area_snap_km": 5,
   "model_pm10_pm25_ratio_max": 2.5,
   "place_bounds": {"lat": [6.5, 37.5], "lon": [68.0, 97.5]},
-  "grap_enabled": false,
+  "grap_enabled": true,
   "grap_region_km": 150,
   "place_station_km": 10,
   "place_round_digits": 2,

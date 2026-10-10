@@ -1,4 +1,4 @@
-"""GRAP switched off (grap_enabled false, the deployed default): no stage, no rules, no GRAP text."""
+"""GRAP switched off (grap_enabled false): no stage, no rules, no GRAP text."""
 import pytest
 
 from conftest import FIXED_NOW

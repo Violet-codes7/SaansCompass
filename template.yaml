@@ -43,7 +43,7 @@ Parameters:
     Description: Sign-up and sign-in with Amazon Cognito, so people can save their profile.
   Grap:
     Type: String
-    Default: "off"
+    Default: "on"
     AllowedValues: ["on", "off"]
     Description: Delhi-NCR's GRAP stage and the GRAP rules that apply to each person (Cedar). Off shows the air plan only.
   DefaultArea:
