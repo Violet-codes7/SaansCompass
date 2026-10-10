@@ -464,3 +464,31 @@ section.panel[id] > h2::before,section.panel[id] > .h-row > h2::before,section.p
 .fix form label{display:flex;gap:6px;align-items:center}
 .fix form button.ghost{background:transparent;color:var(--accent);padding:6px 12px}
 .fix .note{margin:8px 0 0}
+/* Air and weather dials: two even halves, dials the same size, captions aligned */
+.dash{grid-template-columns:minmax(0,3fr) minmax(0,4fr);gap:0}
+.dash-group{display:flex;flex-direction:column;gap:12px;min-width:0}
+.dash-group h2{margin:0}
+.dash-group + .dash-group{border-left:1px solid var(--line);padding-left:20px;margin-left:20px}
+.dash .gauges,.dash .gauges.weather{flex-wrap:nowrap;justify-content:flex-start;gap:6px}
+.dash .gauges figure,.dash .gauges.weather figure{flex:1 1 0;min-width:0;max-width:150px}
+.dash .gauges figcaption{grid-template-rows:auto auto minmax(2.6em,auto);align-items:start}
+.dash .gauges figcaption small{font-size:12.5px;line-height:1.35}
+svg.gauge .g-unit{font-size:10px;font-weight:600;fill:var(--muted)}
+.pm-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pm-tile{border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:grid;gap:2px}
+.pm-tile b{font-size:20px;line-height:1.2}.pm-tile b small{font-size:12px;font-weight:500;color:var(--muted)}
+.pm-tile .over{color:var(--no);font-weight:700;font-size:13px}.pm-tile .ok{color:var(--ok);font-weight:700;font-size:13px}
+.why-air{margin:0;padding:10px 12px;border-radius:10px;background:var(--chk-bg)}
+.dash-group .muted{margin:0}
+@media (max-width:760px){
+  .dash{grid-template-columns:minmax(0,1fr)}
+  .dash-group + .dash-group{border-left:0;padding-left:0;margin-left:0;border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
+  .dash .gauges.weather{flex-wrap:wrap;row-gap:12px}.dash .gauges.weather figure{flex:1 1 40%;max-width:none}
+}
+fieldset{min-width:0}
+.with-button{flex-wrap:wrap}
+@media (max-width:760px){.dash .gauges.weather{justify-content:space-around}.dash .gauges.weather figure{max-width:150px}}
+.trip-grid > *{min-width:0}
+@media (max-width:720px){.trip-grid{grid-template-columns:minmax(0,1fr)}}
+select{max-width:100%}
+label{grid-template-columns:minmax(0,1fr);min-width:0}

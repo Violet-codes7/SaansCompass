@@ -37,11 +37,12 @@ def _needle(angle):
             f'stroke-linecap="round"/><circle class="hub" cx="{CX}" cy="{CY}" r="5"/>')
 
 
-def _svg(parts, label, value_text):
+def _svg(parts, label, value_text, unit=""):
+    unit_text = f'<tspan class="g-unit" dx="2">{escape(unit)}</tspan>' if unit else ""
     return Markup(
         f'<svg class="gauge" viewBox="0 0 120 100" role="img" aria-label="{escape(label)}">'
         + "".join(parts)
-        + f'<text class="g-val" x="{CX}" y="{CY + 30}" text-anchor="middle">{escape(value_text)}</text></svg>'
+        + f'<text class="g-val" x="{CX}" y="{CY + 30}" text-anchor="middle">{escape(value_text)}{unit_text}</text></svg>'
     )
 
 
@@ -78,9 +79,10 @@ def band_gauge(value, dial, label):
     if value is None:
         return _svg(parts, f"{label}: no data", "–")
     parts.append(_needle(_angle(value, lo, hi)))
-    unit = dial["unit"] if dial["unit"] in ("°C", "%") else ""
+    inline = dial["unit"] in ("°C", "%")  # short enough to sit on the number
+    unit = dial["unit"] if inline else ""
     shown = f"{value:.0f}{unit}" if abs(value) >= 10 or unit else f"{value:.1f}"
-    return _svg(parts, f"{label}: {value:.0f} {dial['unit']}", shown)
+    return _svg(parts, f"{label}: {value:.0f} {dial['unit']}", shown, "" if inline else dial["unit"])
 
 
 def qr_code(url, label):

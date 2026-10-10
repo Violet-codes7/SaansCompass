@@ -20,12 +20,13 @@
         <figcaption><b>Tomorrow</b>{% if air_tomorrow.category %}<span class="cat-chip {{ air_tomorrow.category|lower|replace(' ', '-') }}">{{ air_tomorrow.category }}</span>{% endif %}
           <small>Day average, forecast</small></figcaption></figure>
     </div>
-    <ul class="pm-chips">
+    <div class="pm-tiles">
       {% for p in particles.particles %}{% set v = pt[p.key] %}
-      <li><span><b>{{ p.id }}</b> {{ v if v is not none else '–' }} <small>µg/m³</small>
-        {% if v is not none %}<span class="{{ 'over' if v > p.limits.cpcb_24h else 'ok' }}">{{ (v / p.limits.who_24h)|round(1) }}× WHO</span>{% endif %}</span></li>
+      <div class="pm-tile"><span class="g-k">{{ p.id }}</span>
+        <b>{{ v if v is not none else '–' }} <small>µg/m³</small></b>
+        {% if v is not none %}<span class="{{ 'over' if v > p.limits.cpcb_24h else 'ok' }}">{{ (v / p.limits.who_24h)|round(1) }}× WHO</span>{% endif %}</div>
       {% endfor %}
-    </ul>
+    </div>
     {% if is_stale %}<p class="small"><b>The live forecast is unreachable: this is the last one, fetched {{ fetched_at[:16]|replace('T', ' ') }} IST.</b></p>{% endif %}
   </div>
   <div class="dash-group">
@@ -40,15 +41,15 @@
         <figcaption><b>Humidity</b><span class="tone-chip tone-{{ b.humidity.tone }}">{{ b.humidity.name }}</span>
           <small>{% if weather.dew_c is not none %}{{ weather_text.dew_point.format(value=weather.dew_c|round|int) }}{% endif %}</small></figcaption></figure>
       <figure>{{ band_gauge(weather.wind_kmh, weather_dials.wind_kmh, 'Wind') }}
-        <figcaption><b>Wind</b> <small>km/h</small><span class="tone-chip tone-{{ b.wind_kmh.tone }}">{{ b.wind_kmh.name }}</span>
-          <small>{% if weather.wind_from %}<span class="wind-arrow" style="transform: rotate({{ (weather.wind_dir + 180) % 360 }}deg)" aria-hidden="true">↑</span> {{ weather_text['from'].format(name=weather.wind_from) }}{% endif %}{% if weather.gust_kmh is not none %}<br>{{ weather_text.gusts.format(value=weather.gust_kmh|round|int) }}{% endif %}</small></figcaption></figure>
+        <figcaption><b>Wind</b><span class="tone-chip tone-{{ b.wind_kmh.tone }}">{{ b.wind_kmh.name }}</span>
+          <small>{% if weather.wind_from %}<span class="wind-arrow" style="transform: rotate({{ (weather.wind_dir + 180) % 360 }}deg)" aria-hidden="true">↑</span> <abbr title="{{ weather_text['from'].format(name=weather.wind_from) }}">{{ weather.wind_from_short }}</abbr>{% endif %}{% if weather.wind_from and weather.gust_kmh is not none %} · {% endif %}{% if weather.gust_kmh is not none %}{{ weather_text.gusts.format(value=weather.gust_kmh|round|int) }}{% endif %}</small></figcaption></figure>
       {% if weather.mixing_m is not none %}
       <figure title="{{ weather_text.mixing_help }}">{{ band_gauge(weather.mixing_m, weather_dials.mixing_m, 'Mixing height') }}
-        <figcaption><b>Mixing height</b> <small>m</small><span class="tone-chip tone-{{ b.mixing_m.tone }}">{{ b.mixing_m.name }}</span>
+        <figcaption><b>Mixing height</b><span class="tone-chip tone-{{ b.mixing_m.tone }}">{{ b.mixing_m.name }}</span>
           <small>{{ weather_text.mixing }}</small></figcaption></figure>
       {% endif %}
     </div>
-    {% if weather.note %}<p class="small"><b>Why it matters:</b> {{ weather.note }}</p>{% endif %}
+    {% if weather.note %}<p class="small why-air"><b>Why it matters:</b> {{ weather.note }}</p>{% endif %}
     <p class="small muted">{{ weather_text.updated.format(time=weather.time|replace('T', ' ')) }}</p>
     {% else %}
     <p class="small">Weather is not available right now.</p>
