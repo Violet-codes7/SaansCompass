@@ -99,12 +99,6 @@
 </section>
 {% endif %}
 
-{% if plan.stage.stage is not none and plan.stage.stage < 3 %}
-<p class="try">Air is not bad enough for most GRAP rules today. See what changes on a bad-air day:
-  <a href="{{ plan_link(stage='III') }}">Try Stage III</a>
-  <a href="{{ plan_link(stage='IV') }}">Try Stage IV</a></p>
-{% endif %}
-
   <section class="panel rules" id="grap">
     <div class="h-row"><h2>GRAP rules for you</h2>{% if ai_enabled %}<button type="button" class="ask" data-chat="{{ chat_text.ask_buttons.rules.question }}">💬 {{ chat_text.ask_buttons.rules.label }}</button>{% endif %}</div>
     <p class="lead">{{ grap.intro }}</p>
