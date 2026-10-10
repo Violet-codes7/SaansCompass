@@ -357,6 +357,9 @@
     "Street vendor or shopkeeper": "रेहड़ी-पटरी वाले या दुकानदार",
     "Traffic police or security guard": "ट्रैफ़िक पुलिस या सुरक्षा गार्ड",
     "Sanitation or waste worker": "सफ़ाई या कचरा कर्मचारी",
-    "Estimated from Delhi's AQI": "दिल्ली के AQI से अनुमानित"
+    "Estimated from Delhi's AQI": "दिल्ली के AQI से अनुमानित",
+    "Answer these once and they are saved to your account.": "इन्हें एक बार भरें, ये आपके खाते में सहेज लिए जाएँगे।",
+    "Save and show my plan": "सहेजें और मेरी योजना दिखाएँ",
+    "We filled this in from what you told us before. Check it and save.": "आपने पहले जो बताया था, उससे हमने यह भर दिया है। जाँचें और सहेजें।"
   }
 }

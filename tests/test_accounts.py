@@ -229,3 +229,24 @@ def test_password_reset(client, cognito):
     assert "If an account exists" in html  # never says whether the account exists
     client.post("/account/reset", data={"email": "asha@example.com", "code": "123456", "password": "newpass123"})
     assert cognito.users["asha@example.com"]["password"] == "newpass123"
+
+
+def test_home_asks_nothing_the_saved_profile_has(client, mem_store):
+    guest = client.get("/").get_data(as_text=True)
+    assert 'name="job"' in guest and 'action="/plan"' in guest and "data-draft>" in guest
+    sign_up_and_in(client)
+    new = client.get("/").get_data(as_text=True)  # signed in, no profile: the form saves it
+    assert 'method="post" action="/account/profile"' in new and "Save and show my plan" in new
+    assert "Answer these once" in new and "data-draft>" not in new
+    client.post("/account/profile", data=PROFILE)
+    html = client.get("/").get_data(as_text=True)
+    assert 'name="job"' not in html and 'name="from"' not in html and 'name="age"' not in html
+    assert "Welcome back, Asha." in html and "Rohini" in html and "Age 66" in html and "Open my plan" in html
+    assert "Tell us a little about you" not in html
+
+
+def test_profile_page_shows_the_sign_up_name_folded(client):
+    sign_up_and_in(client)
+    html = client.get("/account/profile").get_data(as_text=True)
+    assert "Shown as Asha" in html and 'value="Asha"' in html and "<details class=\"fix name-fix\">" in html
+    assert "saans-draft" in html  # fills in what the home page form was told in this tab

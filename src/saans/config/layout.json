@@ -78,5 +78,16 @@
   "theme": {
     "dark": "🌙 Dark",
     "light": "☀️ Light"
+  },
+  "home": {
+    "welcome_back": "Welcome back, {name}.",
+    "uses_saved": "Your plan uses your saved profile.",
+    "welcome_new": "Welcome, {name}.",
+    "answer_once": "Answer these once and they are saved to your account.",
+    "save_and_show": "Save and show my plan",
+    "show": "Show my plan",
+    "name_shown": "Shown as {name}",
+    "change": "Change",
+    "prefilled": "We filled this in from what you told us before. Check it and save."
   }
 }

@@ -2,16 +2,24 @@
 {% block main %}
 <section class="hero">
   <h1>Your air plan for today</h1>
-  <p>Tell us a little about you. We check today's and tomorrow's forecast for your area, work out the GRAP stage, show the rules that apply to you, and plan your day around the cleanest air.</p>
+  {% if not saved %}<p>Tell us a little about you. We check today's and tomorrow's forecast for your area, work out the GRAP stage, show the rules that apply to you, and plan your day around the cleanest air.</p>{% endif %}
 </section>
+{% set hm = layout.home %}
 {% if user %}
 <section class="panel welcome">
   {% if saved %}
-  <p><b translate="no">Welcome back, {{ saved.name or user.name }}.</b> Your plan uses your saved profile.</p>
+  <p><b translate="no">{{ hm.welcome_back.format(name=saved.name or user.name) }}</b> {{ hm.uses_saved }}</p>
+  <p class="fix"><span>{{ work[saved.persona] if saved.persona in work else saved.job }}</span>
+    {%- if saved.area in areas %} <span>{{ areas[saved.area].name }}{% if saved.to_area in areas and saved.to_area != saved.area %} → {{ areas[saved.to_area].name }}{% endif %}{% if saved.commute in commute_modes %} · {{ commute_modes[saved.commute] }}{% endif %}</span>{% endif %}</p>
+  {% if saved.age or saved.cond %}
+  <ul class="chips">
+    {%- if saved.age %}<li>{{ layout.header.age.format(age=saved.age) }}</li>{% endif -%}
+    {%- for c in saved.cond or [] if c in conditions %}<li class="c-health">{{ conditions[c] }}</li>{% endfor -%}
+  </ul>
+  {% endif %}
   <p><a class="button" href="{{ url_for('plan_page') }}">Open my plan</a> <a class="button ghost" href="{{ url_for('poster') }}">My daily poster</a> <a class="button ghost" href="{{ url_for('account_profile') }}">Edit profile</a></p>
   {% else %}
-  <p><b translate="no">Welcome, {{ user.name }}.</b> Save your profile once and your plan opens with it every time.</p>
-  <p><a class="button" href="{{ url_for('account_profile') }}">Set up my profile</a></p>
+  <p><b translate="no">{{ hm.welcome_new.format(name=user.name) }}</b> {{ hm.answer_once }}</p>
   {% endif %}
 </section>
 {% endif %}
@@ -20,16 +28,28 @@
 {% else %}
 <section class="panel"><p>The live forecast for {{ dash_area }} cannot be reached right now, so there is nothing to show here. Your plan below will work once it is back.</p></section>
 {% endif %}
-<form class="picker profile" action="{{ url_for('plan_page') }}" method="get">
+{% if not saved %}
+{# Signed in without a profile: answering here saves it, so nothing is asked twice. #}
+<form class="picker profile" {% if user %}method="post" action="{{ url_for('account_profile') }}"{% else %}method="get" action="{{ url_for('plan_page') }}" data-draft{% endif %}>
   {% with p={}, show_examples=true %}{% include "_profile_fields.html" %}{% endwith %}
 
-  <button type="submit">Show my plan</button>
+  <button type="submit">{{ hm.save_and_show if user else hm.show }}</button>
   {% if accounts_on and not user %}<p class="small"><a href="{{ url_for('account', mode='signup') }}">Create an account</a> to skip this form next time.</p>{% endif %}
 </form>
+{% endif %}
 <p class="try">{{ layout.try_title }}
   {% for ex in layout.try_examples %}<a href="{{ url_for('plan_page', **ex.args) }}">{{ ex.label }}</a>
   {% endfor %}</p>
 <script>
+(function () {
+  var f = document.querySelector("form[data-draft]");
+  if (!f) return;
+  f.addEventListener("submit", function () {
+    var d = {};
+    new FormData(f).forEach(function (v, k) { if (v) (d[k] = d[k] || []).push(v); });
+    try { sessionStorage.setItem("saans-draft", JSON.stringify(d)); } catch (e) {}
+  });
+})();
 document.querySelectorAll("[data-example]").forEach(function (b) {
   b.addEventListener("click", function () { var t = document.querySelector("textarea[name=job]"); t.value = b.dataset.example; t.focus(); });
 });

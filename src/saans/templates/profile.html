@@ -7,11 +7,13 @@
 </section>
 {% if error %}<p class="note err" role="alert">{{ error }}</p>{% endif %}
 <form class="picker profile" method="post" action="{{ url_for('account_profile') }}">
-  <fieldset>
-    <legend>Your name</legend>
-    <label>Name <input name="name" maxlength="60" autocomplete="name" value="{{ p.name or user.name }}"></label>
-    <p class="small">Shown on your plan and your daily poster.</p>
-  </fieldset>
+  {% set hm = layout.home %}{% set shown = p.name or user.name %}
+  {# The name was given at sign-up: show it, and only open the box to change it. #}
+  <details class="fix name-fix"{% if not shown %} open{% endif %}>
+    <summary><span translate="no">{{ hm.name_shown.format(name=shown) }}</span> <b>{{ hm.change }}</b></summary>
+    <label>Name <input name="name" maxlength="60" autocomplete="name" value="{{ shown }}"></label>
+  </details>
+  <p class="note ok draft-note" role="status" hidden>{{ hm.prefilled }}</p>
 
   {% include "_profile_fields.html" %}
 
@@ -32,6 +34,23 @@
 
   <button type="submit">Save my profile</button>
 </form>
+
+<script>
+(function () {
+  // After sign-up, fill in what the person told the home page form in this tab.
+  var saved = {{ 'true' if saved or error else 'false' }}, raw = null;
+  try { raw = sessionStorage.getItem("saans-draft"); if (saved) sessionStorage.removeItem("saans-draft"); } catch (e) {}
+  if (saved || !raw) return;
+  var d = JSON.parse(raw), form = document.querySelector("form.profile"), filled = false;
+  Object.keys(d).forEach(function (k) {
+    form.querySelectorAll('[name="' + k + '"]').forEach(function (el) {
+      if (el.type === "checkbox") { if (d[k].indexOf(el.value) >= 0) { el.checked = true; filled = true; } }
+      else if (!el.value) { el.value = d[k][0]; filled = true; }
+    });
+  });
+  if (filled) document.querySelector(".draft-note").hidden = false;
+})();
+</script>
 
 <section class="panel danger">
   <h2>Delete my account</h2>
