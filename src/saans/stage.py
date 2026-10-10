@@ -80,16 +80,6 @@ def resolve_stage(day_aqi, official=None, declared=None, city=None, outlook=None
     }
 
 
-def local_level(area_name, value):
-    """The GRAP stage band an area's own AQI falls in. It is a guide to the
-    local air only: the rules in force follow the Delhi-wide stage."""
-    level = stage_from_aqi(value)
-    if level is None:
-        return None
-    return {"area": area_name, "aqi": value, "stage": level, "label": ROMAN[level],
-            "next": next_stage(level, value)}
-
-
 _declared_cache = {"at": 0.0, "value": None}
 
 

@@ -492,6 +492,3 @@ fieldset{min-width:0}
 @media (max-width:720px){.trip-grid{grid-template-columns:minmax(0,1fr)}}
 select{max-width:100%}
 label{grid-template-columns:minmax(0,1fr);min-width:0}
-.ladder .gstep.force:not(.here){border-style:dashed;border-left-style:solid}
-.ladder .gstep em.force-tag{color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:0 8px;font-size:12px}
-.stage-box .in-force{border-top:1px solid var(--line);padding-top:6px;margin-top:2px}
