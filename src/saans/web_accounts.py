@@ -10,13 +10,13 @@ from flask import g, make_response, redirect, render_template, request, url_for
 from werkzeug.datastructures import MultiDict
 
 from . import accounts, data, settings
-from .profile import WORK, clean_job, clean_text, parse_profile
+from .profile import VEHICLES, WORK, clean_job, clean_text, parse_profile
 from .store import get_store
 
 ACCESS_COOKIE = "saans_at"
 REFRESH_COOKIE = "saans_rt"
 # Fields of a saved profile that parse_profile reads, in link-argument shape.
-PROFILE_ARGS = ("age", "cond", "commute", "start", "end", "mask", "job")
+PROFILE_ARGS = ("age", "cond", "commute", "start", "end", "mask", "job", "vehicle")
 FORM_ERRORS = accounts.TEXT["form_errors"]
 
 
@@ -170,6 +170,7 @@ def register(app, read_work, resolve_route):
             "start": form.get("start") or None,
             "end": form.get("end") or None,
             "mask": form.get("mask") == "1",
+            "vehicle": form.get("vehicle") or None,
             "from": clean_text(form.get("from"), settings.get("place_max_chars")),
             "to": clean_text(form.get("to"), settings.get("place_max_chars")),
             "travel": clean_text(form.get("travel"), settings.get("place_max_chars")),
@@ -197,6 +198,8 @@ def register(app, read_work, resolve_route):
             error = FORM_ERRORS["place"].format(text=p["to"])
         elif p["persona"] and p["persona"] not in WORK:
             error = FORM_ERRORS["persona"]
+        elif p["vehicle"] and p["vehicle"] not in VEHICLES:
+            error = FORM_ERRORS["vehicle"]
         if not error:
             if not p["persona"]:  # read the work description, as the home page does
                 reading = read_work(p["job"])

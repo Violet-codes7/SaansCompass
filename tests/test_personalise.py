@@ -71,8 +71,8 @@ def test_uncovered_activity_never_reads_as_allowed():
 
 
 @pytest.mark.parametrize("stage,value,cat,title,sub", [
-    (0, 80, "Satisfactory", "No GRAP stage today", "Delhi's air is Satisfactory (AQI about 80). GRAP starts at AQI 201."),
-    (0, 195, "Moderate", "No GRAP stage today", "about 195 (Moderate), 6 points below Stage I, which starts at 201"),
+    (0, 80, "Satisfactory", "No GRAP stage today", "Delhi's air is Satisfactory. GRAP starts at AQI 201."),
+    (0, 195, "Moderate", "No GRAP stage today", "6 points below Stage I, which starts at AQI 201"),
     (3, 420, "Severe", "Stage III: Severe air", "dusty construction"),
 ])
 def test_stage_headline(stage, value, cat, title, sub):
@@ -86,7 +86,7 @@ def test_plan_page_explains_rules_and_glance(client):
     assert "What it means for you:" in html and "Dusty construction work" in html
     assert "Official source" in html and "worker.dusty_cnd.stage3" in html
     assert "You are here" in html and "Stage III: Severe air" in html
-    for label in ("Air today", "Worst time to be outside", "Your limits", "Like smoking"):
+    for label in ("Air, last 24 hours", "Worst time to be outside", "Your limits", "Like smoking"):
         assert label in html
     html0 = client.get("/plan?persona=commuter&area=ito&stage=0").get_data(as_text=True)
     assert "No GRAP stage today" in html0 and ">None<" not in html0

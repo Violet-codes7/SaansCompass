@@ -46,8 +46,9 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
     the day) the hour-by-hour plan uses the destination's air and the trips
     between the two are checked too."""
     persona = get_persona(persona_id)
-    if profile is not None:
-        persona = profile.apply(persona)
+    # The profile fits hours, limits, vehicle rules and travel; without one,
+    # how the person travels (from the link) still fits the commute rules.
+    persona = (profile or Profile(work=persona.id)).apply(persona, modes)
     start = data.get_area(area_id)
     dest = data.get_area(to_area_id) if to_area_id else None
     area = dest or start
@@ -71,7 +72,10 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
     next_day = data.city_air(forecasts, date + timedelta(days=1), now) if day == "today" else None
     stage_info = resolve_stage(city["aqi"] if city else data.day_aqi(forecast, date), official, declared,
                                city=city, outlook=next_day["aqi"] if next_day else None)
-    stage_info.update(area_aqi=data.day_aqi(forecast, date), day=day)
+    # One AQI for the area everywhere on the page: the same figure as the air
+    # dials (last 24 hours today, the day's forecast average tomorrow).
+    area_aqi = data.particles_now(forecast, now)["aqi"] if day == "today" else data.day_aqi(forecast, date)
+    stage_info.update(area_aqi=area_aqi, day=day)
     sensitive = persona.sensitive or bool(profile and profile.sensitive)
     rule_results = rulebook.evaluate_persona(persona, area.id, stage_info["stage"], sensitive)
     plan = build_plan(persona, area, forecast, date, stage_info, rule_results, profile)
@@ -88,6 +92,10 @@ def get_plan(persona_id, area_id, stage=None, day="today", now=None, store=None,
         plan["day_actions"] = trip_actions + plan["day_actions"]
         plan["actions"] = [a for a in plan["actions"] if a not in plan["day_actions"]] + plan["day_actions"]
     plan["air_now"] = air_now(forecast, now)
+    pt = plan["air_now"]["particles"]
+    if day == "today" and pt["pm25"] is not None:
+        # The same 24-hour PM2.5 as the dashboard chips.
+        plan["air"].update(pm25_day=pt["pm25"], cigarettes=round(pt["pm25"] / settings.get("cigarette_pm25_ugm3"), 1))
     tomorrow_aqi = data.day_aqi(forecast, now.astimezone(data.IST).date() + timedelta(days=1))
     plan["air_tomorrow"] = {"aqi": tomorrow_aqi, "category": aqi_mod.category(tomorrow_aqi)}
     plan["dates"] = {

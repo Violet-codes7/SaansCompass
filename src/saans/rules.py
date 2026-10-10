@@ -13,7 +13,7 @@ Cedar returns Deny both when a forbid matched and when nothing matched; the
 difference is whether the deny carries reasons.
 """
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass, replace
 from functools import lru_cache
 from pathlib import Path
 
@@ -154,7 +154,12 @@ class RuleBook:
         return RuleResult(activity_id, decision, p.id, p.clause)
 
     def evaluate_persona(self, persona, area_id, stage, sensitive=False):
-        return [self.evaluate(persona.id, a.id, area_id, stage, sensitive) for a in persona.activities if a.ruled]
+        out = []
+        for a in persona.activities:
+            if a.ruled:
+                result = self.evaluate(a.rules_as or persona.id, a.rules_action or a.id, area_id, stage, sensitive)
+                out.append(replace(result, activity_id=a.id))
+        return out
 
 
 @lru_cache(maxsize=1)

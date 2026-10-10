@@ -264,6 +264,13 @@
     "Today, for you": "आज, आपके लिए",
     "Tomorrow, for you": "कल, आपके लिए",
     "Our estimate from Delhi's average AQI": "दिल्ली के औसत AQI से हमारा अनुमान",
-    "Sources": "स्रोत"
+    "Sources": "स्रोत",
+    "Your own vehicle": "आपका अपना वाहन",
+    "Not sure / not given": "पता नहीं / नहीं बताया",
+    "No car or goods vehicle": "कोई कार या मालवाहक वाहन नहीं",
+    "Fitted to you:": "आपके हिसाब से:",
+    "Air, last 24 hours": "हवा, पिछले 24 घंटे",
+    "Air tomorrow": "कल की हवा",
+    "Tomorrow, forecast": "कल, पूर्वानुमान"
   }
 }

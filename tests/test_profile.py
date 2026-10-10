@@ -34,7 +34,10 @@ def test_profile_parses_and_lowers_thresholds():
 
 def test_healthy_adult_keeps_usual_thresholds():
     p = parse_profile(args(age="30", commute="metro"), "commuter")
-    assert not p.sensitive and p.apply(PERSONAS["commuter"]) == PERSONAS["commuter"]
+    fitted = p.apply(PERSONAS["commuter"])
+    assert not p.sensitive and (fitted.go_max, fitted.limit_max) == (PERSONAS["commuter"].go_max,
+                                                                     PERSONAS["commuter"].limit_max)
+    assert fitted.activity("morning_commute").rules_action == "travel_metro"  # judged by how they travel
 
 
 def test_child_and_pregnancy_shift_by_50():
@@ -106,3 +109,20 @@ def test_profile_reaches_the_plan(mem_store, live_fetcher):
 def test_new_personas_plan(mem_store, live_fetcher, persona):
     plan = get_plan(persona, "ito", now=FIXED_NOW, fetcher=live_fetcher)
     assert plan["verdict"] and plan["hours"] and plan["actions"] is not None
+
+
+def test_vehicle_keeps_only_its_own_rule():
+    commuter = PERSONAS["commuter"]
+    old = parse_profile(args(vehicle="car_old", commute="car"), "commuter").apply(commuter)
+    ids = [a.id for a in old.activities]
+    assert "drive_private_car" not in ids and ids.count("drive_bs3_petrol_bs4_diesel_car") == 1
+    assert old.activity("morning_commute").rules_action == "drive_bs3_petrol_bs4_diesel_car"
+    none = parse_profile(args(vehicle="none", commute="none"), "commuter").apply(commuter)
+    assert not {a.id for a in none.activities} & {"drive_private_car", "drive_bs3_petrol_bs4_diesel_car",
+                                                  "morning_commute", "evening_commute"}
+    # An older person who drives an old car gets the car rule too, judged as written for commuters.
+    older = parse_profile(args(vehicle="car_old"), "older").apply(PERSONAS["older"])
+    car = older.activity("drive_bs3_petrol_bs4_diesel_car")
+    assert car.rules_as == "commuter" and car.label.startswith("Driving your BS-III")
+    with pytest.raises(ValueError):
+        parse_profile(args(vehicle="spaceship"), "commuter")

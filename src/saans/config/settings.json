@@ -55,5 +55,6 @@
   "place_max_chars": 120,
   "past_days": 1,
   "rolling_min_hours": 16,
-  "city_min_areas": 5
+  "city_min_areas": 5,
+  "cigarette_pm25_ugm3": 22
 }

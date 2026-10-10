@@ -66,7 +66,8 @@
     <span class="eyebrow">GRAP stage, Delhi-NCR</span>
     <strong>{{ sg.headline.title }}</strong>
     <span class="small">{{ sg.headline.sub }}</span>
-    {% if sg.stage and sg.day_aqi is not none %}<span class="small">{{ grap.box_line.format(aqi=sg.day_aqi, category=aqi_category(sg.day_aqi)) }}</span>{% endif %}
+    {% if sg.area_aqi is not none %}<span class="small aqi-line">{{ (grap.box_area if plan.day == 'today' else grap.box_area_tomorrow).format(area=plan.area.name, aqi=sg.area_aqi, category=aqi_category(sg.area_aqi)) }}</span>{% endif %}
+    {% if sg.city %}<span class="small">{{ grap.box_city.format(aqi=sg.day_aqi, category=aqi_category(sg.day_aqi)) }}</span>{% endif %}
     <span class="src {{ sg.source }}">{{ stage_sources[sg.source].label }}</span>
     {% if sg.source != 'estimate' and sg.estimate and sg.estimate != sg.label %}<span class="small">{{ grap.differs.format(estimate=grap.no_stage_word if sg.estimate == 'None' else grap.stage_word.format(label=sg.estimate)) }}</span>{% endif %}
     {% if sg.outlook and sg.outlook.stage > (sg.stage or 0) %}<span class="small outlook">{{ grap.outlook_worse.format(label=sg.outlook.label, aqi=sg.outlook.aqi) }}</span>{% endif %}
@@ -106,7 +107,7 @@
   <section class="panel rules" id="grap">
     <h2>GRAP rules for you</h2>
     <p class="lead">{{ grap.intro }}</p>
-    {% set sg = plan.stage %}{% set city = sg.city %}
+    {% set sg = plan.stage %}{% set city = sg.city %}{% set route_modes_label = plan.route.mode_labels|join(' + ') if plan.route and plan.route.mode_labels else '' %}
     {% if sg.day_aqi is not none %}
     <div class="grap-scale">
       <h3>{{ grap.scale_title }}</h3>
@@ -118,7 +119,7 @@
           {% endfor %}
         </div>
         <span class="mark now" style="left: {{ [sg.day_aqi, 500]|min / 5 }}%"><b>{{ grap.delhi }} {{ sg.day_aqi }}</b></span>
-        {% if sg.outlook %}<span class="mark ahead" style="left: {{ [sg.outlook.aqi, 500]|min / 5 }}%"><b>{{ grap.tomorrow }} {{ sg.outlook.aqi }}</b></span>{% endif %}
+        {% if sg.city and sg.area_aqi is not none %}<span class="mark ahead" style="left: {{ [sg.area_aqi, 500]|min / 5 }}%"><b>{{ plan.area.name }} {{ sg.area_aqi }}</b></span>{% endif %}
       </div>
       <ul class="scale-notes">
         {% if city %}
@@ -145,6 +146,10 @@
       {% endfor %}
     </div>
     <h3 class="rules-for-you">{{ 'Today' if plan.day == 'today' else 'Tomorrow' }}, for you</h3>
+    {% set pf = plan.profile %}
+    {% set fitted = [plan.persona.label] + ([route_modes_label] if route_modes_label else ([pf.commute] if pf and pf.commute else [])) + ([pf.vehicle] if pf and pf.vehicle else []) + (pf.conditions if pf else []) + (['Age ' ~ pf.age] if pf and pf.age else []) %}
+    <p class="fitted small"><b>{{ grap.fitted_title }}:</b> {{ fitted|join(' · ') }}{% if not pf or not (pf.vehicle or pf.commute or route_modes_label) %}. {{ grap.fitted_none }}{% endif %}</p>
+    {% if plan.health and plan.health.charter and plan.health.reasons %}<p class="fitted small">{{ grap.charter_you.format(reasons=plan.health.reasons|join(', ')) }}</p>{% endif %}
     {% set no_stage = plan.stage.stage == 0 %}
     <ul class="rule-list">
       {% for a in plan.activities|selectattr('rule')|sort(attribute='rank') %}{% set r = a.rule %}{% set x = a.explain %}
@@ -181,8 +186,8 @@
   {% if plan.verdict_meaning %}<p class="vmeaning">{{ plan.verdict_meaning }}</p>{% endif %}
   {% if plan.verdict_note %}<p class="small vnote">{{ plan.verdict_note }}</p>{% endif %}
   <dl class="facts">
-    {% if plan.air.day_aqi is not none %}<div><dt>Air {{ 'today' if plan.day == 'today' else 'tomorrow' }}</dt>
-      <dd><b>AQI about {{ plan.air.day_aqi }} · {{ plan.air.category }}</b><small>{{ plan.air.impact }} (CPCB)</small></dd></div>{% endif %}
+    {% if plan.air.day_aqi is not none %}<div><dt>{{ 'Air, last 24 hours' if plan.day == 'today' else 'Air tomorrow' }}</dt>
+      <dd><b>AQI {{ plan.air.day_aqi }} · {{ plan.air.category }}</b><small>{{ plan.air.impact }} (CPCB)</small></dd></div>{% endif %}
     {% if plan.air.pollutant %}<div><dt>Main pollutant</dt><dd>{{ plan.air.pollutant }}</dd></div>{% endif %}
     {% if plan.best_window %}<div><dt>{{ 'No clean window: least-bad time' if plan.best_window.clean == false else plan.best_window_title }}</dt>
       <dd><b>{{ plan.best_window.start }}–{{ plan.best_window.end }}</b> · AQI about {{ plan.best_window.avg_aqi }}</dd></div>{% endif %}
@@ -190,7 +195,7 @@
     {% if plan.commute %}<div><dt>When you set out ({{ plan.commute.time }})</dt><dd>AQI {{ plan.commute.aqi if plan.commute.aqi is not none else 'not known' }} · {{ plan.commute.category }}</dd></div>{% endif %}
     {% if plan.day == 'today' and plan.air_tomorrow.aqi is not none and plan.air.day_aqi is not none %}
     {% set diff = plan.air_tomorrow.aqi - plan.air.day_aqi %}
-    <div><dt>Tomorrow</dt><dd>AQI about {{ plan.air_tomorrow.aqi }} · {{ plan.air_tomorrow.category }}<small>{{ 'Cleaner than today.' if diff <= -20 else ('Worse than today: plan ahead.' if diff >= 20 else 'About the same as today.') }}</small></dd></div>{% endif %}
+    <div><dt>Tomorrow</dt><dd>AQI {{ plan.air_tomorrow.aqi }} · {{ plan.air_tomorrow.category }}<small>{{ 'Cleaner than today.' if diff <= -20 else ('Worse than today: plan ahead.' if diff >= 20 else 'About the same as today.') }}</small></dd></div>{% endif %}
     <div><dt>Your limits</dt><dd>Fine up to AQI {{ plan.thresholds.go_max }}, keep it short up to {{ plan.thresholds.limit_max }}, stay in above that.
       <small>{% if plan.health.shift %}{{ plan.health.shift }} points lower than usual because of your health or age.{% else %}The usual levels for your kind of day.{% endif %} Our estimate, not an official limit.</small></dd></div>
     <div><dt>Rough breath dose (estimate)</dt>

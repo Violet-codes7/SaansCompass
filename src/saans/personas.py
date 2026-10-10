@@ -26,6 +26,10 @@ class Activity:
     outdoor: bool = True
     movable: bool = True  # False for things like the commute that cannot move indoors
     ruled: bool = True  # False for things GRAP has nothing to say about (a rest break)
+    # Set from the person's profile: judge this activity as another persona's
+    # (a car rule written for commuters) or as another action (a commute by metro).
+    rules_as: str | None = None
+    rules_action: str | None = None
 
 
 @dataclass(frozen=True)

@@ -42,6 +42,11 @@ WORK = _CONFIG["work"]
 AGE_INFO = _CONFIG["age_info"]
 
 COMMUTE_TIPS = _CONFIG["commute_tips"]
+VEHICLES = _CONFIG["vehicles"]
+VEHICLE_LABELS = _CONFIG["vehicle_labels"]
+COMMUTE_ACTIVITIES = set(_CONFIG["commute_activities"])
+# Activities that are about driving a particular vehicle.
+VEHICLE_ACTIVITIES = {v["activity"] for v in VEHICLES.values() if v["activity"]}
 
 
 @dataclass(frozen=True)
@@ -55,6 +60,7 @@ class Profile:
     mask: bool = False
     job: str | None = None  # what they do, in their own words
     about: str | None = None  # "About me" from a saved profile, for the AI only
+    vehicle: str | None = None  # a key of VEHICLES, or None when not given
 
     @property
     def child(self):
@@ -118,6 +124,7 @@ class Profile:
             "age": self.age,
             "conditions": [CONDITIONS[c] for c in self.conditions],
             "commute": COMMUTE_MODES.get(self.commute) if self.commute else None,
+            "vehicle": VEHICLES[self.vehicle]["label"] if self.vehicle else None,
             "hours": (f"{self.start_hour:02d}:00-{self.end_hour:02d}:00"
                       if self.start_hour is not None and self.end_hour is not None else None),
             "has_n95_mask": self.mask,
@@ -125,8 +132,8 @@ class Profile:
             "sensitivity": self.health()["level"],
         }
 
-    def apply(self, persona):
-        """The persona with this person's hours and thresholds."""
+    def apply(self, persona, modes=()):
+        """The persona with this person's hours, thresholds, vehicle and way of travelling."""
         shift = self.threshold_shift()
         changes = {}
         if shift:
@@ -139,7 +146,36 @@ class Profile:
             changes["end_hour"] = self.end_hour
             if persona.commute_hour is not None:
                 changes["commute_hour"] = self.start_hour
+        activities = self._personal_activities(persona, modes)
+        if activities != persona.activities:
+            changes["activities"] = activities
         return replace(persona, **changes) if changes else persona
+
+    def _personal_activities(self, persona, modes):
+        """Only the vehicle rules that fit this person's own vehicle, and the
+        commute judged by how they actually travel."""
+        from .personas import PERSONAS  # here to avoid an import cycle
+
+        out = list(persona.activities)
+        vehicle = VEHICLES.get(self.vehicle) if self.vehicle else None
+        car = None
+        if vehicle is not None:
+            out = [a for a in out if a.id not in VEHICLE_ACTIVITIES]
+            if vehicle["activity"]:
+                template = PERSONAS[vehicle["rules_as"]].activity(vehicle["activity"])
+                car = replace(template, label=VEHICLE_LABELS["driving"].format(vehicle=vehicle["short"]),
+                              rules_as=vehicle["rules_as"])
+                out.append(car)
+        mode = next((m for m in modes if m in COMMUTE_MODES), None) or self.commute
+        if mode == "none":
+            out = [a for a in out if a.id not in COMMUTE_ACTIVITIES]
+        elif mode:
+            label = COMMUTE_MODES[mode].lower()
+            out = [replace(a, label=VEHICLE_LABELS["by"].format(activity=a.label, mode=label),
+                           rules_action=car.id if mode == "car" and car else f"travel_{mode}",
+                           rules_as=car.rules_as if mode == "car" and car else a.rules_as)
+                   if a.id in COMMUTE_ACTIVITIES else a for a in out]
+        return tuple(out)
 
 
 JOB_MAX = _CONFIG["job_max_chars"]
@@ -199,7 +235,7 @@ def parse_profile(args, persona_id, about=None):
     """Build a Profile from query arguments (or a saved profile in the same
     shape), or None when none were given. `about` is the saved "About me"
     text; it never comes from a link. Raises ValueError for bad input."""
-    keys = ("age", "cond", "commute", "start", "end", "mask", "job")
+    keys = ("age", "cond", "commute", "start", "end", "mask", "job", "vehicle")
     if not any(args.get(k) for k in keys):
         return None
     age = args.get("age")
@@ -228,6 +264,9 @@ def parse_profile(args, persona_id, about=None):
     commute = args.get("commute") or None
     if commute and commute not in COMMUTE_MODES:
         raise ValueError(f"commute must be one of {', '.join(COMMUTE_MODES)}")
+    vehicle = args.get("vehicle") or None
+    if vehicle and vehicle not in VEHICLES:
+        raise ValueError(f"vehicle must be one of {', '.join(VEHICLES)}")
     start, end = _hour(args.get("start"), "start"), _hour(args.get("end"), "end")
     if (start is None) != (end is None):
         raise ValueError("give both a start and an end hour, or neither")
@@ -243,4 +282,5 @@ def parse_profile(args, persona_id, about=None):
         mask=str(args.get("mask", "")).lower() in ("1", "on", "yes", "true"),
         job=clean_job(args.get("job")),
         about=clean_text(about, settings.get("about_me_max_chars")),
+        vehicle=vehicle,
     )

@@ -13,7 +13,7 @@ from . import gauges, weather
 from .aqi import category as aqi_category
 from .advisor import TEXT as ADVICE_TEXT
 from .explain import GRAP, STAGE_SOURCES, STAGES
-from .profile import COMMUTE_MODES, CONDITION_GROUPS, CONDITIONS, WORK, clean_job, clean_text, guess_work, parse_profile
+from .profile import COMMUTE_MODES, CONDITION_GROUPS, CONDITIONS, VEHICLE_LABELS, VEHICLES, WORK, clean_job, clean_text, guess_work, parse_profile
 from .service import air_now
 from .service import get_plan
 from .stage import ROMAN
@@ -183,7 +183,7 @@ def create_app():
                 "work": WORK, "conditions": CONDITIONS, "commute_modes": COMMUTE_MODES, "plan_link": _plan_link,
                 "aqi_gauge": gauges.aqi_gauge, "simple_gauge": gauges.simple_gauge, "band_gauge": gauges.band_gauge,
                 "weather_dials": weather.DIALS, "weather_text": weather.TEXT["explain"], "particles": PARTICLES,
-                "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "aqi_category": aqi_category,
+                "condition_groups": CONDITION_GROUPS, "stages": STAGES, "stage_sources": STAGE_SOURCES, "grap": GRAP, "aqi_category": aqi_category, "vehicles": VEHICLES, "vehicle_labels": VEHICLE_LABELS,
                 "hour_labels": ADVICE_TEXT["hour_verdict_labels"], "hour_tags": ADVICE_TEXT["hour_tags"],
                 "source_links": settings.get("source_links"), "route_messages": route.TEXT["messages"],
                 "alert_hours": (settings.get("alert_morning_hour"), settings.get("alert_evening_hour")), "grap_revision": settings.get("grap_revision")}

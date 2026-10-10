@@ -342,5 +342,47 @@
       "नौकरी"
     ]
   },
-  "job_max_chars": 160
+  "job_max_chars": 160,
+  "vehicles": {
+    "none": {
+      "label": "No car or goods vehicle",
+      "activity": null
+    },
+    "car_new": {
+      "label": "Car: BS-VI, CNG, electric or BS-IV petrol",
+      "short": "your car (BS-VI, CNG, electric or BS-IV petrol)",
+      "activity": "drive_private_car",
+      "rules_as": "commuter"
+    },
+    "car_old": {
+      "label": "Car: BS-III or older petrol, or BS-IV or older diesel",
+      "short": "your BS-III petrol or BS-IV (or older) diesel car",
+      "activity": "drive_bs3_petrol_bs4_diesel_car",
+      "rules_as": "commuter"
+    },
+    "lgv_old": {
+      "label": "Light goods vehicle: BS-IV or older diesel, registered outside Delhi",
+      "short": "your BS-IV (or older) diesel light goods vehicle",
+      "activity": "drive_bs4_diesel_lgv_outside",
+      "rules_as": "rider"
+    },
+    "mgv_old": {
+      "label": "Medium goods vehicle: BS-IV or older diesel",
+      "short": "your BS-IV (or older) diesel medium goods vehicle",
+      "activity": "drive_bs4_diesel_mgv",
+      "rules_as": "rider"
+    }
+  },
+  "vehicle_labels": {
+    "question": "Your own vehicle",
+    "unknown": "Not sure / not given",
+    "help": "The BS level is on the registration certificate (RC). It decides which GRAP vehicle rules apply to you.",
+    "driving": "Driving {vehicle}",
+    "by": "{activity} by {mode}"
+  },
+  "commute_activities": [
+    "school_commute",
+    "morning_commute",
+    "evening_commute"
+  ]
 }

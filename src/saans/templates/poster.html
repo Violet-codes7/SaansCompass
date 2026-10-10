@@ -36,9 +36,9 @@
 
     <section class="hero">
       <div class="dial">
-        {{ aqi_gauge(plan.air.day_aqi, "Air today") }}
+        {{ aqi_gauge(plan.air.day_aqi, "AQI, last 24 hours" if plan.day == "today" else "AQI tomorrow") }}
         <p class="cat {{ (plan.air.category or 'no data')|lower|replace(' ', '-') }}">{{ plan.air.category or 'No data' }}</p>
-        <p class="small">Air today (AQI)</p>
+        <p class="small">{{ 'Last 24 hours' if plan.day == 'today' else 'Tomorrow, forecast' }}</p>
       </div>
       <div class="verdict-box">
         <p class="eyebrow">Today for you</p>
@@ -51,7 +51,7 @@
     <section class="stage-band s{{ plan.stage.stage if plan.stage.stage is not none else 'x' }}">
       <p class="stage-title">{% if no_stage %}{{ plan.stage.headline.title }}{% else %}GRAP {{ plan.stage.headline.title }}{% endif %}</p>
       <p class="stage-sub">{{ plan.stage.headline.sub }}</p>
-      <p class="stage-src">{{ stage_sources[plan.stage.source].short }}</p>
+      <p class="stage-src">{{ stage_sources[plan.stage.source].short }}{% if plan.stage.city %} · Delhi's average AQI {{ plan.stage.day_aqi }}{% endif %}</p>
     </section>
 
     <section class="tiles">

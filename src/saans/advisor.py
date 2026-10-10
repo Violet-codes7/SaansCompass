@@ -249,7 +249,7 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
             "aqi": at_aqi,
             "slug": at["slug"] if at else None,
             "rule": rule.to_dict() if rule else None,
-            "explain": rule_text(a.id, rule.to_dict()) if rule else None,
+            "explain": rule_text(a.rules_action or a.id, rule.to_dict()) if rule else None,
             "suggestion": suggestion,
             "rank": RULE_ORDER.get(rule.decision, 3) if rule else 4,
         })
@@ -318,7 +318,7 @@ def build_plan(persona, area, forecast, date, stage_info, rule_results, profile=
             # Berkeley Earth's rule of thumb: a day in 22 µg/m³ of PM2.5 is
             # about one cigarette.
             "pm25_day": round(mean_pm25) if mean_pm25 is not None else None,
-            "cigarettes": round(mean_pm25 / 22, 1) if mean_pm25 is not None else None,
+            "cigarettes": round(mean_pm25 / settings.get("cigarette_pm25_ugm3"), 1) if mean_pm25 is not None else None,
         },
         "thresholds": {"go_max": persona.go_max, "limit_max": persona.limit_max},
         "profile": profile.summary() if profile else None,

@@ -15,5 +15,6 @@ action
   "outdoor_walk", "outdoor_errands",
   "outdoor_work_shift", "work_break", "dusty_construction_work", "other_construction_work",
   "morning_commute", "evening_commute", "lunch_walk", "office_attendance", "drive_private_car",
-  "outdoor_training", "warm_up_walk"
+  "outdoor_training", "warm_up_walk",
+  "travel_walk", "travel_cycle", "travel_two_wheeler", "travel_auto", "travel_bus", "travel_metro", "travel_car"
   appliesTo { principal: [Persona], resource: [Area], context: { stage: Long, sensitive: Bool } };

@@ -212,6 +212,26 @@
       "means": "GRAP does not stop outdoor work in general at this stage.",
       "why": "Only specific dusty or polluting work is restricted below Stage IV.",
       "do": "Take your break indoors at the worst hour, and drink plenty of water."
+    },
+    "travel.public_transport": {
+      "means": "Travel by metro or bus as usual. GRAP never stops them; from Stage II it adds more buses and metro trips.",
+      "why": "Public transport is how GRAP wants people to travel on bad-air days: fewer cars means less smoke and dust.",
+      "do": "Keep the walk to the station short, and wait away from the kerb."
+    },
+    "travel.on_foot_or_cycle.below_stage4": {
+      "means": "You can walk or cycle as usual. GRAP does not limit it before Stage IV.",
+      "why": "GRAP's rules are about the sources of pollution, not about people moving on foot or by bike.",
+      "do": "Pick quieter streets away from heavy traffic, and wear an N95 on busy roads if the air is Poor or worse."
+    },
+    "travel.two_wheeler.below_stage4": {
+      "means": "You can ride your scooter or motorbike as usual. No Stage I to III action restricts two-wheelers.",
+      "why": "The vehicle bans that come in at Stage III are for older cars and goods vehicles.",
+      "do": "Keep its PUC certificate valid, and wear a well-fitted N95 under the helmet."
+    },
+    "travel.auto.below_stage4": {
+      "means": "Autos and cabs run as usual. Delhi's autos run on CNG, which GRAP does not restrict before Stage IV.",
+      "why": "GRAP targets older petrol and diesel vehicles; CNG and electric ones stay on the road.",
+      "do": "Autos are open to traffic fumes, so an N95 helps on long rides."
     }
   },
   "uncovered": {
@@ -244,6 +264,31 @@
       "means": "GRAP has no rule about the trip itself.",
       "why": "The rules cover vehicles, not people travelling. See the car rules here if you drive.",
       "do": "The metro or a bus is the cleaner choice on a bad-air day."
+    },
+    "travel_car": {
+      "means": "Whether you can drive depends on your car's fuel and BS level, which we don't know yet.",
+      "why": "From Stage III, GRAP takes BS-III petrol and BS-IV (or older) diesel cars off Delhi's roads.",
+      "do": "Add your car in your profile to see its exact rule. Your car's BS level is on its registration certificate (RC)."
+    },
+    "travel_walk": {
+      "means": "At Stage IV the governments can add emergency steps, such as odd-even or closing some businesses, so check today's order.",
+      "why": "Stage IV is the emergency level; its extra steps are announced by the Delhi and NCR governments.",
+      "do": "Check the Delhi government's order for today before you set out."
+    },
+    "travel_cycle": {
+      "means": "At Stage IV the governments can add emergency steps, such as odd-even or closing some businesses, so check today's order.",
+      "why": "Stage IV is the emergency level; its extra steps are announced by the Delhi and NCR governments.",
+      "do": "Check the Delhi government's order for today before you set out."
+    },
+    "travel_two_wheeler": {
+      "means": "At Stage IV the governments can add emergency steps, such as odd-even or closing some businesses, so check today's order.",
+      "why": "Stage IV is the emergency level; its extra steps are announced by the Delhi and NCR governments.",
+      "do": "Check the Delhi government's order for today before you set out."
+    },
+    "travel_auto": {
+      "means": "At Stage IV the governments can add emergency steps, such as odd-even or closing some businesses, so check today's order.",
+      "why": "Stage IV is the emergency level; its extra steps are announced by the Delhi and NCR governments.",
+      "do": "Check the Delhi government's order for today before you set out."
     }
   },
   "uncovered_default": {
@@ -262,9 +307,9 @@
       "sub": "Not enough forecast data to estimate it."
     },
     "none_title": "No GRAP stage {day}",
-    "none_okay": "Delhi's air is {category} (AQI about {aqi}). GRAP starts at AQI {stage1_min}.",
-    "none_moderate": "Delhi's AQI is about {aqi} ({category}), {gap} points below Stage I, which starts at {stage1_min}.",
-    "none_other": "Delhi's AQI is about {aqi} ({category}).",
+    "none_okay": "Delhi's air is {category}. GRAP starts at AQI {stage1_min}.",
+    "none_moderate": "Delhi's average is {gap} points below Stage I, which starts at AQI {stage1_min}.",
+    "none_other": "Delhi's average AQI is {aqi} ({category}).",
     "stage_title": "Stage {roman}: {name}",
     "okay_categories": [
       "Good",
@@ -299,20 +344,19 @@
     "scale_title": "Where Delhi stands",
     "delhi": "Delhi",
     "tomorrow": "Tomorrow",
-    "box_line": "Delhi's AQI is about {aqi} ({category}).",
     "you": "{area}",
     "no_stage_band": "No stage",
-    "city_line": "Delhi's AQI is about {aqi} ({category}): the average of the last 24 hours across {count} areas.",
-    "city_line_forecast": "Delhi's AQI is forecast at about {aqi} ({category}), averaged across {count} areas.",
-    "area_line": "{area} on its own: AQI about {aqi}. GRAP still follows Delhi's average.",
+    "city_line": "Delhi's average AQI is {aqi} ({category}): the 24-hour AQI of {count} areas, averaged.",
+    "city_line_forecast": "Delhi's average AQI is forecast at {aqi} ({category}), across {count} areas.",
+    "area_line": "{area}: AQI {aqi}, the same figure as the air dials. GRAP still follows Delhi's average.",
     "range_line": "Cleanest: {low} ({low_aqi}). Worst: {high} ({high_aqi}).",
     "area_basis": "Not enough areas had a forecast, so this uses {area}'s AQI alone.",
     "next_line": "Stage {label} starts at AQI {min_aqi}: {gap} points to go.",
     "next_reached": "Delhi's AQI is already in the Stage {label} range (from {min_aqi}).",
     "top_line": "Stage IV is the highest stage.",
-    "outlook_worse": "Tomorrow's forecast points to Stage {label} (AQI about {aqi}). CAQM can switch a stage on early when the forecast says the air is getting worse.",
-    "outlook_better": "Tomorrow's forecast is better: {label_text} (AQI about {aqi}).",
-    "outlook_same": "Tomorrow looks similar: {label_text} (AQI about {aqi}).",
+    "outlook_worse": "Tomorrow's forecast for Delhi points to Stage {label} (AQI {aqi}). CAQM can switch a stage on early when the forecast says the air is getting worse.",
+    "outlook_better": "Tomorrow's forecast for Delhi is better: {label_text} (AQI {aqi}).",
+    "outlook_same": "Tomorrow looks similar for Delhi: {label_text} (AQI {aqi}).",
     "stage_word": "Stage {label}",
     "no_stage_word": "no stage",
     "differs": "Our estimate from Delhi's AQI is {estimate}.",
@@ -344,6 +388,12 @@
         "url": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2316597"
       }
     ],
-    "sources_label": "Sources"
+    "sources_label": "Sources",
+    "box_area": "{area}: AQI {aqi} ({category}) over the last 24 hours, as in the air dials.",
+    "box_area_tomorrow": "{area} tomorrow: AQI {aqi} ({category}), the forecast day average.",
+    "box_city": "Delhi's average: AQI {aqi} ({category}). GRAP is set on this one figure for all of Delhi-NCR.",
+    "fitted_title": "Fitted to you",
+    "fitted_none": "Add your work, travel, car and health in your profile to fit these rules to you.",
+    "charter_you": "Because of {reasons}, GRAP's Stage IV advice to stay indoors as much as possible is meant for you."
   }
 }

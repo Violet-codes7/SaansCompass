@@ -74,7 +74,45 @@ def test_plan_page_explains_where_delhi_stands(mem_store, monkeypatch):
     monkeypatch.setattr(data, "fetch_open_meteo", fetch)
     monkeypatch.setattr(web, "_work_cache", {})
     html = web.create_app().test_client().get("/plan?persona=commuter&area=ito&day=today").get_data(as_text=True)
-    for text in ("Where Delhi stands", "the average of the last 24 hours across 9 areas", "Worst: Dwarka",
+    for text in ("Where Delhi stands", "the 24-hour AQI of 9 areas, averaged", "Worst: Dwarka",
                  "points to go", "How a stage is decided", "What Stage I would bring", "anti-smog guns",
-                 "GRAP still follows Delhi&#39;s average"):
+                 "the same figure as the air dials"):
         assert text in html, text
+
+
+def test_area_aqi_is_the_same_everywhere(mem_store, monkeypatch):
+    from saans import data, web
+    from saans.service import get_plan
+    fetch = _fetch_with("dwarka", 120, 60)
+    plan = get_plan("commuter", "ito", now=data.now_ist(), fetcher=fetch, day="today")
+    dial = plan["air_now"]["particles"]
+    assert plan["air"]["day_aqi"] == dial["aqi"] == plan["stage"]["area_aqi"]
+    assert plan["air"]["pm25_day"] == dial["pm25"]
+    assert [s["aqi"] for s in plan["stage"]["city"]["sites"] if s["id"] == "ito"] == [dial["aqi"]]
+    monkeypatch.setattr(data, "fetch_open_meteo", fetch)
+    monkeypatch.setattr(web, "_work_cache", {})
+    html = web.create_app().test_client().get("/plan?persona=commuter&area=ito&day=today").get_data(as_text=True)
+    aqi = dial["aqi"]
+    assert f"ITO: AQI {aqi} (" in html and f"AQI {aqi} · " in html and f"ITO {aqi}</b>" in html
+
+
+def test_rules_follow_travel_and_vehicle(mem_store, live_fetcher):
+    from conftest import FIXED_NOW
+    from saans.profile import parse_profile
+    from saans.service import get_plan
+    from werkzeug.datastructures import MultiDict
+
+    def rules(stage, modes=(), **profile):
+        p = parse_profile(MultiDict(profile), "older") if profile else None
+        plan = get_plan("commuter" if not profile else "older", "ito", stage=stage, now=FIXED_NOW,
+                        fetcher=live_fetcher, profile=p, modes=modes)
+        return {a["id"]: (a["label"], a["rule"]["decision"]) for a in plan["activities"] if a["rule"]}, plan
+
+    metro, _ = rules("III", modes=["metro"])
+    assert metro["morning_commute"] == ("Morning commute by metro", "allowed")
+    car, _ = rules("III", vehicle="car_old", age="70")
+    assert car["drive_bs3_petrol_bs4_diesel_car"][1] == "not_allowed"
+    commute, plan = rules("I", modes=["car"])
+    assert commute["morning_commute"][1] == "check_official_order"  # car not known
+    explain = {a["id"]: a["explain"] for a in plan["activities"]}
+    assert "Add your car" in explain["morning_commute"]["do"]
