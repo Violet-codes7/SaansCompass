@@ -112,6 +112,8 @@
   "suggest_count": 6,
   "suggest_min_chars": 3,
   "route_corridor_km": 5,
+  "route_station_km": 6,
+  "route_station_stops": 5,
   "place_max_chars": 120,
   "past_days": 1,
   "rolling_min_hours": 16,

@@ -74,6 +74,9 @@
     "always_show": true,
     "_suggest_about": "The better path shows only when the usual route's average AQI is above suggest_above_aqi (150 = well into Moderate) and another route cuts the pollution breathed by at least suggest_min_pct.",
     "suggest_above_aqi": 150,
-    "suggest_min_pct": 5
+    "suggest_min_pct": 5,
+    "_forecast_about": "Where no monitoring station is within station_km of a route, the forecast model at up to forecast_points points every forecast_point_km stands in.",
+    "forecast_points": 15,
+    "forecast_point_km": 15
   }
 }

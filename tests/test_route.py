@@ -270,3 +270,23 @@ def test_typed_places_get_no_alert_form_or_live_location(client, monkeypatch, al
     from saans.web import locate_near
     lucknow = route.place_for(26.85, 80.95, "Lucknow")
     assert not locate_near(lucknow.id) and locate_near("ito") and locate_near(None)
+
+
+def test_each_stop_reads_its_own_live_station(mem_store, live_fetcher, monkeypatch):
+    start, dest = data.get_area("rohini"), data.get_area("okhla")
+    stops = route.corridor(start, dest)
+    live = [{"name": f"Station {i}", "lat": a.lat + 0.001, "lon": a.lon, "aqi": 100 + 20 * i}
+            for i, a in enumerate(stops)]
+    monkeypatch.setattr(route, "_live_stations", lambda *a, **k: live)
+    plan = get_plan("commuter", "rohini", now=FIXED_NOW, fetcher=live_fetcher, to_area_id="okhla", modes=["bus"])
+    values = [s["aqi"] for s in plan["route"]["legs"][0]["stops"]]
+    assert len(set(values)) == len(values)  # no two stops share one grid cell's figure
+
+
+def test_trip_without_areas_between_uses_stations_on_the_way(mem_store, live_fetcher, monkeypatch):
+    start, dest = data.get_area("ito"), data.get_area("lodhi-road")
+    assert len(route.corridor(start, dest)) == 2
+    mid = [{"name": "Midway", "lat": (start.lat + dest.lat) / 2, "lon": (start.lon + dest.lon) / 2, "aqi": 222}]
+    monkeypatch.setattr(route, "_live_stations", lambda *a, **k: mid)
+    trip = route.trips(get_persona("commuter"), start, dest, FIXED_NOW.date(), mem_store, FIXED_NOW, live_fetcher)
+    assert [s["name"] for s in trip["legs"][0]["stops"]] == [start.name, "Midway", dest.name]

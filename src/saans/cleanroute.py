@@ -108,12 +108,12 @@ def _thin(coords, max_points=300):
     return coords[::k] + ([coords[-1]] if (len(coords) - 1) % k else [])
 
 
-def score(routes, stations):
+def score(routes, stations, max_km=None):
     """Each route with its average AQI along the way and its dose, or None
     when too little of it is near a station."""
     out = []
     for i, r in enumerate(routes):
-        values = [_nearest_aqi(lat, lon, stations, TEXT["station_km"])
+        values = [_nearest_aqi(lat, lon, stations, max_km or TEXT["station_km"])
                   for lat, lon in samples(r["coords"], TEXT["sample_km"], TEXT["max_samples"])]
         known = [v for v in values if v is not None]
         if not values or len(known) / len(values) < TEXT["min_covered"]:
@@ -127,13 +127,36 @@ def score(routes, stations):
     return out
 
 
+def _forecast_points(routes, store, now, fetcher=None):
+    """Stand-in stations from the forecast model at points along the routes,
+    for trips beyond the reach of monitoring stations."""
+    step = TEXT["forecast_point_km"]
+    seen, places = set(), []
+    for r in routes:
+        for lat, lon in samples(r["coords"], step, TEXT["max_samples"]):
+            cell = (round(lat, 1), round(lon, 1))
+            if cell not in seen and len(places) < TEXT["forecast_points"]:
+                seen.add(cell)
+                if data.in_coverage(lat, lon):
+                    places.append(data.Area(f"pt-{cell[0]:.1f},{cell[1]:.1f}", "", cell[0], cell[1]))
+    local = now.astimezone(data.IST)
+    out = []
+    forecasts = data.get_forecasts(places, store, now=now, fetcher=fetcher)
+    for place in places:
+        f = forecasts.get(place.id)
+        r = data.readings_for(f, local.date(), [local.hour])[0] if f else None
+        if r and r.get("aqi") is not None:
+            out.append({"lat": place.lat, "lon": place.lon, "aqi": r["aqi"]})
+    return out
+
+
 def compare(start, dest, mode, store, now, client=None, session=None, fetcher=None):
     """{"routes", "best", "pct", "source"} for a trip, or None when there is
     nothing to compare (no routes, or no air along them)."""
     travel = travel_mode(mode)
     if travel is None or start.id == dest.id:
         return None
-    key = f"ROUTE#{start.id}#{dest.id}#{travel}"
+    key = f"ROUTES#{start.id}#{dest.id}#{travel}"
     if store is not None and client is None:
         cached = store.get_text(key)
         if cached:
@@ -143,6 +166,8 @@ def compare(start, dest, mode, store, now, client=None, session=None, fetcher=No
         return None
     air = airmap.stations(store, now, box=_box(routes, TEXT["station_km"]), session=session, fetcher=fetcher)
     scored = score(routes, air["stations"])
+    if not any(r["dose"] is not None for r in scored):  # too few stations out here: the forecast at points on the way
+        scored = score(routes, _forecast_points(routes, store, now, fetcher), TEXT["forecast_point_km"])
     # Route 1 is Amazon Location's first answer, the way most people would go.
     # A better path is suggested only when its air is worse than suggest_above_aqi
     # and another route cuts the pollution breathed by at least suggest_min_pct.
@@ -156,7 +181,7 @@ def compare(start, dest, mode, store, now, client=None, session=None, fetcher=No
                    and pct >= TEXT["suggest_min_pct"])
         out = {"from": start.name, "to": dest.name, "travel": travel, "routes": scored, "best": best["n"],
                "pct": pct, "suggest": suggest, "source": air["source"]}
-    if store is not None and client is None:
+    if out and store is not None and client is None:
         store.put_text(key, json.dumps(out), ttl_seconds=settings.get("cpcb_cache_seconds"))
     return out
 
