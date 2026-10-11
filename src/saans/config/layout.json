@@ -104,5 +104,13 @@
     "label": "Email alerts for {area} at {morning} and {evening} when the plan changes",
     "button": "Subscribe",
     "areas_only": "Email alerts cover Delhi's areas for now."
+  },
+  "dash_day": {
+    "_about": "Section 01's dials on the Tomorrow tab.",
+    "title": "Air quality at {area} tomorrow",
+    "average": "Day average",
+    "worst": "Worst hour",
+    "best": "Cleanest hour",
+    "at": "{time} IST"
   }
 }

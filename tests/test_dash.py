@@ -101,7 +101,7 @@ def test_fetch_weather_reads_the_extra_fields():
     w = REAL_FETCH_WEATHER(data.AREAS["ito"], session=Session())
     assert w["mixing_m"] == 240.0 and w["wind_dir"] == 315.0 and w["feels_c"] == 29.4
     assert w["hours"][0] == {"time": "2026-10-10T08:00", "temp_c": 26.0, "humidity": None, "wind_kmh": 4.0,
-                             "wind_dir": None, "mixing_m": 180.0}
+                             "wind_dir": None, "mixing_m": 180.0, "feels_c": None, "dew_c": None, "gust_kmh": None}
     assert w["hours"][1]["wind_kmh"] is None
 
 
@@ -170,3 +170,45 @@ def test_implausible_model_pm10_is_held_and_said(mem_store, monkeypatch):
     monkeypatch.setattr(data, "now_ist", lambda: FIXED_NOW)
     html = create_app().test_client().get("/plan?persona=rider&area=dwarka&day=today").get_data(as_text=True)
     assert "Model said" not in html and "Severe" not in html.split('id="air"')[1].split("</figure>")[0]
+
+
+def _hourly_wx(start, temps):
+    from datetime import timedelta
+    base = start.replace(hour=0, minute=0)
+    return [{"time": (base + timedelta(hours=i)).strftime("%Y-%m-%dT%H:00"), "temp_c": t, "humidity": 50.0,
+             "wind_kmh": 12.0, "wind_dir": 350.0 if i % 2 else 10.0, "mixing_m": 900.0, "gust_kmh": 20.0 + i % 24}
+            for i, t in enumerate(temps)]
+
+
+def test_weather_for_tomorrow_averages_its_daytime_hours():
+    from datetime import timedelta
+    from conftest import FIXED_NOW
+    w = weather.decorate({**FULL_WX, "hours": _hourly_wx(FIXED_NOW, [20.0] * 24 + [30.0] * 24)})
+    day = weather.for_day(w, FIXED_NOW.date() + timedelta(days=1))
+    assert day["temp_c"] == 30.0 and day["time"] == "2026-10-11" and day["span"] == "08:00–20:00"
+    assert round(day["wind_dir"]) % 360 == 0 and day["gust_kmh"] == 39.0  # 19:00's gust, the day's highest
+    assert day["bands"]["temp_c"]["name"] == "Warm"
+    assert weather.for_day(w, FIXED_NOW.date() + timedelta(days=5)) is None
+
+
+def test_day_summary_has_average_worst_and_cleanest_hour(live_fetcher):
+    from conftest import FIXED_NOW
+    s = data.day_summary({"hours": live_fetcher(data.AREAS["ito"])}, FIXED_NOW.date())
+    assert s["worst"]["time"] == "21:00" and s["best"]["time"] == "13:00" and s["pm25"] == 147
+    assert data.day_summary({"hours": []}, FIXED_NOW.date()) is None
+
+
+def test_tomorrow_tab_shows_tomorrows_air_and_weather(mem_store, monkeypatch, live_fetcher):
+    from conftest import FIXED_NOW
+    monkeypatch.setattr(data, "now_ist", lambda: FIXED_NOW)
+    monkeypatch.setattr(data, "fetch_open_meteo", live_fetcher)
+    monkeypatch.setattr(weather, "fetch_weather",
+                        lambda area: {**FULL_WX, "hours": _hourly_wx(FIXED_NOW, [20.0] * 24 + [30.0] * 24)})
+    c = create_app().test_client()
+    today = c.get("/plan?persona=rider&area=okhla&day=today").get_data(as_text=True)
+    tomorrow = c.get("/plan?persona=rider&area=okhla&day=tomorrow").get_data(as_text=True)
+    assert "Cleanest hour" not in today and "Updated 2026-10-10 09:00 IST" in today and ">27°C<" in today.replace("<tspan", "<")
+    assert "Air quality at Okhla tomorrow" in tomorrow and "Day average" in tomorrow
+    assert "Worst hour" in tomorrow and "21:00 IST" in tomorrow and "Cleanest hour" in tomorrow
+    assert "Weather in Delhi tomorrow" in tomorrow and "Forecast for 2026-10-11, 08:00–20:00 IST" in tomorrow
+    assert "Updated 2026-10-10" not in tomorrow

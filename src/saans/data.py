@@ -343,6 +343,24 @@ def day_aqi(forecast, date):
     return aqi_mod.aqi(avg25, avg10)[0]
 
 
+def day_summary(forecast, date):
+    """A forecast day at a glance: its average AQI and particles, and its
+    worst and cleanest hours. None when the forecast has nothing for it."""
+    rows = [r for r in readings_for(forecast, date, range(24)) if r["aqi"] is not None]
+    if not rows:
+        return None
+    pm25 = _mean(r["pm25"] for r in rows)
+    pm10 = _mean(r["pm10"] for r in rows)
+    value, dominant = aqi_mod.aqi(pm25, pm10)
+    worst = max(rows, key=lambda r: r["aqi"])
+    best = min(rows, key=lambda r: r["aqi"])
+    hour = lambda r: {"aqi": r["aqi"], "category": aqi_mod.category(r["aqi"]), "time": r["time"][11:]}  # noqa: E731
+    return {"date": date.isoformat(), "aqi": value, "dominant": dominant,
+            "category": aqi_mod.category(value) if value is not None else None,
+            "pm25": round(pm25) if pm25 is not None else None, "pm10": round(pm10) if pm10 is not None else None,
+            "worst": hour(worst), "best": hour(best)}
+
+
 def _mean(values):
     values = [v for v in values if v is not None]
     return sum(values) / len(values) if values else None

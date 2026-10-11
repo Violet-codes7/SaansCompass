@@ -363,10 +363,18 @@ def create_app():
         air_wx_place = _weather_place(air_area)
         air_wx = wx if air_area.id == plan["area"]["id"] or air_wx_place.id == _weather_place(
             data.get_area(plan["area"]["id"])).id else weather.get_weather(air_wx_place, store)
+        air_day = wx_day = None
+        if plan["day"] != "today":  # the dials follow the tab: tomorrow's forecast, not today's readings
+            day = data.now_ist().astimezone(data.IST).date() + timedelta(days=1)
+            try:
+                air_day = data.day_summary(data.get_forecast(air_area, store, now=data.now_ist()), day)
+            except data.ForecastUnavailable:
+                pass
+            wx_day = weather.for_day(air_wx, day)
         typed = _typed_trip()
         texts = route_texts(request.args if typed or not saved else saved)
         diary = _diary_week(plan, saved)
-        return render_template("plan.html", plan=plan, args=args, weather=air_wx, air=air,
+        return render_template("plan.html", plan=plan, args=args, weather=wx_day or air_wx, air=air, air_day=air_day,
                                air_nf=request.args.get("air_nf"), using_saved=bool(saved),
                                saved_trip=bool(saved) and not typed,
                                route_texts=texts, route_text=route.TEXT, role=_role(saved),

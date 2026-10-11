@@ -156,7 +156,9 @@
     "mixing": "How high the air can mix",
     "mixing_help": "The height the air near the ground can rise and mix to. Below a few hundred metres, smoke is trapped like under a lid.",
     "updated": "Updated {time} IST",
-    "title": "Weather in {name}"
+    "title": "Weather in {name}",
+    "forecast": "Forecast for {date}, {span} IST",
+    "title_day": "Weather in {name} tomorrow"
   },
   "compass": [
     "north",
@@ -202,5 +204,10 @@
       11
     ],
     "text": "Wind from the north-west in October and November can carry smoke from crop-stubble burning in Punjab and Haryana."
+  },
+  "day_ahead": {
+    "_about": "Tomorrow's weather dials average the forecast over these hours (IST, to_hour not included).",
+    "from_hour": 8,
+    "to_hour": 20
   }
 }

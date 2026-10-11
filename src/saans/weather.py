@@ -6,6 +6,7 @@ shows no weather; nothing is made up in its place.
 """
 import json
 import logging
+import math
 
 import requests
 
@@ -18,7 +19,8 @@ DIALS = TEXT["dials"]
 
 
 HOURLY = {"temperature_2m": "temp_c", "relative_humidity_2m": "humidity", "wind_speed_10m": "wind_kmh",
-          "wind_direction_10m": "wind_dir", "boundary_layer_height": "mixing_m"}
+          "wind_direction_10m": "wind_dir", "boundary_layer_height": "mixing_m",
+          "apparent_temperature": "feels_c", "dew_point_2m": "dew_c", "wind_gusts_10m": "gust_kmh"}
 
 
 def fetch_weather(area, session=None):
@@ -121,6 +123,36 @@ def decorate(w):
     w["wind_from"], w["wind_from_short"] = compass(w["wind_dir"])
     w["note"] = explain(w)
     return w
+
+
+def for_day(w, date):
+    """The forecast for another day, read from the hourly rows over the
+    config's daytime hours, decorated like the current weather; None when
+    the forecast does not reach that day."""
+    if not w:
+        return None
+    span = TEXT["day_ahead"]
+    prefix = date.isoformat()
+    rows = [h for h in w.get("hours", []) if h["time"].startswith(prefix)
+            and span["from_hour"] <= int(h["time"][11:13]) < span["to_hour"]]
+    if not rows:
+        return None
+
+    def mean(key):
+        vals = [h[key] for h in rows if h.get(key) is not None]
+        return sum(vals) / len(vals) if vals else None
+
+    dirs = [h["wind_dir"] for h in rows if h.get("wind_dir") is not None]
+    wind_dir = None
+    if dirs:  # average the directions as vectors, so 350° and 10° give north
+        x = sum(math.cos(math.radians(d)) for d in dirs)
+        y = sum(math.sin(math.radians(d)) for d in dirs)
+        wind_dir = math.degrees(math.atan2(y, x)) % 360
+    gusts = [h["gust_kmh"] for h in rows if h.get("gust_kmh") is not None]
+    day = {key: mean(key) for key in ("temp_c", "humidity", "wind_kmh", "mixing_m", "feels_c", "dew_c")}
+    day.update(time=prefix, wind_dir=wind_dir, gust_kmh=max(gusts) if gusts else None, hours=w.get("hours", []),
+               span=f"{span['from_hour']:02d}:00–{span['to_hour']:02d}:00")
+    return {**decorate(day), "place": w.get("place")}
 
 
 def city_place():
