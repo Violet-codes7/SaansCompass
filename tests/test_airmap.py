@@ -188,3 +188,11 @@ def test_api_endpoints(client, monkeypatch):
     assert client.get("/api/routes?from=ito&to=okhla").status_code == 503
     monkeypatch.setattr(cleanroute, "compare", lambda *a, **k: {"routes": [], "best": 1, "pct": 0, "suggest": False})
     assert client.get("/api/routes?from=ito&to=okhla&mode=car").get_json()["best"] == 1
+
+
+def test_route_comparison_shows_on_every_trip_in_both_languages():
+    from saans import web
+    data = web.map_page_data()
+    assert data["route_always"] is True
+    for key in ("title_compare", "fine"):
+        assert data["route_text"][key]["en"] and data["route_text"][key]["hi"] != data["route_text"][key]["en"]

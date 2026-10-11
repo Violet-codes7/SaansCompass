@@ -243,6 +243,7 @@ def map_page_data():
             "min_zoom": m["min_zoom"], "max_zoom": m["max_zoom"], "radius": m["marker_radius"],
             "styles": {s: airmap.style(s) for s in m["location_schemes"]}, "text": _both(m["text"]),
             "route_text": _both(m["route"]["text"]), "line_colours": m["route"]["line_colours"],
+            "route_always": m["route"]["always_show"],
             "lib_js": m["maplibre_js"], "lib_css": m["maplibre_css"]}
 
 

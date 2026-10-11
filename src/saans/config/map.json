@@ -66,8 +66,12 @@
       "usual": "Your usual way",
       "route": "Route {n}",
       "cleanest": "Cleanest",
-      "summary": "{km} km · {min} min · average AQI {aqi}"
+      "summary": "{km} km · {min} min · average AQI {aqi}",
+      "title_compare": "Your routes and their air today",
+      "fine": "No need to switch today: your usual way's average AQI is {usual}."
     },
+    "_always_show_about": "true: every trip shows its routes and their air; \"Take route N\" still waits for suggest_above_aqi. false: the panel shows only when a better path is suggested.",
+    "always_show": true,
     "_suggest_about": "The better path shows only when the usual route's average AQI is above suggest_above_aqi (150 = well into Moderate) and another route cuts the pollution breathed by at least suggest_min_pct.",
     "suggest_above_aqi": 150,
     "suggest_min_pct": 5
