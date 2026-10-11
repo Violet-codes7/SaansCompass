@@ -1,7 +1,12 @@
 {
-  "_about": "Page layout: the plan page's section bar (in page order) and the banner's alt text. 'when' names a plan field that must be set for the section to exist.",
+  "_about": "Page layout: the plan page's section bar (in page order) and the banner's alt text. 'when' names a plan field that must be set for the section to exist; 'nav': false keeps it out of the section bar.",
   "sections_label": "Sections",
   "sections": [
+    {
+      "id": "poster",
+      "label": "Daily poster",
+      "nav": false
+    },
     {
       "id": "air",
       "label": "Air now"

@@ -827,3 +827,11 @@ main .dw-day small{font-family:var(--mono);font-size:10.5px;text-transform:upper
 .route-item.best{background:linear-gradient(135deg,var(--green-bg),var(--glass-soft));border-color:var(--green-line)}
 .chip-best{font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;font-size:10.5px;border-radius:4px;padding:2px 8px}
 .route-lead{font-weight:600}
+
+/* Outline buttons: readable label on glass in both themes */
+button.ghost,.button.ghost,button.locate{background:var(--glass-soft);color:var(--accent);border:1px solid var(--accent)}
+button.ghost:hover,.button.ghost:hover,button.locate:hover{background:color-mix(in srgb,var(--accent) 12%,var(--glass-soft))}
+.dd-nav{font-weight:800}
+/* Daily poster up top */
+.poster-bar{margin:4px 0 0}
+.poster-bar .button{font-size:16px;padding:10px 18px;border-radius:999px;box-shadow:var(--lift)}

@@ -11,7 +11,7 @@
 </nav>
 
 <nav class="sections" aria-label="{{ layout.sections_label }}">
-  {% for sct in layout.sections if not sct.when or plan[sct.when] %}<a href="#{{ sct.id }}">{{ sct.label }}</a>{% endfor %}
+  {% for sct in layout.sections if (not sct.when or plan[sct.when]) and sct.nav is not false %}<a href="#{{ sct.id }}">{{ sct.label }}</a>{% endfor %}
 </nav>
 
 <section class="summary">
@@ -467,21 +467,23 @@
   </script>
 </section>
 {% endset %}
-{% set sec = {"air": sec_air, "trips": sec_trips, "grap": sec_grap, "glance": sec_glance, "health": sec_health, "day": sec_day} %}
+{% set sec_poster %}
+<p class="poster-bar"><a class="button" href="{{ url_for('poster') }}?{{ request.query_string.decode() }}">🗒️ {{ (layout.sections|selectattr('id', 'equalto', 'poster')|first).label }}</a></p>
+{% endset %}
+{% set sec = {"poster": sec_poster, "air": sec_air, "trips": sec_trips, "grap": sec_grap, "glance": sec_glance, "health": sec_health, "day": sec_day} %}
 {% for sct in layout.sections if not sct.when or plan[sct.when] %}{{ sec[sct.id] }}
 {% endfor %}
 
-<section class="panel actions">
-  <a class="button" href="{{ url_for('poster') }}?{{ request.query_string.decode() }}">Daily poster</a>
-  {% if plan.area.id in areas %}{# the alert run checks Delhi's areas only #}
+{% if plan.area.id in areas %}
+<section class="panel actions">{# the alert run checks Delhi's areas only #}
   <form method="post" action="{{ url_for('subscribe') }}" class="sub">
     <input type="hidden" name="area" value="{{ plan.area.id }}">
     <label>{{ layout.alerts.label.format(area=plan.area.name, morning='%02d:00'|format(alert_hours[0]), evening='%02d:00'|format(alert_hours[1])) }}
       <input type="email" name="email" required maxlength="254" placeholder="you@example.com"></label>
     <button type="submit">{{ layout.alerts.button }}</button>
   </form>
-  {% endif %}
 </section>
+{% endif %}
 <script>
 (function () {
   var links = document.querySelectorAll("nav.sections a"), map = {};
