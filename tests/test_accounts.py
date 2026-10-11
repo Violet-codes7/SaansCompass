@@ -156,7 +156,7 @@ def test_saved_profile_drives_plan_and_poster_without_link_details(client, mem_s
     assert saved["persona"] == "rider" and saved["read"] == "keywords" and saved["area"] == "rohini"
     assert saved["to_area"] == "ito" and saved["commute"] == "two_wheeler"
     html = client.get("/plan").get_data(as_text=True)
-    assert "Edit profile" in html and "Your trips" in html and "Rohini" in html
+    assert "Edit my profile" in html and "Your trips" in html and "Rohini" in html
     assert "We read you as" not in html and html.count('name="persona"') == 1  # only in "Try a different day"
     assert '<h1 translate="no">Asha</h1>' in html  # the person's name, not the persona
     assert "Air quality at ITO" in html  # the day is spent at the destination
@@ -282,7 +282,7 @@ def test_plan_header_has_no_occupation_text(client):
     client.post("/account/profile", data=PROFILE)
     html = client.get("/plan").get_data(as_text=True)
     head = _no_try_form(html[html.index('<section class="summary">'):html.index("</section>", html.index('<section class="summary">'))])
-    assert "Asha" in head and "Rohini → ITO" in head and "Edit profile" in head
+    assert "Asha" in head and "Rohini → ITO" in head and "Edit profile" not in head  # one edit link, at the top
     assert "Delivery or gig rider" not in head and "I deliver food" not in head and 'class="role"' not in head
 
 

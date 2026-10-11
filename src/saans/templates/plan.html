@@ -6,7 +6,7 @@
 <nav class="days" aria-label="Day">
   <a href="{{ plan_link(day='today') }}" {% if plan.day == 'today' %}aria-current="page"{% endif %}>Today <small>{{ plan.dates.today }}</small></a>
   <a href="{{ plan_link(day='tomorrow') }}" {% if plan.day == 'tomorrow' %}aria-current="page"{% endif %}>Tomorrow <small>{{ plan.dates.tomorrow }}</small></a>
-  {% if using_saved %}<a class="edit" href="{{ url_for('account_profile') }}">Edit my profile</a>
+  {% if using_saved %}<a class="edit" href="{{ url_for('account_profile') }}">{{ layout.header.edit_profile }}</a>
   {% else %}<a class="edit" href="{{ url_for('index') }}">Change my details</a>{% endif %}
 </nav>
 
@@ -33,7 +33,7 @@
     {% set r = plan.route %}
     <div class="fixes">
       {% if using_saved %}
-      <p class="fix">{% if r %}<span>{{ r.from.name }} → {{ r.to.name }}{% if r.mode_labels %} · {{ r.mode_labels|join(' + ') }}{% endif %}</span> {% elif not saved_trip %}<span>{{ plan.area.name }}</span> {% endif %}<a href="{{ url_for('account_profile') }}">{{ hd.edit_profile }}</a></p>
+      {% if r or not saved_trip %}<p class="fix">{% if r %}<span>{{ r.from.name }} → {{ r.to.name }}{% if r.mode_labels %} · {{ r.mode_labels|join(' + ') }}{% endif %}</span>{% else %}<span>{{ plan.area.name }}</span>{% endif %}</p>{% endif %}
       <details class="fix try-day">
         <summary><b>{{ hd.try_day }}</b></summary>
         <form method="get" action="{{ url_for('plan_page') }}" class="picker profile">
