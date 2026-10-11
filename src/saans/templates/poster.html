@@ -38,10 +38,10 @@
       <div class="dial">
         {{ aqi_gauge(plan.air.day_aqi, "AQI, last 24 hours" if plan.day == "today" else "AQI tomorrow") }}
         <p class="cat {{ (plan.air.category or 'no data')|lower|replace(' ', '-') }}">{{ plan.air.category or 'No data' }}</p>
-        <p class="small">{{ 'Last 24 hours' if plan.day == 'today' else 'Tomorrow, forecast' }}</p>
+        <p class="small">{{ ('Now' if plan.official else 'Last 24 hours') if plan.day == 'today' else 'Tomorrow, forecast' }}</p>
       </div>
       <div class="verdict-box">
-        <p class="eyebrow">Today for you</p>
+        <p class="eyebrow">{{ 'Today for you' if plan.day == 'today' else 'Tomorrow for you' }}</p>
         <p class="verdict">{{ plan.verdict_label }}</p>
         {% if plan.verdict_meaning %}<p class="meaning">{{ plan.verdict_meaning }}</p>{% endif %}
         {% if plan.verdict_note %}<p class="small">{{ plan.verdict_note }}</p>{% endif %}

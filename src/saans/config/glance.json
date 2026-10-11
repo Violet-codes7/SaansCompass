@@ -71,6 +71,7 @@
   "ai_title": "Personal advice",
   "health": {
     "today_title": "What today's air means for you",
+    "today_title_tomorrow": "What tomorrow's air means for you",
     "today_go": "{area}'s AQI {aqi} ({basis}) is within your \"fine\" limit of {go}. Normal activity is fine for you.",
     "today_limit": "{area}'s AQI {aqi} ({basis}) is above your \"fine\" limit of {go}, but below {limit}: keep time outside short and gentle, and use your cleanest hours.",
     "today_stay_in": "{area}'s AQI {aqi} ({basis}) is above your \"keep it short\" limit of {limit}: keep time outside to what you must do, and use your cleanest hours.",
@@ -81,6 +82,7 @@
     "limits_shift": "{shift} points lower than usual because of {reasons}.",
     "limits_usual": "The usual levels for your kind of day.",
     "exposure_title": "Today's dose",
+    "exposure_title_tomorrow": "Tomorrow's dose",
     "dose": "{ratio}× the PM2.5 you would breathe sitting still in air at the WHO limit, over {minutes} minutes outdoors.",
     "cigarettes": "Breathing this air all day is like smoking about {n} cigarettes (24-hour PM2.5 {pm25} µg/m³; Berkeley Earth's rule of thumb).",
     "conditions_title": "Your conditions, one by one",
@@ -114,6 +116,7 @@
       "Drink water and keep your usual medicines with you."
     ],
     "activities_title": "Your activities today",
+    "activities_title_tomorrow": "Your activities tomorrow",
     "activities_none": "Your whole outdoor window counts; see hour by hour below.",
     "general": "General advice, not a diagnosis. Talk to your doctor about what is right for you."
   },

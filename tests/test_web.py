@@ -236,3 +236,12 @@ def test_rules_line_names_what_grap_has_no_rule_on(client):
     assert 'class="rule ' not in part  # nothing restricts a school day at Stage II
     assert "Everything else in your day is allowed today: Outdoor assembly" in part
     assert "GRAP has no rule on: Morning commute." in part
+
+
+def test_tomorrow_pages_say_tomorrow(client):
+    import html as html_mod
+
+    poster = client.get("/poster?persona=older&area=rohini&day=tomorrow").get_data(as_text=True)
+    assert "Tomorrow for you" in poster and "Today for you" not in poster
+    plan = html_mod.unescape(client.get("/plan?persona=older&area=rohini&day=tomorrow&cond=asthma").get_data(as_text=True))
+    assert "Tomorrow's dose" in plan and "Today's dose" not in plan
