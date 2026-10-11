@@ -374,11 +374,15 @@ def create_app():
         typed = _typed_trip()
         texts = route_texts(request.args if typed or not saved else saved)
         diary = _diary_week(plan, saved)
+        # "Try a different day": a signed-in person's plan from the link only; the account is untouched.
+        account = web_accounts.saved_profile()
+        trying = bool(account) and not saved and request.args.get("try") == "1"
         return render_template("plan.html", plan=plan, args=args, weather=wx_day or air_wx, air=air, air_day=air_day,
                                air_nf=request.args.get("air_nf"), using_saved=bool(saved),
                                saved_trip=bool(saved) and not typed,
                                route_texts=texts, route_text=route.TEXT, role=_role(saved),
-                               display_name=saved.get("name") if saved else None, weather_place=air_wx_place.name,
+                               display_name=(saved or (account if trying else None) or {}).get("name"),
+                               trying=trying, weather_place=air_wx_place.name,
                                stay="none" in args["modes"], diary=diary, diary_saved=request.args.get("diary"))
 
     @app.post("/diary")

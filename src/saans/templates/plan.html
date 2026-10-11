@@ -34,8 +34,17 @@
     <div class="fixes">
       {% if using_saved %}
       <p class="fix">{% if r %}<span>{{ r.from.name }} → {{ r.to.name }}{% if r.mode_labels %} · {{ r.mode_labels|join(' + ') }}{% endif %}</span> {% elif not saved_trip %}<span>{{ plan.area.name }}</span> {% endif %}<a href="{{ url_for('account_profile') }}">{{ hd.edit_profile }}</a></p>
+      <details class="fix try-day">
+        <summary><b>{{ hd.try_day }}</b></summary>
+        <form method="get" action="{{ url_for('plan_page') }}" class="picker profile">
+          <input type="hidden" name="try" value="1">
+          {% with p=saved, pick_persona=true %}{% include "_profile_fields.html" %}{% endwith %}
+          <button type="submit">{{ hd.try_show }}</button>
+        </form>
+      </details>
       {% for t in [route_texts.from if unplaced_from else None, route_texts.to if unplaced_to else None] if t %}<p class="note err">{{ (route_text.messages.not_found_region if region_only else route_text.messages.not_found_typed).format(text=t) }}</p>{% endfor %}
       {% else %}
+      {% if trying %}<p class="fix"><a href="{{ url_for('plan_page') }}">↩ {{ hd.back_to_profile }}</a></p>{% endif %}
       <details class="fix"{% if request.args.get('read') == 'default' %} open{% endif %}>
         <summary><span>{{ work[plan.persona.id] }}</span> <b>{{ hd.change }}</b></summary>
         <form method="get" action="{{ url_for('plan_page') }}">

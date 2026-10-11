@@ -40,7 +40,10 @@
     "outdoors": "Outdoors {hours}",
     "age": "Age {age}",
     "n95": "Has an N95",
-    "stay_here": "All day at {place}"
+    "stay_here": "All day at {place}",
+    "try_day": "Try a different day",
+    "try_show": "Show this plan",
+    "back_to_profile": "Back to my profile"
   },
   "footer": "Not medical advice. In an emergency, call 112. Data:",
   "theme": {
