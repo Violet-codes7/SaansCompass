@@ -15,7 +15,7 @@ import re
 from datetime import timedelta
 
 from . import aqi as aqi_mod
-from . import ai, data, settings
+from . import ai, airmap, data, settings
 
 TEXT = settings.load("route")
 ALIASES = TEXT["aliases"]
@@ -180,10 +180,61 @@ def _forecasts(areas, store, now, fetcher):
     return data.get_forecasts(areas, store, now=now, fetcher=fetcher)
 
 
+def _live_stations(start, dest, store, now, fetcher=None):
+    """Live monitoring stations (not the forecast stand-in) in a box around
+    the trip, or [] when none can be reached."""
+    pad = settings.get("route_station_km")
+    dlat = pad / 110.57
+    dlon = pad / (111.32 * math.cos(math.radians((start.lat + dest.lat) / 2)))
+    box = (round(min(start.lat, dest.lat) - dlat, 2), round(min(start.lon, dest.lon) - dlon, 2),
+           round(max(start.lat, dest.lat) + dlat, 2), round(max(start.lon, dest.lon) + dlon, 2))
+    try:
+        air = airmap.stations(store, now, box=box, fetcher=fetcher)
+    except Exception:  # the plan never fails for want of station readings
+        return []
+    return [] if air.get("source") == "forecast" else air.get("stations") or []
+
+
+def _station_stops(start, dest, stations):
+    """Stations near the straight line between two places, in travel order, as
+    extra stops when no area of ours lies between them."""
+    kx = 111.32 * math.cos(math.radians((start.lat + dest.lat) / 2))
+    bx, by = (dest.lon - start.lon) * kx, (dest.lat - start.lat) * 110.57
+    length2 = bx * bx + by * by
+    if not length2:
+        return []
+    picked = []
+    for st in stations:
+        px, py = (st["lon"] - start.lon) * kx, (st["lat"] - start.lat) * 110.57
+        t = (px * bx + py * by) / length2
+        if 0 < t < 1 and math.hypot(px - t * bx, py - t * by) <= settings.get("route_corridor_km"):
+            picked.append((t, st))
+    picked.sort(key=lambda v: v[0])
+    keep = settings.get("route_station_stops")
+    if len(picked) > keep:  # spread evenly along the way
+        picked = [picked[round(i * (len(picked) - 1) / (keep - 1))] for i in range(keep)] if keep > 1 else picked[:keep]
+    return [data.make_place(st["lat"], st["lon"], st["name"]) for _, st in picked]
+
+
+def _nearest_station(lat, lon, stations):
+    best = None
+    for st in stations:
+        km = distance_km(lat, lon, st["lat"], st["lon"])
+        if km <= settings.get("route_station_km") and (best is None or km < best[0]):
+            best = (km, st)
+    return best[1] if best else None
+
+
 def trips(persona, start, dest, date, store, now, fetcher=None, modes=()):
-    """The air on the way out and back, stop by stop."""
+    """The air on the way out and back, stop by stop. Each stop reads its own
+    nearest live station, carried to the trip's hour by the forecast's change
+    from now; without a station nearby, the forecast for that place."""
+    stations = _live_stations(start, dest, store, now, fetcher)
     stops = corridor(start, dest)
+    if len(stops) == 2 and stations:
+        stops = [start] + [p for p in _station_stops(start, dest, stations) if p and p.id not in (start.id, dest.id)] + [dest]
     forecasts = _forecasts(stops, store, now, fetcher)
+    local = now.astimezone(data.IST)
     leave, back = trip_hours(persona)
     legs = []
     for key, hour, order in (("go", leave, stops), ("back", back, list(reversed(stops)))):
@@ -193,6 +244,13 @@ def trips(persona, start, dest, date, store, now, fetcher=None, modes=()):
             f = forecasts.get(a.id)
             r = data.readings_for(f, day, [hour])[0] if f else None
             value = r["aqi"] if r else None
+            st = _nearest_station(a.lat, a.lon, stations)
+            if st is not None:
+                base = data.readings_for(f, local.date(), [local.hour])[0] if f else None
+                if value is not None and base and base.get("aqi"):
+                    value = round(st["aqi"] * value / base["aqi"])
+                else:
+                    value = st["aqi"]
             points.append({"id": a.id, "name": a.name, "aqi": value,
                            "category": aqi_mod.category(value) if value is not None else None,
                            "slug": aqi_mod.category_slug(value) if value is not None else "no-data"})
