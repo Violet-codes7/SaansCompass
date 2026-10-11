@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Saans Compass: a personal air-quality plan for anywhere in India, with GRAP rules in Delhi-NCR.
+  Saans Compass: a personal air-quality plan for Delhi-NCR, with the GRAP rules.
   Web Lambda (Flask) behind an HTTP API, and a scheduled Alert Lambda that
   emails area subscribers through SNS when the plan changes.
 

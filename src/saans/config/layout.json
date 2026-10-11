@@ -100,10 +100,10 @@
     "_about": "Site tagline, page descriptions and the home-page intro, with GRAP on (grap_enabled) or off.",
     "grap": {
       "tag": "Your air and your day, in one plan",
-      "description": "The air where you are in India and your day, in one plan: the cleanest hours, what to do, fitted to you, and in Delhi-NCR what the GRAP rules mean for you.",
+      "description": "The air where you are in Delhi-NCR and your day, in one plan: the cleanest hours, what to do, fitted to you, and what the GRAP rules mean for you.",
       "og_title": "Saans Compass: your air and your day",
-      "og_description": "The air where you are, hour by hour, with a plan fitted to you, and the GRAP rules in Delhi-NCR.",
-      "home_intro": "Tell us a little about you. We check today's and tomorrow's air where you are and plan your day around the cleanest hours. In Delhi-NCR we also show which GRAP rules change your day."
+      "og_description": "The air where you are in Delhi-NCR, hour by hour, with a plan fitted to you and the GRAP rules.",
+      "home_intro": "Tell us a little about you. We check today's and tomorrow's air where you are and plan your day around the cleanest hours, with the GRAP rules that change your day."
     },
     "plain": {
       "tag": "Your air and your day, in one plan",

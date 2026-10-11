@@ -30,7 +30,7 @@
     "job": "Tell us what you do most days.",
     "persona": "Pick a kind of day from the list.",
     "from": "Tell us where you start your day, or use your live location.",
-    "place": "We could not place \"{text}\" on our map of Delhi. Try a nearby locality, landmark or metro station.",
+    "place": "We could not place \"{text}\" in Delhi-NCR. Try a nearby locality, landmark or metro station.",
     "vehicle": "Pick your vehicle from the list."
   }
 }
