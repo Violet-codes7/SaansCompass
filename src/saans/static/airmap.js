@@ -118,12 +118,16 @@
     };
     Promise.all([loadLib(), getJSON(routeBox.dataset.api)]).then(function (res) {
       var d = res[1];
+      if (!d.suggest) return;  // the usual way's air is fine today: nothing to show
+      routeBox.hidden = false;
       routes = d.routes; best = d.best;
+      var usual = routes[0], pick = routes.filter(function (r) { return r.n === best; })[0];
+      rstatus.textContent = say(R, "lead", {n: best, pct: d.pct, aqi: pick.aqi, usual: usual.aqi});
       routes.forEach(function (r) {
         var li = document.createElement("li"), head = document.createElement("b"), sum = document.createElement("span");
         li.className = "route-item" + (r.n === best ? " best" : "");
-        head.textContent = say(R, "route", {n: r.n});
-        if (r.n === best && routes.length > 1) {
+        head.textContent = r.n === usual.n ? say(R, "usual") : say(R, "route", {n: r.n});
+        if (r.n === best) {
           var tag = document.createElement("span"); tag.className = "chip-best"; tag.textContent = say(R, "cleanest");
           head.appendChild(document.createTextNode(" ")); head.appendChild(tag);
         }
@@ -132,7 +136,6 @@
         if (r.slug) li.style.borderLeftColor = colour(r.slug);
         list.appendChild(li);
       });
-      rstatus.textContent = routes.length < 2 ? say(R, "only_one") : d.pct > 0 ? say(R, "less", {pct: d.pct}) : say(R, "same");
       rmap = makeMap(routeBox.querySelector(".route-map"), drawRoutes);
       var b = new maplibregl.LngLatBounds();
       routes.forEach(function (r) { r.coords.forEach(function (c) { b.extend(c); }); });

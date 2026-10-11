@@ -409,13 +409,12 @@
     "AQI {aqi}": "AQI {aqi}",
     "{count} stations": "{count} स्टेशन",
     "Forecast for each area (no live stations right now)": "हर इलाके का पूर्वानुमान (अभी कोई लाइव स्टेशन नहीं)",
-    "Cleaner route": "साफ़ हवा वाला रास्ता",
     "Comparing routes…": "रास्तों की तुलना हो रही है…",
     "Route {n}": "रास्ता {n}",
     "Cleanest": "सबसे साफ़",
     "{km} km · {min} min · average AQI {aqi}": "{km} किमी · {min} मिनट · औसत AQI {aqi}",
-    "{pct}% less pollution breathed than the dirtiest route": "सबसे गंदे रास्ते से {pct}% कम प्रदूषण साँस में",
-    "Only one route was found for this trip.": "इस सफ़र के लिए एक ही रास्ता मिला।",
-    "These routes have about the same air.": "इन रास्तों की हवा लगभग एक जैसी है।"
+    "A cleaner way today": "आज साफ़ हवा वाला रास्ता",
+    "Take route {n}: {pct}% less pollution than your usual way (average AQI {aqi} instead of {usual}).": "रास्ता {n} लें: आपके रोज़ के रास्ते से {pct}% कम प्रदूषण (औसत AQI {usual} की जगह {aqi})।",
+    "Your usual way": "आपका रोज़ का रास्ता"
   }
 }

@@ -513,3 +513,4 @@ label{grid-template-columns:minmax(0,1fr);min-width:0}
 .route-item.best{background:var(--ok-bg)}
 .chip-best{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--good);color:#fff;vertical-align:middle}
 @media (max-width:600px){.map-box{height:300px}.route-map{height:240px}}
+.route-lead{font-weight:600}
