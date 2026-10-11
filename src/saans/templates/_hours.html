@@ -1,0 +1,4 @@
+{# The outdoor hours pickers, prefilled from `p`. "Usual" leaves the hours to the kind of day. #}
+{% set hr = layout.hours %}
+<label>{{ hr.from }} <select name="start"><option value="">{{ hr.usual }}</option>{% for h in range(24) %}<option value="{{ h }}" {% if p.start is not none and p.start|string == h|string %}selected{% endif %}>{{ '%02d'|format(h) }}:00</option>{% endfor %}</select></label>
+<label>{{ hr.to }} <select name="end"><option value="">{{ hr.usual }}</option>{% for h in range(24) %}<option value="{{ h }}" {% if p.end is not none and p.end|string == h|string %}selected{% endif %}>{{ '%02d'|format(h) }}:00</option>{% endfor %}</select></label>

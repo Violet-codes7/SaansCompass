@@ -9,6 +9,13 @@
   {% else %}
   <label class="job">Tell us in your own words
     <textarea name="job" rows="2" maxlength="160" required placeholder="For example: I deliver food on a scooter in Noida, 11am to 10pm">{{ p.job or '' }}</textarea></label>
+  {% if persona_select %}{% set pp = layout.profile_page %}
+  <label class="closest">{{ pp.persona_label }}
+    <select name="persona">
+      <option value="" {% if p.read != 'picked' %}selected{% endif %}>{{ pp.persona_auto }}{% if p.persona in work and p.read != 'picked' %} ({{ pp.persona_now.format(label=work[p.persona]) }}){% endif %}</option>
+      {% for id, label in work.items() %}<option value="{{ id }}" {% if p.read == 'picked' and id == p.persona %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></label>
+  {% endif %}
   {% endif %}
   {% if show_examples %}
   <p class="examples small"><span>Try:</span>
@@ -60,10 +67,9 @@
 </fieldset>
 
 <fieldset>
-  <legend>Your outdoor hours <small class="small">(leave as "Usual" for the normal hours for your work)</small></legend>
+  <legend>{{ layout.hours.legend }}</legend>
   <div class="row">
-    <label>From <select name="start"><option value="">Usual</option>{% for h in range(24) %}<option value="{{ h }}" {% if p.start is not none and p.start|string == h|string %}selected{% endif %}>{{ '%02d'|format(h) }}:00</option>{% endfor %}</select></label>
-    <label>To <select name="end"><option value="">Usual</option>{% for h in range(24) %}<option value="{{ h }}" {% if p.end is not none and p.end|string == h|string %}selected{% endif %}>{{ '%02d'|format(h) }}:00</option>{% endfor %}</select></label>
+    {% include "_hours.html" %}
     <label class="check"><input type="checkbox" name="mask" value="1" {% if p.mask %}checked{% endif %}> I have an N95 mask</label>
   </div>
 </fieldset>

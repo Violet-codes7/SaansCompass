@@ -421,6 +421,14 @@
     "Your usual way": "आपका रोज़ का रास्ता",
     "Try a different day": "कोई और दिन आज़माएँ",
     "Show this plan": "यह योजना दिखाएँ",
-    "Back to my profile": "मेरी प्रोफ़ाइल पर वापस"
+    "Back to my profile": "मेरी प्रोफ़ाइल पर वापस",
+    "Where you'll be": "आप कहाँ रहेंगे",
+    "Where you're going": "आप कहाँ जा रहे हैं",
+    "In one place all day (no trip)": "पूरे दिन एक ही जगह (कोई सफ़र नहीं)",
+    "Usual for my work": "मेरे काम का सामान्य समय",
+    "Back to my plan": "मेरी योजना पर लौटें",
+    "(optional)": "(वैकल्पिक)",
+    "Cancel": "रद्द करें",
+    "Removes your saved profile, your diary and your sign-in. This cannot be undone.": "आपकी सहेजी प्रोफ़ाइल, डायरी और साइन-इन हट जाएँगे। इसे वापस नहीं किया जा सकता।"
   }
 }

@@ -43,7 +43,10 @@
     "stay_here": "All day at {place}",
     "try_day": "Try a different day",
     "try_show": "Show this plan",
-    "back_to_profile": "Back to my profile"
+    "back_to_profile": "Back to my profile",
+    "try_where": "Where you'll be",
+    "try_to": "Where you're going",
+    "try_stay": "In one place all day (no trip)"
   },
   "footer": "Not medical advice. In an emergency, call 112. Data:",
   "theme": {
@@ -69,6 +72,29 @@
     "stay_from": "Where you are all day",
     "stay_today": "I'm in one place all day today (no trip)",
     "stay_profile": "I spend most days in one place (no daily trip)"
+  },
+  "hours": {
+    "legend": "Your outdoor hours",
+    "from": "From",
+    "to": "To",
+    "usual": "Usual for my work"
+  },
+  "profile_page": {
+    "title": "My profile",
+    "name": "Name",
+    "back": "Back to my plan",
+    "persona_label": "Closest match",
+    "persona_auto": "Work it out from my words",
+    "persona_now": "now: {label}",
+    "about_legend": "About me",
+    "optional": "(optional)",
+    "about_label": "Anything that shapes your day: routine, family, hobbies, what worries you about the air",
+    "about_placeholder": "For example: I walk my 2 kids to school at 7:30 and play cricket on Sundays. My father lives with us and has COPD.",
+    "save": "Save my profile",
+    "cancel": "Cancel",
+    "delete_title": "Delete my account",
+    "delete_text": "Removes your saved profile, your diary and your sign-in. This cannot be undone.",
+    "delete_confirm": "Delete your account and saved profile?"
   },
   "brand": {
     "_about": "Site tagline, page descriptions and the home-page intro, with GRAP on (grap_enabled) or off.",

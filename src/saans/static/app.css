@@ -89,7 +89,10 @@ label.check input{width:auto}
 .days a small{color:var(--muted);margin-left:4px}
 .days a[aria-current="page"]{background:var(--accent);border-color:var(--accent);color:#fff}
 .days a[aria-current="page"] small{color:#e6f2f6}
-.days a.edit{margin-left:auto;border:0;background:none;color:var(--accent)}
+.days a.edit{margin-left:auto;display:inline-flex;align-items:center;gap:8px;padding:4px 14px 4px 4px;border-color:var(--accent);color:var(--accent);font-weight:600}
+.days a.edit:hover{background:var(--accent);color:#fff}
+.days a.edit .me{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;font-size:13px}
+.days a.edit:hover .me{background:#fff;color:var(--accent)}
 .facts.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 16px}
 .todo-list{margin:0;padding-left:22px;display:grid;gap:6px}
 .tips{margin:0 0 8px;padding-left:18px;display:grid;gap:4px;font-size:15px}
@@ -466,6 +469,13 @@ section.panel[id] > h2::before,section.panel[id] > .h-row > h2::before,section.p
 .fix form label{display:flex;gap:6px;align-items:center}
 .fix form button.ghost{background:transparent;color:var(--accent);padding:6px 12px}
 .fix .note{margin:8px 0 0}
+.fix form.try-form{display:grid;gap:10px;align-items:start;padding:12px;background:var(--panel)}
+.fix form.try-form label{display:grid;gap:4px;align-items:start}
+.fix form.try-form label.check{display:flex;gap:6px;align-items:center}
+.fix form.try-form fieldset{margin:0}
+.fix form.try-form .row{display:flex;gap:12px;flex-wrap:wrap}
+.fix form.try-form > button{justify-self:start}
+.fix form.try-form .with-button input{min-width:150px}
 .today-trip{margin:12px 0 0}
 .today-trip fieldset{margin:0 0 8px}
 .name-fix{margin:0 0 14px}

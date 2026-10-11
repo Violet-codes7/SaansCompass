@@ -16,26 +16,8 @@
   </ul>
   {# Today's trip: prefilled from the profile, changed for this plan only (never saved). #}
   <form class="picker profile today-trip" method="get" action="{{ url_for('plan_page') }}">
-    <fieldset class="trip">
-      <legend>{{ hm.today_trip }} <small class="small">{{ hm.today_help }}</small></legend>
-      <div class="trip-grid">
-        <label><span data-from-label data-trip="{{ hm.trip_from }}" data-stay="{{ hm.stay_from }}">{{ hm.stay_from if saved.stay else hm.trip_from }}</span>
-          <span class="with-button">
-            <input name="from" data-clears="area" required maxlength="120" autocomplete="off" value="{{ saved['from'] or '' }}">
-            {% if locate_near(saved.area) %}<button type="button" class="ghost locate" data-api="{{ url_for('api_locate') }}"
-              {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>{% endif %}
-          </span></label>
-        <input type="hidden" name="area" value="{{ saved.area or '' }}">
-        <label data-trip-only>{{ hm.today_to }} <input name="to" data-clears="to_area" maxlength="120" autocomplete="off" value="{{ saved.to or '' }}"></label>
-        <input type="hidden" name="to_area" value="{{ saved.to_area or '' }}" data-trip-only>
-        <label data-trip-only>{{ hm.travel }} <input name="travel" data-clears="commute,modes" maxlength="120" autocomplete="off" value="{{ saved.travel or '' }}"></label>
-        <input type="hidden" name="commute" value="{{ '' if saved.stay else saved.commute or '' }}" data-trip-only>
-        <input type="hidden" name="modes" {% set m = '' if saved.stay else saved.modes or '' %}value="{{ m if m is string else m|join(',') }}" data-trip-only>
-      </div>
-      <label class="check"><input type="checkbox" name="stay" value="1" {% if saved.stay %}checked{% endif %}> {{ hm.stay_today }}</label>
-      <p class="small locate-status" aria-live="polite"></p>
-    </fieldset>
-    <p><button type="submit">{{ hm.today_go }}</button> <a class="button ghost" href="{{ url_for('poster') }}">My daily poster</a> <a class="button ghost" href="{{ url_for('account_profile') }}">Edit profile</a></p>
+    {% with p=saved, legend=hm.today_trip, help=hm.today_help, to_label=hm.today_to, stay_label=hm.stay_today %}{% include "_today_trip.html" %}{% endwith %}
+    <p><button type="submit">{{ hm.today_go }}</button> <a class="button ghost" href="{{ url_for('poster') }}">My daily poster</a> <a class="button ghost" href="{{ url_for('account_profile') }}">{{ layout.header.edit_profile }}</a></p>
   </form>
   {% include "_locate.html" %}
   {% else %}
