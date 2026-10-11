@@ -118,11 +118,16 @@
     };
     Promise.all([loadLib(), getJSON(routeBox.dataset.api)]).then(function (res) {
       var d = res[1];
-      if (!d.suggest) return;  // the usual way's air is fine today: nothing to show
+      if (!d.suggest && !D.route_always) return;  // the usual way's air is fine today: nothing to show
       routeBox.hidden = false;
       routes = d.routes; best = d.best;
       var usual = routes[0], pick = routes.filter(function (r) { return r.n === best; })[0];
-      rstatus.textContent = say(R, "lead", {n: best, pct: d.pct, aqi: pick.aqi, usual: usual.aqi});
+      if (d.suggest) {
+        rstatus.textContent = say(R, "lead", {n: best, pct: d.pct, aqi: pick.aqi, usual: usual.aqi});
+      } else {
+        routeBox.querySelector("h3").textContent = say(R, "title_compare");
+        rstatus.textContent = say(R, "fine", {usual: usual.aqi == null ? "–" : usual.aqi});
+      }
       routes.forEach(function (r) {
         var li = document.createElement("li"), head = document.createElement("b"), sum = document.createElement("span");
         li.className = "route-item" + (r.n === best ? " best" : "");

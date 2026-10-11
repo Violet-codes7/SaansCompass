@@ -419,6 +419,8 @@
     "A cleaner way today": "आज साफ़ हवा वाला रास्ता",
     "Take route {n}: {pct}% less pollution than your usual way (average AQI {aqi} instead of {usual}).": "रास्ता {n} लें: आपके रोज़ के रास्ते से {pct}% कम प्रदूषण (औसत AQI {usual} की जगह {aqi})।",
     "Your usual way": "आपका रोज़ का रास्ता",
+    "Your routes and their air today": "आज आपके रास्ते और उनकी हवा",
+    "No need to switch today: your usual way's average AQI is {usual}.": "आज रास्ता बदलने की ज़रूरत नहीं: आपके रोज़ के रास्ते का औसत AQI {usual} है।",
     "Try a different day": "कोई और दिन आज़माएँ",
     "Show this plan": "यह योजना दिखाएँ",
     "Back to my profile": "मेरी प्रोफ़ाइल पर वापस",
