@@ -56,6 +56,8 @@
   "translate_max_texts": 400,
   "translate_max_chars": 2000,
   "translate_max_total_chars": 20000,
+  "translate_chunk_bytes": 4500,
+  "translate_pause_seconds": 600,
   "personal_cache_size": 128,
   "work_cache_size": 256,
   "glance_activity_lines": 4,

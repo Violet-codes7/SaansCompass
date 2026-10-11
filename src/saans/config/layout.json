@@ -89,6 +89,17 @@
     "label": "Where are you today?",
     "button": "Show"
   },
+  "errors": {
+    "_about": "Messages a visitor can see when something cannot be done.",
+    "place_expired": "That place has expired. Please type it again.",
+    "email": "Enter a valid email address.",
+    "summary_off": "AI summary is not set up here.",
+    "summary_failed": "No summary right now.",
+    "voice_off": "Voice is not set up here.",
+    "voice_failed": "No audio right now.",
+    "alerts_off": "Email alerts are not set up in this environment.",
+    "subscribe_failed": "Could not subscribe right now. Please try again."
+  },
   "alerts": {
     "label": "Email alerts for {area} at {morning} and {evening} when the plan changes",
     "button": "Subscribe",

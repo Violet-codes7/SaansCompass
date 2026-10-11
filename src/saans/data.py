@@ -123,7 +123,7 @@ def get_area(area_id, store=None):
             p = json.loads(raw)
             _places[area_id] = Area(area_id, p["name"], p["lat"], p["lon"])
             return _places[area_id]
-        raise ValueError("That place has expired. Please type it again.")
+        raise ValueError(settings.load("layout")["errors"]["place_expired"])
     raise ValueError(f"area must be one of {', '.join(AREAS)}") from None
 
 

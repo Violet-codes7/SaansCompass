@@ -60,6 +60,7 @@ def _read_work(job):
 PARTICLES = settings.load("particles")
 CHAT_TEXT = settings.load("chat")
 LAYOUT = settings.load("layout")
+ERRORS = LAYOUT["errors"]
 
 _route_cache = {}
 
@@ -501,7 +502,7 @@ def create_app():
     @app.get("/api/summary")
     def api_summary():
         if not ai.enabled():
-            return jsonify({"error": "AI summary is not set up here."}), 503
+            return jsonify({"error": ERRORS["summary_off"]}), 503
         lang = request.args.get("lang", "en")
         try:
             if lang not in ai.LANGUAGES:
@@ -512,7 +513,7 @@ def create_app():
         text = _summary(plan, lang)
         if not text:
             # The provider's reason stays in the logs (ai._fail), never on the page.
-            return jsonify({"error": "No summary right now."}), 502
+            return jsonify({"error": ERRORS["summary_failed"]}), 502
         return jsonify({"summary": text, "lang": lang, "by": ai.label()})
 
     @app.post("/api/chat")
@@ -548,7 +549,7 @@ def create_app():
     @app.get("/api/speak")
     def api_speak():
         if not ai.enabled():
-            return jsonify({"error": "Voice is not set up here."}), 503
+            return jsonify({"error": ERRORS["voice_off"]}), 503
         lang = request.args.get("lang", "en")
         try:
             if lang not in ai.LANGUAGES:
@@ -559,7 +560,7 @@ def create_app():
         text = _summary(plan, lang)
         audio = ai.speak(text, lang) if text else None
         if not audio:
-            return jsonify({"error": "No audio right now."}), 502
+            return jsonify({"error": ERRORS["voice_failed"]}), 502
         return jsonify({"audio": audio, "text": text})
 
     @app.post("/api/translate")
@@ -581,14 +582,14 @@ def create_app():
         email = request.form.get("email", "")
         area_id = request.form.get("area", "")
         if not topic:
-            return render_template("error.html", message="Email alerts are not set up in this environment."), 503
+            return render_template("error.html", message=ERRORS["alerts_off"]), 503
         try:
             area = sns_subscribe(_sns_client(), topic, email, area_id)
         except ValueError as exc:
             return render_template("error.html", message=str(exc)), 400
         except Exception:
             log.exception("subscribe failed")
-            return render_template("error.html", message="Could not subscribe right now. Please try again."), 502
+            return render_template("error.html", message=ERRORS["subscribe_failed"]), 502
         return render_template("subscribed.html", area=area)
 
     @app.get("/favicon.ico")

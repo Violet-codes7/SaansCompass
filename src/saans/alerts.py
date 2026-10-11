@@ -119,7 +119,7 @@ def subscribe(sns, topic_arn, email, area_id):
     """Create an email subscription filtered to one area. SNS sends the confirm email."""
     email = (email or "").strip()
     if len(email) > 254 or not EMAIL_RE.match(email):
-        raise ValueError("Enter a valid email address.")
+        raise ValueError(settings.load("layout")["errors"]["email"])
     area = data.get_area(area_id)
     if area.id not in data.AREAS:  # the alert run checks Delhi's areas only
         raise ValueError(settings.load("layout")["alerts"]["areas_only"])

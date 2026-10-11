@@ -161,7 +161,7 @@
     <h3 class="rules-for-you">{{ 'Today' if plan.day == 'today' else 'Tomorrow' }}, for you</h3>
     {% set pf = plan.profile %}
     {% set fitted = ([display_name] if display_name else []) + ([route_modes_label] if route_modes_label else ([pf.commute] if pf and pf.commute else [])) + ([pf.vehicle] if pf and pf.vehicle else []) + (pf.conditions if pf else []) + (['Age ' ~ pf.age] if pf and pf.age else []) %}
-    {% set fit_none = not pf or not (pf.vehicle or pf.commute or route_modes_label) %}
+    {% set fit_none = not stay and (not pf or not (pf.vehicle or pf.commute or route_modes_label)) %}
     {% if fitted %}<p class="fitted small"><b>{{ grap.fitted_title }}:</b> {{ fitted|join(' · ') }}{% if fit_none %}. {{ grap.fitted_none }}{% endif %}</p>
     {% elif fit_none %}<p class="fitted small">{{ grap.fitted_none }}</p>{% endif %}
     {% if plan.health and plan.health.charter and plan.health.reasons %}<p class="fitted small">{{ grap.charter_you.format(reasons=plan.health.reasons|join(', ')) }}</p>{% endif %}

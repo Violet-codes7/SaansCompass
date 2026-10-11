@@ -17,8 +17,8 @@ log = logging.getLogger(__name__)
 
 MAX_TEXTS = settings.get("translate_max_texts")
 MAX_CHARS = settings.get("translate_max_chars")
-CHUNK_BYTES = 4500  # TranslateText takes up to 10,000 bytes per call
-PAUSE_AFTER_FAILURE = 600
+CHUNK_BYTES = settings.get("translate_chunk_bytes")  # TranslateText takes up to 10,000 bytes per call
+PAUSE_AFTER_FAILURE = settings.get("translate_pause_seconds")
 
 HI = settings.load("hindi")["phrases"]
 
