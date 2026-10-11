@@ -142,6 +142,7 @@ def test_no_routes_or_no_air_means_nothing_to_show(monkeypatch, mem_store):
         def calculate_routes(self, **kw):
             return answer((STRAIGHT, 10, 25))
     monkeypatch.setattr(airmap, "stations", lambda *a, **k: {"stations": [], "source": None, "box": []})
+    monkeypatch.setattr(cleanroute, "_forecast_points", lambda *a, **k: [])
     assert cleanroute.compare(ito, okhla, "car", mem_store, FIXED_NOW, client=One()) is None
     assert cleanroute.compare(ito, okhla, "metro", mem_store, FIXED_NOW, client=One()) is None
 
@@ -196,3 +197,13 @@ def test_route_comparison_shows_on_every_trip_in_both_languages():
     assert data["route_always"] is True
     for key in ("title_compare", "fine"):
         assert data["route_text"][key]["en"] and data["route_text"][key]["hi"] != data["route_text"][key]["en"]
+
+
+def test_routes_beyond_the_stations_use_the_forecast_on_the_way(monkeypatch, mem_store, live_fetcher):
+    class Client:
+        def calculate_routes(self, **kw):
+            return answer((STRAIGHT, 10, 25), (AROUND, 14, 30))
+    monkeypatch.setattr(airmap, "stations", lambda *a, **k: {"stations": [], "source": None, "box": []})
+    out = cleanroute.compare(data.get_area("ito"), data.get_area("okhla"), "car", mem_store, FIXED_NOW,
+                             client=Client(), fetcher=live_fetcher)
+    assert out and all(r["aqi"] is not None for r in out["routes"])
