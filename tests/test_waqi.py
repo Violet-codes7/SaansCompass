@@ -50,3 +50,20 @@ def test_plan_uses_aqicn_when_data_gov_in_is_down(monkeypatch, mem_store, live_f
     plan = get_plan("commuter", "ito", now=FIXED_NOW, fetcher=live_fetcher, day="today")
     assert plan["official"]["via"] == "aqicn" and plan["air_now"]["particles"]["aqi"] == 324
     assert plan["air_now"]["particles"]["via"] == "aqicn"
+
+
+def test_nearest_station_for_a_typed_place(monkeypatch):
+    from datetime import datetime
+
+    from saans import airmap, data
+
+    now = datetime(2026, 10, 11, 17, 0, tzinfo=data.IST)
+    place = data.Area("p-test", "Jaipur, Rajasthan", 26.91, 75.79)
+    near = {"name": "Adarsh Nagar, Jaipur", "lat": 26.90, "lon": 75.83, "aqi": 160, "category": "Moderate",
+            "slug": "moderate", "time": "16:00", "source": "aqicn"}
+    far = {**near, "name": "Far away", "lat": 27.5, "lon": 76.5}
+    monkeypatch.setattr(airmap, "_from_waqi", lambda box, now, session=None: [far, near])
+    s = airmap.nearest_station(place, None, now)
+    assert s["short"] == "Adarsh Nagar, Jaipur" and s["aqi"] == 160 and s["via"] == "aqicn" and s["km"] < 10
+    monkeypatch.setattr(airmap, "_from_waqi", lambda box, now, session=None: [far])
+    assert airmap.nearest_station(place, None, now) is None

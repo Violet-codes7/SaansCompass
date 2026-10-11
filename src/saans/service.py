@@ -3,7 +3,7 @@ forecast -> AQI -> stage -> Cedar rules -> plan and dose."""
 from datetime import timedelta
 
 from . import aqi as aqi_mod
-from . import cpcb, data, guide, route, saving, settings, waqi, windows
+from . import airmap, cpcb, data, guide, route, saving, settings, waqi, windows
 from .advisor import TEXT as ADVICE
 from .advisor import build_plan
 from .personas import get_persona
@@ -50,6 +50,8 @@ def official_air(area, store, now):
             station = waqi.fresh_and_near(waqi.nearest(area, store), area, local)
         except Exception as exc:
             waqi.log.warning("aqicn reading failed: %s", type(exc).__name__)
+    if station is None:  # the nearest station had no fresh reading: any station close enough
+        station = airmap.nearest_station(area, store, local)
     return station, city
 
 
