@@ -116,7 +116,7 @@ def test_cleanest_route_is_the_smallest_dose(monkeypatch, mem_store):
     assert calls[0]["LegGeometryFormat"] == "Simple"
     straight, around = out["routes"]
     assert around["aqi"] < straight["aqi"] and out["best"] == 2 and out["pct"] > 0
-    assert straight["aqi"] > 100 and out["suggest"] is True
+    assert straight["aqi"] > cleanroute.TEXT["suggest_above_aqi"] and out["suggest"] is True
     assert around["slug"] == cleanroute.aqi_mod.category_slug(around["aqi"])
 
 
@@ -127,7 +127,7 @@ def test_no_better_path_on_clean_air_days(monkeypatch, mem_store):
     clean = [{**s, "aqi": s["aqi"] // 4} for s in STATIONS]  # every station Satisfactory or better
     monkeypatch.setattr(airmap, "stations", lambda *a, **k: {"stations": clean, "source": "aqicn", "box": []})
     out = cleanroute.compare(data.get_area("ito"), data.get_area("okhla"), "car", mem_store, FIXED_NOW, client=Client())
-    assert out["routes"][0]["aqi"] <= 100 and out["suggest"] is False
+    assert out["routes"][0]["aqi"] <= cleanroute.TEXT["suggest_above_aqi"] and out["suggest"] is False
 
 
 def test_no_routes_or_no_air_means_nothing_to_show(monkeypatch, mem_store):
