@@ -191,7 +191,7 @@ Pages and API: `/`, `/plan`, `/poster`, `/account`, `/account/profile`, `GET /ap
 ```bash
 python3.12 -m venv .venv && . .venv/bin/activate
 pip install -r requirements-dev.txt
-pytest -q                                            # 472 tests, AWS mocked
+pytest -q                                            # 470+ tests, AWS mocked
 cd src && flask --app "saans.web:create_app()" run   # http://127.0.0.1:5000
 ```
 
