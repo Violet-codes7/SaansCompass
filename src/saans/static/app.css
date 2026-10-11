@@ -303,7 +303,9 @@ form.stack{display:grid;gap:12px;margin:12px 0}
 button.danger{background:var(--no);border-color:var(--no)}
 .readas.saved-note{display:block;margin-top:10px}
 /* daily trip */
-.trip-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px}
+.trip-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;align-items:start}
+.trip-grid > label{align-content:start}  /* fields share one top line; a hint under one never stretches the others */
+.trip-grid :is(input,select,button.locate){min-height:40px}
 .trip-grid input{width:100%}
 .with-button{display:flex;gap:6px}
 .with-button input{flex:1;min-width:0}
@@ -471,7 +473,6 @@ section.panel[id] > h2::before,section.panel[id] > .h-row > h2::before,section.p
 .fix .note{margin:8px 0 0}
 .fix form.try-form{display:grid;gap:10px;align-items:start;padding:12px;background:var(--panel)}
 .fix form.try-form label{display:grid;gap:4px;align-items:start;align-content:start}
-.fix form.try-form .trip-grid{align-items:start}
 .fix form.try-form label.check{display:flex;gap:6px;align-items:center}
 .fix form.try-form fieldset{margin:0}
 .fix form.try-form .row{display:flex;gap:12px;flex-wrap:wrap}
