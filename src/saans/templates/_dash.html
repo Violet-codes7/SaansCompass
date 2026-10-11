@@ -2,7 +2,8 @@
 {% set pt = air_now.particles %}
 <section class="panel dash" id="air" aria-label="Air and weather now">
   <div class="dash-group">
-    <h2>Air quality{% if area_name %} at {{ area_name }}{% endif %}</h2>
+    {% set dd = layout.dash_day %}{% set ad = air_day if air_day is defined else none %}
+    <h2>{% if ad and area_name %}{{ dd.title.format(area=area_name) }}{% else %}Air quality{% if area_name %} at {{ area_name }}{% endif %}{% endif %}</h2>
     {% if air_change %}
     <details class="air-change"{% if air_nf %} open{% endif %}><summary>{{ layout.air_change.summary }}</summary>
       <form method="get" action="{{ url_for('plan_page') }}">
@@ -14,7 +15,15 @@
     </details>
     {% endif %}
     <div class="gauges">
-      {% if pt.basis == 'cpcb' %}
+      {% if ad %}
+      <figure>{{ aqi_gauge(ad.aqi, dd.average) }}
+        <figcaption><b>{{ dd.average }}</b>{% if ad.category %}<span class="cat-chip {{ ad.category|lower|replace(' ', '-') }}">{{ ad.category }}</span>{% endif %}</figcaption></figure>
+      {% for key in ('worst', 'best') %}{% set h = ad[key] %}
+      <figure>{{ aqi_gauge(h.aqi, dd[key]) }}
+        <figcaption><b>{{ dd[key] }}</b><span class="cat-chip {{ h.category|lower|replace(' ', '-') }}">{{ h.category }}</span>
+          <small>{{ dd.at.format(time=h.time) }}</small></figcaption></figure>
+      {% endfor %}
+      {% elif pt.basis == 'cpcb' %}
       <figure>{{ aqi_gauge(pt.aqi, 'AQI now, CPCB') }}
         <figcaption><b>Now</b><span class="cat-chip {{ (pt.category or 'no data')|lower|replace(' ', '-') }}">{{ pt.category or 'No data' }}</span>
           <small>{{ pt.station }} · {{ pt.updated }} IST</small></figcaption></figure>
@@ -25,11 +34,13 @@
         <figcaption><b>This hour</b><span class="cat-chip {{ (air_now.category if air_now.aqi is not none else 'no data')|lower|replace(' ', '-') }}">{{ air_now.category if air_now.aqi is not none else 'No data' }}</span>
           <small>{{ air_now.time[11:] }} IST{% if air_now.dominant %} · mostly {{ air_now.dominant }}{% endif %}</small></figcaption></figure>
       {% endif %}
+      {% if not ad %}
       <figure>{{ aqi_gauge(air_tomorrow.aqi, 'AQI tomorrow') }}
         <figcaption><b>Tomorrow</b>{% if air_tomorrow.category %}<span class="cat-chip {{ air_tomorrow.category|lower|replace(' ', '-') }}">{{ air_tomorrow.category }}</span>{% endif %}</figcaption></figure>
+      {% endif %}
     </div>
     <div class="pm-tiles">
-      {% for p in particles.particles %}{% set v = pt[p.key] %}
+      {% for p in particles.particles %}{% set v = (ad or pt)[p.key] %}
       <div class="pm-tile"><span class="g-k">{{ p.id }}</span>
         <b>{{ v if v is not none else '–' }} <small>µg/m³</small></b>
         {% if v is not none %}<span class="{{ 'over' if v > p.limits.cpcb_24h else 'ok' }}">{{ (v / p.limits.who_24h)|round(1) }}× WHO</span>{% endif %}</div>
@@ -38,7 +49,7 @@
     {% if is_stale %}<p class="small"><b>The live forecast is unreachable: this is the last one, fetched {{ fetched_at[:16]|replace('T', ' ') }} IST.</b></p>{% endif %}
   </div>
   <div class="dash-group">
-    <h2>{{ weather_text.title.format(name=weather_place) }}</h2>
+    <h2>{{ (weather_text.title_day if weather and weather.span else weather_text.title).format(name=weather_place) }}</h2>
     {% if weather %}
     {% set b = weather.bands %}
     <div class="gauges weather">
@@ -58,7 +69,7 @@
       {% endif %}
     </div>
     {% if weather.note %}<p class="small why-air"><b>Why it matters:</b> {{ weather.note }}</p>{% endif %}
-    <p class="small muted">{{ weather_text.updated.format(time=weather.time|replace('T', ' ')) }}</p>
+    <p class="small muted">{% if weather.span %}{{ weather_text.forecast.format(date=weather.time, span=weather.span) }}{% else %}{{ weather_text.updated.format(time=weather.time|replace('T', ' ')) }}{% endif %}</p>
     {% else %}
     <p class="small">Weather is not available right now.</p>
     {% endif %}

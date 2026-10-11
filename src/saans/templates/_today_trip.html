@@ -1,0 +1,23 @@
+{# One day's trip, prefilled from `p` and used for that plan only, never saved:
+   the home page's "Today's trip" and the plan's "Try a different day".
+   Takes legend, help (optional), to_label and stay_label. #}
+{% set hm = layout.home %}
+<fieldset class="trip">
+  <legend>{{ legend }}{% if help %} <small class="small">{{ help }}</small>{% endif %}</legend>
+  <div class="trip-grid">
+    <label><span data-from-label data-trip="{{ hm.trip_from }}" data-stay="{{ hm.stay_from }}">{{ hm.stay_from if p.stay else hm.trip_from }}</span>
+      <span class="with-button">
+        <input name="from" data-clears="area" required maxlength="120" autocomplete="off" value="{{ p['from'] or '' }}">
+        {% if locate_near(p.area) %}<button type="button" class="ghost locate" data-api="{{ url_for('api_locate') }}"
+          {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>{% endif %}
+      </span></label>
+    <input type="hidden" name="area" value="{{ p.area or '' }}">
+    <label data-trip-only>{{ to_label }} <input name="to" data-clears="to_area" maxlength="120" autocomplete="off" value="{{ p.to or '' }}"></label>
+    <input type="hidden" name="to_area" value="{{ p.to_area or '' }}" data-trip-only>
+    <label data-trip-only>{{ hm.travel }} <input name="travel" data-clears="commute,modes" maxlength="120" autocomplete="off" value="{{ p.travel or '' }}"></label>
+    <input type="hidden" name="commute" value="{{ '' if p.stay else p.commute or '' }}" data-trip-only>
+    <input type="hidden" name="modes" {% set m = '' if p.stay else p.modes or '' %}value="{{ m if m is string else m|join(',') }}" data-trip-only>
+  </div>
+  <label class="check"><input type="checkbox" name="stay" value="1" {% if p.stay %}checked{% endif %}> {{ stay_label }}</label>
+  <p class="small locate-status" aria-live="polite"></p>
+</fieldset>

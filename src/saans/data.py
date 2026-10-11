@@ -123,7 +123,7 @@ def get_area(area_id, store=None):
             p = json.loads(raw)
             _places[area_id] = Area(area_id, p["name"], p["lat"], p["lon"])
             return _places[area_id]
-        raise ValueError("That place has expired. Please type it again.")
+        raise ValueError(settings.load("layout")["errors"]["place_expired"])
     raise ValueError(f"area must be one of {', '.join(AREAS)}") from None
 
 
@@ -341,6 +341,24 @@ def day_aqi(forecast, date):
     avg25 = sum(pm25) / len(pm25) if pm25 else None
     avg10 = sum(pm10) / len(pm10) if pm10 else None
     return aqi_mod.aqi(avg25, avg10)[0]
+
+
+def day_summary(forecast, date):
+    """A forecast day at a glance: its average AQI and particles, and its
+    worst and cleanest hours. None when the forecast has nothing for it."""
+    rows = [r for r in readings_for(forecast, date, range(24)) if r["aqi"] is not None]
+    if not rows:
+        return None
+    pm25 = _mean(r["pm25"] for r in rows)
+    pm10 = _mean(r["pm10"] for r in rows)
+    value, dominant = aqi_mod.aqi(pm25, pm10)
+    worst = max(rows, key=lambda r: r["aqi"])
+    best = min(rows, key=lambda r: r["aqi"])
+    hour = lambda r: {"aqi": r["aqi"], "category": aqi_mod.category(r["aqi"]), "time": r["time"][11:]}  # noqa: E731
+    return {"date": date.isoformat(), "aqi": value, "dominant": dominant,
+            "category": aqi_mod.category(value) if value is not None else None,
+            "pm25": round(pm25) if pm25 is not None else None, "pm10": round(pm10) if pm10 is not None else None,
+            "worst": hour(worst), "best": hour(best)}
 
 
 def _mean(values):

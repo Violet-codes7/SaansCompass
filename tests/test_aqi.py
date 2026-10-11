@@ -1,6 +1,6 @@
 import pytest
 
-from saans.aqi import PM10_BREAKPOINTS, PM25_BREAKPOINTS, aqi, category, sub_index
+from saans.aqi import PM10_BREAKPOINTS, PM25_BREAKPOINTS, aqi, category, correct_bands, sub_index
 
 
 @pytest.mark.parametrize("conc,expected", [
@@ -45,3 +45,30 @@ def test_negative_concentration_rejected():
 ])
 def test_categories(value, name):
     assert category(value) == name
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("Delhi is at AQI 218 (moderate) today.", "Delhi is at AQI 218 (poor) today."),  # seen on the live site
+    ("The AQI of 218 is Moderate.", "The AQI of 218 is Poor."),
+    ("AQI 218, moderate, so keep it short.", "AQI 218, poor, so keep it short."),
+    ("Delhi's average is 218 (Moderate).", "Delhi's average is 218 (Poor)."),
+    ("Moderate (AQI 218) all day.", "Poor (AQI 218) all day."),
+    ("a moderate AQI of 218", "a poor AQI of 218"),
+    ("AQI 330 (POOR)", "AQI 330 (VERY POOR)"),
+    ("AQI 600 (Very Poor)", "AQI 600 (Severe)"),
+])
+def test_a_band_next_to_an_aqi_figure_is_that_figures_band(text, expected):
+    assert correct_bands(text) == expected
+
+
+@pytest.mark.parametrize("text", [
+    "ITO: AQI 191 (Moderate), forecast model.",          # already right
+    "AQI 45, good time for a walk",                       # "good" as a word, and right anyway
+    "AQI 218, not a good time to run.",                   # "good" in another sense
+    "Be back by 14:00 (Moderate effort is fine).",       # a time, not an AQI
+    "AQI 150-220 (Moderate to Poor)",                     # a range of figures and bands
+    "Leave at 10:00 (AQI 180) and be back by 14:00.",
+    "",
+])
+def test_other_text_is_left_alone(text):
+    assert correct_bands(text) == text

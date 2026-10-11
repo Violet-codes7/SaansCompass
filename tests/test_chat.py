@@ -116,6 +116,13 @@ def test_chat_looks_up_places_the_question_names(plan, gemini_on):
     assert ai.chat(plan, "Noida?", session=ScriptedSession("PLACES: Noida", "PLACES: Noida"), look_up=look_up) is None
 
 
+def test_chat_answers_name_the_right_band(plan, gemini_on):
+    s = FakeSession("Delhi's average is 218 (Moderate) today.")
+    assert ai.chat(plan, "How bad is it?", session=s) == "Delhi's average is 218 (Poor) today."
+    facts = json.loads(s.calls[0]["contents"][0]["parts"][0]["text"])["plan"]
+    assert all(h["band"] for h in facts["your_hours"] if h["aqi"] is not None) and facts["aqi_bands"]
+
+
 def test_follow_ups_are_split_from_the_answer():
     assert ai.split_follow_ups("Go at 14:00.\n**NEXT:** A? | B? | C? | D?") == ("Go at 14:00.", ["A?", "B?", "C?"])
     assert ai.split_follow_ups("Just this.") == ("Just this.", [])

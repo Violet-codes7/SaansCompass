@@ -6,6 +6,8 @@ Each segment starts where the previous one ends so there are no gaps between
 CPCB's integer breakpoints (for example 30 and 31 µg/m³).
 """
 
+import re
+
 from . import settings
 
 _AQI = settings.load("aqi")
@@ -56,3 +58,44 @@ def category(value):
 
 def category_slug(value):
     return category(value).lower().replace(" ", "-")
+
+
+# Band words in written text (an AI answer): a band named right next to an AQI
+# number must be that number's band on the scale above, whatever the writer chose.
+_BAND = "|".join(sorted((re.escape(name) for _, name in CATEGORIES), key=len, reverse=True))
+_NOT_A_BAND = (r"(?![ \t]+(?:time|times|idea|news|exercise|activity|activities|walk|walks|run|runs|workout|day|choice|option|moment|window|reason|thing|way|start|plan|for[ \t]+(?:a|an|your|you)\b))"
+               r"(?![ \t]*(?:-|–|to\b|or\b)[ \t]*(?:" + _BAND + r"))")  # a range of bands is left alone
+_NUMBER = r"(?<![\d:.])(\d{1,3})(?![\d:.])"
+_AFTER = re.compile(  # "AQI 218 (Moderate)", "AQI of 218, moderate", "AQI 218 which is moderate", "218 (Moderate)"
+    r"(?:\bAQI\b(?:[ \t]*(?:of|is|was|at|around|about|near|nearly|roughly|~|:|=))*[ \t]*~?" + _NUMBER
+    + r"(?P<sep>[ \t]*(?:\(|,|;|:|-|–|—|\bis\b|\bwhich is\b|\bi\.e\.)?[ \t]*(?:(?:still|already|now|only|in the|in)[ \t]+)?)"
+    + r"|(?<![-–])(?<!to )(?<!- )" + _NUMBER + r"(?P<sep2>[ \t]*\([ \t]*))"  # not the end of a range
+    + r"(?P<band>" + _BAND + r")\b" + _NOT_A_BAND, re.IGNORECASE)
+_BEFORE = re.compile(  # "Moderate (AQI 218)", "a moderate AQI of 218"
+    r"\b(?P<band>" + _BAND + r")(?P<sep>[ \t]*(?:air(?:[ \t]+quality)?[ \t]*)?(?:\([ \t]*)?AQI(?:[ \t]+of)?[ \t]*~?)" + _NUMBER,
+    re.IGNORECASE)
+
+
+def _like(word, band):
+    """`band` in the same case as the word it replaces."""
+    if word.isupper():
+        return band.upper()
+    return band.lower() if word.islower() else band
+
+
+def correct_bands(text):
+    """`text` with each band word that sits next to an AQI number replaced by
+    that number's band on this scale; everything else is left as it is."""
+    if not text:
+        return text
+
+    def after(m):
+        value = int(m.group(1) or m.group(3))
+        band = m.group("band")
+        return m.group(0)[:m.start("band") - m.start()] + _like(band, category(min(value, MAX_AQI)))
+
+    def before(m):
+        value = int(m.group(3))
+        return _like(m.group("band"), category(min(value, MAX_AQI))) + m.group("sep") + m.group(3)
+
+    return _BEFORE.sub(before, _AFTER.sub(after, text))

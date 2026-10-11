@@ -60,6 +60,7 @@ def _read_work(job):
 PARTICLES = settings.load("particles")
 CHAT_TEXT = settings.load("chat")
 LAYOUT = settings.load("layout")
+ERRORS = LAYOUT["errors"]
 
 _route_cache = {}
 
@@ -110,10 +111,19 @@ def _modes(raw):
 
 
 def _saved():
-    """The signed-in person's saved profile when this link names no one else."""
+    """The signed-in person's saved profile when this link names no one else.
+    On "Try a different day" (try=1) the link's outdoor hours stand in for the
+    saved ones, as its trip does; nothing is saved."""
     if request.args.get("persona") or request.args.get("job"):
         return None
-    return web_accounts.saved_profile()
+    saved = web_accounts.saved_profile()
+    if saved and _trying():
+        saved = {**saved, **{k: request.args.get(k) or None for k in ("start", "end") if k in request.args}}
+    return saved
+
+
+def _trying():
+    return request.args.get("try") == "1"
 
 
 def _role(saved):
@@ -362,14 +372,26 @@ def create_app():
         air_wx_place = _weather_place(air_area)
         air_wx = wx if air_area.id == plan["area"]["id"] or air_wx_place.id == _weather_place(
             data.get_area(plan["area"]["id"])).id else weather.get_weather(air_wx_place, store)
+        air_day = wx_day = None
+        if plan["day"] != "today":  # the dials follow the tab: tomorrow's forecast, not today's readings
+            day = data.now_ist().astimezone(data.IST).date() + timedelta(days=1)
+            try:
+                air_day = data.day_summary(data.get_forecast(air_area, store, now=data.now_ist()), day)
+            except data.ForecastUnavailable:
+                pass
+            wx_day = weather.for_day(air_wx, day)
         typed = _typed_trip()
         texts = route_texts(request.args if typed or not saved else saved)
         diary = _diary_week(plan, saved)
-        return render_template("plan.html", plan=plan, args=args, weather=air_wx, air=air,
+        trying = bool(saved) and _trying()
+        # The "Try a different day" form starts from the day being tried, else the saved one.
+        try_values = {**saved, "stay": None, **request.args.to_dict()} if trying else saved
+        return render_template("plan.html", plan=plan, args=args, weather=wx_day or air_wx, air=air, air_day=air_day,
                                air_nf=request.args.get("air_nf"), using_saved=bool(saved),
                                saved_trip=bool(saved) and not typed,
                                route_texts=texts, route_text=route.TEXT, role=_role(saved),
-                               display_name=saved.get("name") if saved else None, weather_place=air_wx_place.name,
+                               display_name=(saved or {}).get("name"),
+                               trying=trying, try_values=try_values, weather_place=air_wx_place.name,
                                stay="none" in args["modes"], diary=diary, diary_saved=request.args.get("diary"))
 
     @app.post("/diary")
@@ -501,7 +523,7 @@ def create_app():
     @app.get("/api/summary")
     def api_summary():
         if not ai.enabled():
-            return jsonify({"error": "AI summary is not set up here."}), 503
+            return jsonify({"error": ERRORS["summary_off"]}), 503
         lang = request.args.get("lang", "en")
         try:
             if lang not in ai.LANGUAGES:
@@ -512,7 +534,7 @@ def create_app():
         text = _summary(plan, lang)
         if not text:
             # The provider's reason stays in the logs (ai._fail), never on the page.
-            return jsonify({"error": "No summary right now."}), 502
+            return jsonify({"error": ERRORS["summary_failed"]}), 502
         return jsonify({"summary": text, "lang": lang, "by": ai.label()})
 
     @app.post("/api/chat")
@@ -548,7 +570,7 @@ def create_app():
     @app.get("/api/speak")
     def api_speak():
         if not ai.enabled():
-            return jsonify({"error": "Voice is not set up here."}), 503
+            return jsonify({"error": ERRORS["voice_off"]}), 503
         lang = request.args.get("lang", "en")
         try:
             if lang not in ai.LANGUAGES:
@@ -559,7 +581,7 @@ def create_app():
         text = _summary(plan, lang)
         audio = ai.speak(text, lang) if text else None
         if not audio:
-            return jsonify({"error": "No audio right now."}), 502
+            return jsonify({"error": ERRORS["voice_failed"]}), 502
         return jsonify({"audio": audio, "text": text})
 
     @app.post("/api/translate")
@@ -581,14 +603,14 @@ def create_app():
         email = request.form.get("email", "")
         area_id = request.form.get("area", "")
         if not topic:
-            return render_template("error.html", message="Email alerts are not set up in this environment."), 503
+            return render_template("error.html", message=ERRORS["alerts_off"]), 503
         try:
             area = sns_subscribe(_sns_client(), topic, email, area_id)
         except ValueError as exc:
             return render_template("error.html", message=str(exc)), 400
         except Exception:
             log.exception("subscribe failed")
-            return render_template("error.html", message="Could not subscribe right now. Please try again."), 502
+            return render_template("error.html", message=ERRORS["subscribe_failed"]), 502
         return render_template("subscribed.html", area=area)
 
     @app.get("/favicon.ico")

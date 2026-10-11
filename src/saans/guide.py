@@ -51,7 +51,10 @@ def _area(plan):
         out["vs_delhi"] = TEXT[key].format(diff=abs(diff), delhi=city["aqi"])
         ids = [s["id"] for s in city["sites"]]
         if plan["area"]["id"] in ids:
-            out["rank"] = TEXT["rank"].format(rank=ids.index(plan["area"]["id"]) + 1, count=len(ids))
+            # Ranked by the same figure the card shows (a station's reading
+            # can differ from the model's), so the rank and "cleaner than" agree.
+            rank = 1 + sum(s["aqi"] < value for s in city["sites"] if s["id"] != plan["area"]["id"])
+            out["rank"] = TEXT["rank"].format(rank=rank, count=len(ids))
     return out
 
 

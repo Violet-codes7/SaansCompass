@@ -1,7 +1,7 @@
 """Cleaner route: the road routes between two places from Amazon Location
 Service, and the air along each.
 
-The air at points every sample_km along a route is the nearest live station
+A better path is offered only on bad-air trips (see compare). The air at points every sample_km along a route is the nearest live station
 within station_km (airmap.stations, for a box around all the routes). A
 route's dose is its average AQI times its minutes on the way; the cleanest
 route is the one with the smallest dose, so a cleaner but much longer route
@@ -143,14 +143,19 @@ def compare(start, dest, mode, store, now, client=None, session=None, fetcher=No
         return None
     air = airmap.stations(store, now, box=_box(routes, TEXT["station_km"]), session=session, fetcher=fetcher)
     scored = score(routes, air["stations"])
+    # Route 1 is Amazon Location's first answer, the way most people would go.
+    # A better path is suggested only when its air is worse than suggest_above_aqi
+    # and another route cuts the pollution breathed by at least suggest_min_pct.
+    usual = scored[0]
     known = [r for r in scored if r["dose"] is not None]
     out = None
-    if known:
+    if usual["dose"] and known:
         best = min(known, key=lambda r: r["dose"])
-        worst = max(known, key=lambda r: r["dose"])
-        pct = round(100 * (worst["dose"] - best["dose"]) / worst["dose"]) if worst["dose"] else 0
+        pct = round(100 * (usual["dose"] - best["dose"]) / usual["dose"])
+        suggest = (usual["aqi"] > TEXT["suggest_above_aqi"] and best["n"] != usual["n"]
+                   and pct >= TEXT["suggest_min_pct"])
         out = {"from": start.name, "to": dest.name, "travel": travel, "routes": scored, "best": best["n"],
-               "pct": pct, "source": air["source"]}
+               "pct": pct, "suggest": suggest, "source": air["source"]}
     if store is not None and client is None:
         store.put_text(key, json.dumps(out), ttl_seconds=settings.get("cpcb_cache_seconds"))
     return out

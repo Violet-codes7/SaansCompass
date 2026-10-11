@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from saans import accounts, ai, data, web
@@ -154,7 +156,7 @@ def test_saved_profile_drives_plan_and_poster_without_link_details(client, mem_s
     assert saved["persona"] == "rider" and saved["read"] == "keywords" and saved["area"] == "rohini"
     assert saved["to_area"] == "ito" and saved["commute"] == "two_wheeler"
     html = client.get("/plan").get_data(as_text=True)
-    assert "Edit profile" in html and "Your trips" in html and "Rohini" in html
+    assert "Edit my profile" in html and "Your trips" in html and "Rohini" in html
     assert "We read you as" not in html and 'name="persona"' not in html
     assert '<h1 translate="no">Asha</h1>' in html  # the person's name, not the persona
     assert "Air quality at ITO" in html  # the day is spent at the destination
@@ -270,12 +272,17 @@ def test_poster_shows_the_name_only(client):
     assert '<b translate="no">Asha</b></p>' in html and "<small" not in html.split('class="who"')[1].split("</p>")[0]
 
 
+def _no_try_form(head):
+    """The header as shown: without the folded "Try a different day" form, which repeats the saved profile."""
+    return re.sub(r'<details class="fix try-day">.*?</details>', "", head, flags=re.S)
+
+
 def test_plan_header_has_no_occupation_text(client):
     sign_up_and_in(client)
     client.post("/account/profile", data=PROFILE)
     html = client.get("/plan").get_data(as_text=True)
-    head = html[html.index('<section class="summary">'):html.index("</section>", html.index('<section class="summary">'))]
-    assert "Asha" in head and "Rohini → ITO" in head and "Edit profile" in head
+    head = _no_try_form(html[html.index('<section class="summary">'):html.index("</section>", html.index('<section class="summary">'))])
+    assert "Asha" in head and "Rohini → ITO" in head and "Edit profile" not in head  # one edit link, at the top
     assert "Delivery or gig rider" not in head and "I deliver food" not in head and 'class="role"' not in head
 
 
@@ -290,7 +297,7 @@ def test_todays_trip_outside_our_areas_is_used_as_typed(client, mem_store, monke
     loc = resp.headers["Location"]
     assert resp.status_code == 302 and "area=p-" in loc and "to_area=p-" in loc and "commute=bus" in loc
     html = client.get(loc).get_data(as_text=True)
-    head = html[html.index('<section class="summary">'):html.index('<div class="stage-box')]
+    head = _no_try_form(html[html.index('<section class="summary">'):html.index('<div class="stage-box')])
     assert "Gurugram → Rewari · Bus" in head and "Rohini" not in head and "Air quality at Rewari" in html
     assert mem_store.get_user_profile("sub-0")["area"] == "rohini"  # the profile is not changed
     assert "28.19" not in loc and "76.6" not in loc  # no coordinates in the link
@@ -301,7 +308,7 @@ def test_a_place_that_cannot_be_found_is_said_not_replaced(client, mem_store):
     client.post("/account/profile", data=PROFILE)
     html = client.get("/plan?from=Rohini+Sector+9&area=rohini&to=Atlantis&to_area=&travel=bus&commute=bus&modes=bus",
                       follow_redirects=True).get_data(as_text=True)
-    assert "We could not find &#34;Atlantis&#34; in India" in html and "Connaught Place" not in html
+    assert "We could not find &#34;Atlantis&#34; in India" in html and "Connaught Place" not in _no_try_form(html)
     assert "Air quality at Rohini" in html  # no destination today: the start's air
 
 
@@ -335,3 +342,35 @@ def test_diary_keeps_a_week_under_the_account(client, mem_store):
     assert len(mem_store.get_diary("sub-0")) == 1
     client.post("/account/delete")
     assert mem_store.get_diary("sub-0") == {}
+
+
+def test_try_a_different_day_asks_only_where_and_when(client, mem_store):
+    sign_up_and_in(client)
+    client.post("/account/profile", data=PROFILE)
+    before = dict(mem_store.get_user_profile("sub-0"))
+    html = client.get("/plan").get_data(as_text=True)
+    form = html[html.index('class="fix try-day"'):]
+    form = form[:form.index("</details>")]
+    assert 'name="try" value="1"' in form and 'value="Rohini Sector 9"' in form and 'name="to_area" value="ito"' in form
+    assert 'name="start"' in form and 'name="end"' in form
+    for kept in ('name="persona"', 'name="job"', 'name="cond"', 'name="age"', 'name="vehicle"', 'name="mask"'):
+        assert kept not in form  # the rest of the profile stays as saved, and out of the link
+    tried = client.get("/plan?try=1&from=Rohini+Sector+9&area=rohini&to=Connaught+Place&to_area=ito&travel=scooter"
+                       "&commute=two_wheeler&modes=two_wheeler&start=6&end=8&day=today")
+    page = tried.get_data(as_text=True)
+    assert '<h1 translate="no">Asha</h1>' in page and "Back to my profile" in page and "Age 66" in page
+    assert "Outdoors 06:00-08:00" in page and "Your trips" in page and "Edit my profile" in page
+    tried_form = page[page.index('class="fix try-day"'):]
+    assert '<option value="6" selected>' in tried_form  # starts from the day being tried
+    assert mem_store.get_user_profile("sub-0") == before
+    assert "Outdoors 06:00" not in client.get("/plan?day=today").get_data(as_text=True)  # the saved day is unchanged
+
+
+def test_profile_page_asks_the_kind_of_day_with_the_work(client, mem_store):
+    sign_up_and_in(client)
+    client.post("/account/profile", data=PROFILE)
+    html = client.get("/account/profile").get_data(as_text=True)
+    first = html[html.index("What do you do most days?"):html.index("</fieldset>", html.index("What do you do most days?"))]
+    assert 'name="job"' in first and 'name="persona"' in first and "Work it out from my words" in first
+    assert "Kind of day" not in html and html.count('name="persona"') == 1
+    assert "Save my profile" in html and "Back to my plan" in html and "Usual for my work" in html

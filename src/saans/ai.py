@@ -24,6 +24,7 @@ import time
 
 import requests
 
+from . import aqi as aqi_mod
 from . import settings
 
 log = logging.getLogger(__name__)
@@ -243,15 +244,16 @@ def plan_facts(plan):
         "grap_stage": plan["stage"]["headline"]["title"],
         "grap_applies": plan["stage"]["source"] != "outside",
         "stage_source": plan["stage"]["source"],
-        "delhi_aqi": plan["stage"].get("day_aqi"),
+        "delhi_aqi": _with_band(plan["stage"].get("day_aqi")),
         "stage_outlook_tomorrow": (plan["stage"].get("outlook") or {}).get("label"),
         "verdict": plan["verdict_label"],
-        "day_aqi_category": plan.get("air", {}).get("category"),
+        "day_aqi": _with_band(plan.get("air", {}).get("day_aqi")),
         "best_time": (
             {"what": plan["best_window_title"], "from": plan["best_window"]["start"],
-             "to": plan["best_window"]["end"], "aqi": plan["best_window"]["avg_aqi"]}
+             "to": plan["best_window"]["end"], **_with_band(plan["best_window"]["avg_aqi"])}
             if plan["best_window"] else None
         ),
+        "aqi_bands": AQI_BANDS,
         "rules": [  # only what restricts something; "allowed_rest" names the rest
             {"activity": a["label"], "decision": a["rule"]["label"]}
             for a in plan["activities"] if a["rule"] and a.get("restricts")
@@ -271,13 +273,21 @@ def plan_facts(plan):
     return facts
 
 
+AQI_BANDS = [{"up_to": top, "band": name} for top, name in aqi_mod.CATEGORIES]
+
+
+def _with_band(value):
+    """An AQI figure with its band from the scale, so the model never has to pick one."""
+    return {"aqi": value, "band": aqi_mod.category(value)} if value is not None else None
+
+
 def _trip_facts(route):
     """Where the person goes and the worst air on each trip, without coordinates."""
     if not route:
         return None
     return {"from": route["from"]["name"], "to": route["to"]["name"], "travel": route["modes"],
             "legs": [{"trip": leg["label"], "time": leg["time"],
-                      "worst": {"area": leg["worst"]["name"], "aqi": leg["worst"]["aqi"]} if leg["worst"] else None}
+                      "worst": {"area": leg["worst"]["name"], **_with_band(leg["worst"]["aqi"])} if leg["worst"] else None}
                      for leg in route["legs"]]}
 
 
@@ -325,7 +335,7 @@ def summarize(plan, lang="en", client=None, session=None, runtime=None):
         raise ValueError("lang must be en or hi")
     system = SYSTEM.format(language=LANGUAGES[lang], headings=", ".join(HEADINGS[lang]))
     facts = json.dumps(plan_facts(plan), ensure_ascii=False)
-    return _ask(system, facts, client, session, runtime, what="summary")
+    return aqi_mod.correct_bands(_ask(system, facts, client, session, runtime, what="summary"))
 
 
 CHAT_SYSTEM = _PROMPTS["chat_system"]
@@ -374,17 +384,16 @@ def chat_facts(plan):
     facts.update(
         time_now=plan.get("time_now"),
         day_shown=plan.get("day"),
-        area_aqi=plan.get("air", {}).get("day_aqi"),
         air_this_hour={k: (plan.get("air_now") or {}).get(k) for k in ("time", "aqi", "category")},
         air_tomorrow=plan.get("air_tomorrow"),
         your_limits={"fine_up_to": plan["thresholds"]["go_max"], "keep_short_up_to": plan["thresholds"]["limit_max"]},
-        your_hours=[{"time": f"{r['hour']:02d}:00", "aqi": r["aqi"], "advice": r.get("verdict_label")}
+        your_hours=[{"time": f"{r['hour']:02d}:00", **(_with_band(r["aqi"]) or {"aqi": None}), "advice": r.get("verdict_label")}
                     for r in plan.get("hours", [])],
         hourly_aqi=plan.get("hourly_aqi"),
         rules_today=[{"activity": a["label"], "time": a["time"], "decision": a["rule"]["label"],
                       "why": (a.get("explain") or {}).get("why")}
                      for a in plan["activities"] if a["rule"] and a.get("restricts")],
-        places_air=[{"place": p["name"], "aqi_now": p["aqi"]} for p in plan.get("places_air") or []],
+        places_air=[{"place": p["name"], "aqi_now": _with_band(p["aqi"])} for p in plan.get("places_air") or []],
         windows_plan=(plan.get("windows") or {}).get("lines"),
         plan_saves_pct_vs_worst_hours=(plan.get("dose_saved") or {}).get("vs_worst_pct"),
         rules_at_every_stage=plan.get("stage_table"),
@@ -423,10 +432,10 @@ def chat(plan, question, history=(), lang="en", client=None, session=None, runti
     answer = ask()
     names = asked_places(answer)
     if names is None:
-        return answer
+        return aqi_mod.correct_bands(answer)
     facts["places_asked"] = look_up(names) if look_up else [{"asked": n, "found": None} for n in names]
     answer = ask("\n\n" + _PROMPTS["chat_places_again"])
-    return None if asked_places(answer) is not None else answer
+    return None if asked_places(answer) is not None else aqi_mod.correct_bands(answer)
 
 
 _PERSONA_LIST = settings.load("personas")["personas"]

@@ -1,4 +1,5 @@
 import io
+import json
 from types import SimpleNamespace
 
 import anthropic
@@ -6,6 +7,7 @@ import httpx2 as httpx
 import pytest
 
 from saans import ai, data, stage
+from saans import aqi as aqi_mod
 from saans.service import get_plan
 from saans.web import create_app
 
@@ -42,6 +44,16 @@ def test_summary_uses_plan_facts_only(plan):
     call = client.messages.calls[0]
     assert "English" in call["system"] and call["output_config"] == {"effort": "low"}
     assert "Not allowed" in call["messages"][0]["content"]
+
+
+def test_summary_gives_each_aqi_its_band_and_corrects_a_wrong_one(plan):
+    client = fake_client(reply=message("Today: Delhi is at AQI 218 (moderate), so keep rides short."))
+    assert ai.summarize(plan, "en", client=client) == "Today: Delhi is at AQI 218 (poor), so keep rides short."
+    facts = json.loads(client.messages.calls[0]["messages"][0]["content"])
+    day = facts["day_aqi"]
+    assert day["band"] == aqi_mod.category(day["aqi"]) and facts["delhi_aqi"]["band"] == aqi_mod.category(facts["delhi_aqi"]["aqi"])
+    assert [b["band"] for b in facts["aqi_bands"]] == ["Good", "Satisfactory", "Moderate", "Poor", "Very Poor", "Severe"]
+    assert "AQI bands" in client.messages.calls[0]["system"]
 
 
 def test_summary_in_hindi(plan):

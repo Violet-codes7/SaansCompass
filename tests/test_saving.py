@@ -49,3 +49,8 @@ def test_week_counts_only_followed_days():
 
 def test_ranges_join_consecutive_hours():
     assert windows._ranges([0, 1, 2, 5, 6, 23]) == [(0, 3), (5, 7), (23, 24)]
+
+
+def test_a_run_to_midnight_ends_at_24():
+    from saans.windows import _label
+    assert _label((20, 24)) == "20:00–24:00"

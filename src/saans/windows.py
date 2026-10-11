@@ -19,7 +19,8 @@ def _ranges(hours):
 
 
 def _label(run):
-    return f"{run[0]:02d}:00–{run[1] % 24:02d}:00"
+    # A run to the end of the day reads "…–24:00", not "…–00:00".
+    return f"{run[0]:02d}:00–{run[1]:02d}:00"
 
 
 def plan_windows(plan, now=None):

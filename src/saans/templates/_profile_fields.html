@@ -3,8 +3,20 @@
 {% set p = p or {} %}
 <fieldset>
   <legend>What do you do most days?</legend>
+  {% if pick_persona %}
+  <label>{{ layout.header.pick }} <select name="persona">{% for id, label in work.items() %}<option value="{{ id }}" {% if id == p.persona %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <input type="hidden" name="read" value="picked">
+  {% else %}
   <label class="job">Tell us in your own words
     <textarea name="job" rows="2" maxlength="160" required placeholder="For example: I deliver food on a scooter in Noida, 11am to 10pm">{{ p.job or '' }}</textarea></label>
+  {% if persona_select %}{% set pp = layout.profile_page %}
+  <label class="closest">{{ pp.persona_label }}
+    <select name="persona">
+      <option value="" {% if p.read != 'picked' %}selected{% endif %}>{{ pp.persona_auto }}{% if p.persona in work and p.read != 'picked' %} ({{ pp.persona_now.format(label=work[p.persona]) }}){% endif %}</option>
+      {% for id, label in work.items() %}<option value="{{ id }}" {% if p.read == 'picked' and id == p.persona %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></label>
+  {% endif %}
+  {% endif %}
   {% if show_examples %}
   <p class="examples small"><span>Try:</span>
     {% for ex in ["Class 4 student, I walk to school", "Mason on a building site in Rohini", "Software engineer, I drive to Gurugram",
@@ -23,8 +35,13 @@
           {% for k, v in route_messages.items() %}data-msg-{{ k }}="{{ v }}" {% endfor %}>📍 Use my live location</button>{% endif %}
       </span></label>
     <input type="hidden" name="area" value="{{ p.area or '' }}">
-    <label data-trip-only>Where you go most days <input name="to" maxlength="120" autocomplete="off" placeholder="e.g. Connaught Place, or DPS R K Puram" value="{{ p.to or '' }}"></label>
-    <label data-trip-only>{{ layout.home.travel }} <input name="travel" maxlength="120" autocomplete="off" placeholder="e.g. Metro, then an e-rickshaw from the station" value="{{ p.travel or '' }}"></label>
+    <label data-trip-only>Where you go most days <input name="to"{% if pick_persona %} data-clears="to_area"{% endif %} maxlength="120" autocomplete="off" placeholder="e.g. Connaught Place, or DPS R K Puram" value="{{ p.to or '' }}"></label>
+    <label data-trip-only>{{ layout.home.travel }} <input name="travel"{% if pick_persona %} data-clears="commute,modes"{% endif %} maxlength="120" autocomplete="off" placeholder="e.g. Metro, then an e-rickshaw from the station" value="{{ p.travel or '' }}"></label>
+    {% if pick_persona %}{# what was read from the saved trip, until the text is changed #}
+    <input type="hidden" name="to_area" value="{{ '' if p.stay else p.to_area or '' }}" data-trip-only>
+    <input type="hidden" name="commute" value="{{ '' if p.stay else p.commute or '' }}" data-trip-only>
+    <input type="hidden" name="modes" {% set m = '' if p.stay else p.modes or '' %}value="{{ m if m is string else m|join(',') }}" data-trip-only>
+    {% endif %}
     {% if grap_on %}
     <label>{{ vehicle_labels.question }} <select name="vehicle"><option value="">{{ vehicle_labels.unknown }}</option>{% for id, v in vehicles.items() %}<option value="{{ id }}" {% if p.vehicle == id %}selected{% endif %}>{{ v.label }}</option>{% endfor %}</select>
       <small class="small">{{ vehicle_labels.help }}</small></label>
@@ -50,10 +67,9 @@
 </fieldset>
 
 <fieldset>
-  <legend>Your outdoor hours <small class="small">(leave as "Usual" for the normal hours for your work)</small></legend>
+  <legend>{{ layout.hours.legend }}</legend>
   <div class="row">
-    <label>From <select name="start"><option value="">Usual</option>{% for h in range(24) %}<option value="{{ h }}" {% if p.start is not none and p.start|string == h|string %}selected{% endif %}>{{ '%02d'|format(h) }}:00</option>{% endfor %}</select></label>
-    <label>To <select name="end"><option value="">Usual</option>{% for h in range(24) %}<option value="{{ h }}" {% if p.end is not none and p.end|string == h|string %}selected{% endif %}>{{ '%02d'|format(h) }}:00</option>{% endfor %}</select></label>
+    {% include "_hours.html" %}
     <label class="check"><input type="checkbox" name="mask" value="1" {% if p.mask %}checked{% endif %}> I have an N95 mask</label>
   </div>
 </fieldset>

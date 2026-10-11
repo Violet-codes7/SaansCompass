@@ -1,19 +1,30 @@
 {
   "_about": "The pollution map (home page) and Cleaner route (plan page). Each can be turned off with the settings air_map and clean_route (SAM parameters AirMap and CleanRoute).",
-  "center": {"lat": 28.6139, "lon": 77.209},
+  "center": {
+    "lat": 28.6139,
+    "lon": 77.209
+  },
   "zoom": 9.6,
   "phone_zoom": 9.0,
   "min_zoom": 4,
   "max_zoom": 15,
   "_bounds_about": "Stations are read inside this box around the map centre (degrees each way).",
-  "bounds_pad": {"lat": 0.55, "lon": 0.7},
+  "bounds_pad": {
+    "lat": 0.55,
+    "lon": 0.7
+  },
   "station_stale_hours": 3,
   "marker_radius": 9,
   "_style_about": "The base map: Amazon Location Service when its API key is set up, else the open tiles below.",
   "location_style_url": "https://maps.geo.{region}.amazonaws.com/v2/styles/{style}/descriptor?key={key}&color-scheme={scheme}",
   "location_style": "Standard",
-  "location_schemes": {"light": "Light", "dark": "Dark"},
-  "fallback_tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+  "location_schemes": {
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "fallback_tiles": [
+    "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+  ],
   "fallback_attribution": "© OpenStreetMap contributors",
   "maplibre_js": "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js",
   "maplibre_css": "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css",
@@ -43,16 +54,22 @@
       "car": "Car"
     },
     "default_mode": "car",
-    "line_colours": ["#1f7a4d", "#7a7f87", "#9aa3aa"],
+    "line_colours": [
+      "#1f7a4d",
+      "#7a7f87",
+      "#9aa3aa"
+    ],
     "text": {
-      "title": "Cleaner route",
+      "title": "A cleaner way today",
       "loading": "Comparing routes…",
+      "lead": "Take route {n}: {pct}% less pollution than your usual way (average AQI {aqi} instead of {usual}).",
+      "usual": "Your usual way",
       "route": "Route {n}",
       "cleanest": "Cleanest",
-      "summary": "{km} km · {min} min · average AQI {aqi}",
-      "less": "{pct}% less pollution breathed than the dirtiest route",
-      "only_one": "Only one route was found for this trip.",
-      "same": "These routes have about the same air."
-    }
+      "summary": "{km} km · {min} min · average AQI {aqi}"
+    },
+    "_suggest_about": "The better path shows only when the usual route's average AQI is above suggest_above_aqi (150 = well into Moderate) and another route cuts the pollution breathed by at least suggest_min_pct.",
+    "suggest_above_aqi": 150,
+    "suggest_min_pct": 5
   }
 }
