@@ -58,6 +58,13 @@ def _area(plan):
     return out
 
 
+def _passed(plan, time):
+    """True for an hour ("HH:MM") of today's plan that has already gone by."""
+    if plan["day"] != "today" or not time or not settings.get("skip_past_hours") or not plan.get("time_now"):
+        return False
+    return int(str(time)[:2]) < int(plan["time_now"][:2])
+
+
 def _moments(plan, persona):
     limit = plan["thresholds"]["go_max"]
     out = []
@@ -71,9 +78,9 @@ def _moments(plan, persona):
         label = (TEXT["break"] if persona.flex_prefers == "worst"
                  else TEXT["least_bad"] if w.get("clean") is False else TEXT["best"])
         add("best", label, f"{w['start']}–{w['end']}", w["avg_aqi"], plan["best_window_title"])
-    if plan["air"]["worst"]:
+    if plan["air"]["worst"] and not _passed(plan, plan["air"]["worst"]["time"]):
         add("worst", TEXT["worst"], plan["air"]["worst"]["time"], plan["air"]["worst"]["aqi"])
-    if plan["commute"]:
+    if plan["commute"] and not _passed(plan, plan["commute"]["time"]):
         add("set_out", TEXT["set_out"], plan["commute"]["time"], plan["commute"]["aqi"])
     tomorrow = plan.get("air_tomorrow") or {}
     if plan["day"] == "today" and tomorrow.get("aqi") is not None and plan["air"]["day_aqi"] is not None:
@@ -128,7 +135,7 @@ def _todo(plan, persona, profile, modes):
                                                        times=_ranges(over)) if over
                                 else t["hours_over_none"].format(total=len(known), limit=go))
     worst = plan["air"]["worst"]
-    if worst and worst["aqi"] > go:
+    if worst and worst["aqi"] > go and not _passed(plan, worst["time"]):
         groups["timing"].append(t["avoid_worst"].format(time=worst["time"], aqi=worst["aqi"]))
     tomorrow = plan.get("air_tomorrow") or {}
     if day == "today" and tomorrow.get("aqi") is not None and plan["air"]["day_aqi"] is not None:
@@ -144,7 +151,7 @@ def _todo(plan, persona, profile, modes):
             groups["travel"].append(ADVICE["actions"]["trip_bad"].format(
                 trip=leg["label"], time=leg["time"], area=leg["worst"]["name"], aqi=leg["worst"]["aqi"]))
     c = plan["commute"]
-    if c and c["aqi"] is not None and c["aqi"] > go:
+    if c and c["aqi"] is not None and c["aqi"] > go and not _passed(plan, c["time"]):
         groups["travel"].append(t["set_out_over"].format(time=c["time"], aqi=c["aqi"], limit=go))
     mode = next(iter(modes), None) or (profile.commute if profile else None)
     if mode and COMMUTE_TIPS.get(mode):

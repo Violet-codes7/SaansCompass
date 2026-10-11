@@ -81,7 +81,8 @@ def test_stage_headline(stage, value, cat, title, sub):
     assert stage_headline(0, 150, "Moderate", "tomorrow")["title"] == "No GRAP stage tomorrow"
 
 
-def test_plan_page_explains_rules_and_glance(client):
+def test_plan_page_explains_rules_and_glance(client, monkeypatch):
+    monkeypatch.setenv("SKIP_PAST_HOURS", "false")  # the worst hour may already be past on the real clock
     html = client.get("/plan?persona=worker&area=ito&stage=III&day=today").get_data(as_text=True)
     assert "What it means for you:" in html and "Dusty construction work" in html
     assert "Official source" in html and "worker.dusty_cnd.stage3" in html
@@ -252,3 +253,11 @@ def test_commute_over_the_limit_is_not_a_normal_day(mem_store):
     hours[9] = hours[18] = 90
     plan = get_plan("commuter", "ito", now=FIXED_NOW, fetcher=lambda a: make_hours(hours))
     assert plan["verdict"] == "limit"
+
+
+def test_past_hours_leave_key_times():
+    from saans import guide
+
+    plan = {"day": "today", "time_now": "17:05"}
+    assert guide._passed(plan, "09:00") and not guide._passed(plan, "17:00") and not guide._passed(plan, "20:00")
+    assert not guide._passed({**plan, "day": "tomorrow"}, "09:00")

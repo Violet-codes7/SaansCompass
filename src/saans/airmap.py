@@ -146,6 +146,31 @@ def stations(store, now, box=None, session=None, fetcher=None):
     return out
 
 
+def nearest_station(area, store, now, session=None):
+    """The nearest fresh aqicn station within max_km(area) of a place, as an
+    official-air reading, or None. For when the single-station feed gives
+    nothing usable: the map endpoint lists every station around the place."""
+    import math
+
+    km = cpcb.max_km(area, "waqi_max_km")
+    dlat, dlon = km / 111.0, km / (111.0 * max(math.cos(math.radians(area.lat)), 0.01))
+    box = (round(area.lat - dlat, 2), round(area.lon - dlon, 2), round(area.lat + dlat, 2), round(area.lon + dlon, 2))
+    try:
+        found = _from_waqi(box, now.astimezone(data.IST), session) or []
+    except Exception as exc:
+        log.warning("aqicn nearby stations failed: %s", type(exc).__name__)
+        return None
+    near = sorted(((cpcb._km(area.lat, area.lon, s["lat"], s["lon"]), s) for s in found if s["time"]),
+                  key=lambda pair: pair[0])
+    near = [pair for pair in near if pair[0] <= km]
+    if not near:
+        return None
+    dist, s = near[0]
+    return {"name": s["name"], "short": s["name"], "lat": s["lat"], "lon": s["lon"], "aqi": s["aqi"],
+            "dominant": "PM2.5", "category": s["category"], "slug": s["slug"], "time": s["time"],
+            "km": round(dist, 1), "via": "aqicn"}
+
+
 def _location_key(client=None, now=None):
     """The Amazon Location API key's value, or None (not set up, or no permission)."""
     name = os.environ.get("MAP_KEY_NAME")
